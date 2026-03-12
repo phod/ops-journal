@@ -2,6 +2,17 @@
 
 A macOS menu-bar app for capturing investigation notes. Lives in the menu bar, stays out of your way, and surfaces instantly via a global hotkey.
 
+## On AI usage
+
+This repository has been fully vibe coded. Expect code
+quality to match such a standard.
+
+As a result, contributions are currently not being
+accepted, as the author hasn't yet taken the time
+to understand the codebase itself.
+
+Feel free to fork.
+
 ## Features
 
 - **Global hotkey** (`Cmd+Shift+J`) toggles a frameless always-on-top overlay

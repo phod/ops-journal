@@ -20,14 +20,22 @@ const electronAPI: ElectronAPI = {
   listEntries: (investigationId: string) =>
     ipcRenderer.invoke('entry:list', { investigationId }),
 
-  createEntry: (investigationId: string, body: string) =>
-    ipcRenderer.invoke('entry:create', { investigationId, body }),
+  createEntry: (investigationId: string, body: string, imageDataUrl?: string) =>
+    ipcRenderer.invoke('entry:create', { investigationId, body, imageDataUrl }),
 
-  updateEntry: (id: string, body: string) =>
-    ipcRenderer.invoke('entry:update', { id, body }),
+  updateEntry: (id: string, body: string, imageDataUrl?: string | null) =>
+    ipcRenderer.invoke('entry:update', { id, body, imageDataUrl }),
 
   deleteEntry: (id: string) =>
     ipcRenderer.invoke('entry:delete', { id }),
+
+  // Images
+  pickImage: () => ipcRenderer.invoke('image:pick'),
+
+  captureScreenshot: () => ipcRenderer.invoke('screenshot:capture'),
+
+  getEntryImage: (imagePath: string) =>
+    ipcRenderer.invoke('image:getEntryImage', { imagePath }),
 
   // Settings
   getHotkey: () => ipcRenderer.invoke('settings:getHotkey'),
@@ -44,10 +52,24 @@ const electronAPI: ElectronAPI = {
       callback(investigation)
     }
     ipcRenderer.on('investigation:changed', listener)
-    // Return cleanup function
     return () => {
       ipcRenderer.removeListener('investigation:changed', listener)
     }
+  },
+
+  // Screenshot window helpers
+  onScreenshotData: (callback: (dataUrl: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, dataUrl: string) => {
+      callback(dataUrl)
+    }
+    ipcRenderer.on('screenshot:data', listener)
+    return () => {
+      ipcRenderer.removeListener('screenshot:data', listener)
+    }
+  },
+
+  sendScreenshotSelection: (rect: { x: number; y: number; width: number; height: number } | null) => {
+    ipcRenderer.send('screenshot:selection', rect)
   }
 }
 

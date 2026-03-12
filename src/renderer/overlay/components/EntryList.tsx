@@ -44,12 +44,22 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(entry.body)
   const [saving, setSaving] = useState(false)
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
+  const [imageExpanded, setImageExpanded] = useState(false)
+  const [removeImage, setRemoveImage] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (entry.image_path) {
+      window.electronAPI.getEntryImage(entry.image_path).then(setImageDataUrl).catch(() => {})
+    } else {
+      setImageDataUrl(null)
+    }
+  }, [entry.image_path])
 
   useEffect(() => {
     if (editing) {
       textareaRef.current?.focus()
-      // Place cursor at end
       const len = textareaRef.current?.value.length ?? 0
       textareaRef.current?.setSelectionRange(len, len)
     }
@@ -57,25 +67,34 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
 
   const startEdit = () => {
     setDraft(entry.body)
+    setRemoveImage(false)
     setEditing(true)
   }
 
   const cancelEdit = () => {
     setEditing(false)
     setDraft(entry.body)
+    setRemoveImage(false)
   }
 
   const saveEdit = async () => {
     const trimmed = draft.trim()
-    if (!trimmed || trimmed === entry.body) {
+    if (!trimmed && !imageDataUrl && !removeImage) {
+      cancelEdit()
+      return
+    }
+    if (trimmed === entry.body && !removeImage) {
       cancelEdit()
       return
     }
     setSaving(true)
     try {
-      const updated = await window.electronAPI.updateEntry(entry.id, trimmed)
+      // imageDataUrl param: null = remove, undefined = keep existing
+      const imageParam = removeImage ? null : undefined
+      const updated = await window.electronAPI.updateEntry(entry.id, trimmed, imageParam)
       onUpdated(updated)
       setEditing(false)
+      setRemoveImage(false)
     } catch (err) {
       console.error('[overlay] Failed to update entry:', err)
     } finally {
@@ -148,6 +167,20 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
             rows={3}
             className="no-drag w-full bg-gray-700/80 text-gray-100 font-mono text-sm rounded px-2 py-1.5 border border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
           />
+          {imageDataUrl && !removeImage && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <img src={imageDataUrl} alt="Attached" className="max-h-20 rounded border border-gray-600 object-contain" />
+              <button
+                onClick={() => setRemoveImage(true)}
+                className="no-drag text-xs text-red-400 hover:text-red-300 transition-colors"
+              >
+                Remove image
+              </button>
+            </div>
+          )}
+          {removeImage && (
+            <div className="mt-1 text-xs text-gray-500">Image will be removed on save.</div>
+          )}
           <div className="flex gap-2 mt-1.5">
             <button
               onClick={saveEdit}
@@ -165,12 +198,29 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
           </div>
         </div>
       ) : (
-        <div
-          onDoubleClick={startEdit}
-          className="text-gray-100 text-sm font-mono whitespace-pre-wrap break-words leading-relaxed cursor-text"
-        >
-          {entry.body}
-        </div>
+        <>
+          {entry.body && (
+            <div
+              onDoubleClick={startEdit}
+              className="text-gray-100 text-sm font-mono whitespace-pre-wrap break-words leading-relaxed cursor-text"
+            >
+              {entry.body}
+            </div>
+          )}
+          {imageDataUrl && (
+            <div className={entry.body ? 'mt-1.5' : ''}>
+              <img
+                src={imageDataUrl}
+                alt="Attached"
+                onClick={() => setImageExpanded((v) => !v)}
+                className={`rounded border border-gray-600 object-contain cursor-pointer transition-all ${
+                  imageExpanded ? 'max-h-none w-full' : 'max-h-48'
+                }`}
+                title={imageExpanded ? 'Click to collapse' : 'Click to expand'}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   )

@@ -9,6 +9,7 @@ export interface JournalEntry {
   id: string
   investigation_id: string
   body: string
+  image_path: string | null
   created_at: string
 }
 
@@ -22,9 +23,14 @@ export interface ElectronAPI {
 
   // Entries
   listEntries: (investigationId: string) => Promise<JournalEntry[]>
-  createEntry: (investigationId: string, body: string) => Promise<JournalEntry>
-  updateEntry: (id: string, body: string) => Promise<JournalEntry>
+  createEntry: (investigationId: string, body: string, imageDataUrl?: string) => Promise<JournalEntry>
+  updateEntry: (id: string, body: string, imageDataUrl?: string | null) => Promise<JournalEntry>
   deleteEntry: (id: string) => Promise<void>
+
+  // Images
+  pickImage: () => Promise<string | null>
+  captureScreenshot: () => Promise<string | null>
+  getEntryImage: (imagePath: string) => Promise<string>
 
   // Settings
   getHotkey: () => Promise<string>
@@ -36,6 +42,10 @@ export interface ElectronAPI {
 
   // Push events
   onInvestigationChanged: (callback: (investigation: Investigation | null) => void) => () => void
+
+  // Screenshot window helpers (used by screenshot renderer)
+  onScreenshotData: (callback: (dataUrl: string) => void) => () => void
+  sendScreenshotSelection: (rect: { x: number; y: number; width: number; height: number } | null) => void
 }
 
 declare global {

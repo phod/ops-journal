@@ -10,6 +10,7 @@ export default function App() {
   const { activeInvestigation, entries, loading, addOptimisticEntry, updateEntry, deleteEntry } = useOverlayState()
   const [isDragging, setIsDragging] = useState(false)
   const [pendingImages, setPendingImages] = useState<string[]>([])
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
 
   const handleEntryCreated = (entry: JournalEntry) => {
     addOptimisticEntry(entry)
@@ -108,9 +109,18 @@ export default function App() {
         </div>
       ) : (
         <>
-          <EntryList entries={entries} onEntryUpdated={updateEntry} onEntryDeleted={deleteEntry} />
+          <EntryList
+            entries={entries}
+            editingEntryId={editingEntryId}
+            onEditingEntryIdChange={setEditingEntryId}
+            onEntryUpdated={updateEntry}
+            onEntryDeleted={deleteEntry}
+          />
           <EntryInput
             activeInvestigation={activeInvestigation}
+            entries={entries}
+            editingEntryId={editingEntryId}
+            onSetEditingEntryId={setEditingEntryId}
             onEntryCreated={handleEntryCreated}
             pendingImages={pendingImages}
             onPendingImagesChange={setPendingImages}

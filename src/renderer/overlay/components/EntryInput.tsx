@@ -19,17 +19,21 @@ function toHotkeyHint(accelerator: string): string {
 
 interface Props {
   activeInvestigation: Investigation
+  entries: JournalEntry[]
+  editingEntryId: string | null
+  onSetEditingEntryId: (id: string | null) => void
   onEntryCreated: (entry: JournalEntry) => void
   pendingImages: string[]
   onPendingImagesChange: (images: string[]) => void
 }
 
-export function EntryInput({ activeInvestigation, onEntryCreated, pendingImages, onPendingImagesChange }: Props) {
+export function EntryInput({ activeInvestigation, entries, editingEntryId, onSetEditingEntryId, onEntryCreated, pendingImages, onPendingImagesChange }: Props) {
   const [value, setValue] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [screenshotHint, setScreenshotHint] = useState<string | null>(null)
   const [uploadHint, setUploadHint] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const prevEditingEntryIdRef = useRef<string | null>(null)
 
   const atLimit = pendingImages.length >= MAX_IMAGES_PER_ENTRY
 
@@ -46,10 +50,27 @@ export function EntryInput({ activeInvestigation, onEntryCreated, pendingImages,
     return () => window.removeEventListener('focus', onWindowFocus)
   }, [])
 
+  // Refocus textarea when a row's edit mode ends
+  useEffect(() => {
+    if (prevEditingEntryIdRef.current !== null && editingEntryId === null) {
+      textareaRef.current?.focus()
+    }
+    prevEditingEntryIdRef.current = editingEntryId
+  }, [editingEntryId])
+
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       await submitEntry()
+      return
+    }
+
+    if (e.key === 'ArrowUp') {
+      const isOnFirstLine = !e.currentTarget.value.substring(0, e.currentTarget.selectionStart).includes('\n')
+      if (isOnFirstLine && entries.length > 0) {
+        e.preventDefault()
+        onSetEditingEntryId(entries[entries.length - 1].id)
+      }
     }
   }
 

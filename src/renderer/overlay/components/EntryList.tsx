@@ -3,6 +3,8 @@ import type { JournalEntry } from '../../../../shared/ipc-types'
 
 interface Props {
   entries: JournalEntry[]
+  editingEntryId: string | null
+  onEditingEntryIdChange: (id: string | null) => void
   onEntryUpdated: (entry: JournalEntry) => void
   onEntryDeleted: (id: string) => void
 }
@@ -36,12 +38,16 @@ function formatTimestamp(isoString: string): string {
 
 interface EntryRowProps {
   entry: JournalEntry
+  isEditing: boolean
+  onEditStart: () => void
+  onEditEnd: () => void
+  onNavigateUp: (() => void) | undefined
+  onNavigateDown: () => void
   onUpdated: (entry: JournalEntry) => void
   onDeleted: (id: string) => void
 }
 
-function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
-  const [editing, setEditing] = useState(false)
+function EntryRow({ entry, isEditing, onEditStart, onEditEnd, onNavigateUp, onNavigateDown, onUpdated, onDeleted }: EntryRowProps) {
   const [draft, setDraft] = useState(entry.body)
   const [saving, setSaving] = useState(false)
   // Maps image_path → loaded data URL for display
@@ -61,24 +67,21 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
     }
   }, [entry.image_paths])
 
+  // Initialise draft and focus when entering edit mode
   useEffect(() => {
-    if (editing) {
+    if (isEditing) {
+      setDraft(entry.body)
+      setPendingRemovals(new Set())
       textareaRef.current?.focus()
       const len = textareaRef.current?.value.length ?? 0
       textareaRef.current?.setSelectionRange(len, len)
     }
-  }, [editing])
-
-  const startEdit = () => {
-    setDraft(entry.body)
-    setPendingRemovals(new Set())
-    setEditing(true)
-  }
+  }, [isEditing])
 
   const cancelEdit = () => {
-    setEditing(false)
     setDraft(entry.body)
     setPendingRemovals(new Set())
+    onEditEnd()
   }
 
   const saveEdit = async () => {
@@ -99,7 +102,7 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
         : undefined
       const updated = await window.electronAPI.updateEntry(entry.id, trimmed, keepImagePaths)
       onUpdated(updated)
-      setEditing(false)
+      onEditEnd()
       setPendingRemovals(new Set())
     } catch (err) {
       console.error('[overlay] Failed to update entry:', err)
@@ -115,6 +118,20 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
     } else if (e.key === 'Escape') {
       e.stopPropagation()
       cancelEdit()
+    } else if (e.key === 'ArrowUp' && onNavigateUp) {
+      const isOnFirstLine = !e.currentTarget.value.substring(0, e.currentTarget.selectionStart).includes('\n')
+      if (isOnFirstLine) {
+        e.preventDefault()
+        cancelEdit()
+        onNavigateUp()
+      }
+    } else if (e.key === 'ArrowDown') {
+      const isOnLastLine = !e.currentTarget.value.substring(e.currentTarget.selectionStart).includes('\n')
+      if (isOnLastLine) {
+        e.preventDefault()
+        cancelEdit()
+        onNavigateDown()
+      }
     }
   }
 
@@ -145,10 +162,10 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
         <div className="text-xs text-gray-500 font-mono select-none">
           {formatTimestamp(entry.created_at)}
         </div>
-        {!editing && (
+        {!isEditing && (
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
-              onClick={startEdit}
+              onClick={onEditStart}
               className="no-drag text-gray-500 hover:text-gray-300 transition-colors px-1"
               title="Edit"
             >
@@ -173,7 +190,7 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
         )}
       </div>
 
-      {editing ? (
+      {isEditing ? (
         <div>
           <textarea
             ref={textareaRef}
@@ -238,7 +255,7 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
         <>
           {entry.body && (
             <div
-              onDoubleClick={startEdit}
+              onDoubleClick={onEditStart}
               className="text-gray-100 text-sm font-mono whitespace-pre-wrap break-words leading-relaxed cursor-text"
             >
               {entry.body}
@@ -266,7 +283,7 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
   )
 }
 
-export function EntryList({ entries, onEntryUpdated, onEntryDeleted }: Props) {
+export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onEntryUpdated, onEntryDeleted }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -285,10 +302,15 @@ export function EntryList({ entries, onEntryUpdated, onEntryDeleted }: Props) {
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
-      {entries.map((entry) => (
+      {entries.map((entry, i) => (
         <EntryRow
           key={entry.id}
           entry={entry}
+          isEditing={editingEntryId === entry.id}
+          onEditStart={() => onEditingEntryIdChange(entry.id)}
+          onEditEnd={() => onEditingEntryIdChange(null)}
+          onNavigateUp={i > 0 ? () => onEditingEntryIdChange(entries[i - 1].id) : undefined}
+          onNavigateDown={() => i < entries.length - 1 ? onEditingEntryIdChange(entries[i + 1].id) : onEditingEntryIdChange(null)}
           onUpdated={onEntryUpdated}
           onDeleted={onEntryDeleted}
         />

@@ -1,3 +1,5 @@
+export type EntryType = 'note' | 'action' | 'finding'
+
 export interface Investigation {
   id: string
   name: string
@@ -15,6 +17,7 @@ export interface JournalEntry {
   body: string
   image_paths: string[]
   created_at: string
+  type: EntryType
 }
 
 export interface ElectronAPI {
@@ -28,8 +31,8 @@ export interface ElectronAPI {
 
   // Entries
   listEntries: (investigationId: string) => Promise<JournalEntry[]>
-  createEntry: (investigationId: string, body: string, imageDataUrls?: string[]) => Promise<JournalEntry>
-  updateEntry: (id: string, body: string, keepImagePaths?: string[] | null) => Promise<JournalEntry>
+  createEntry: (investigationId: string, body: string, imageDataUrls?: string[], type?: EntryType) => Promise<JournalEntry>
+  updateEntry: (id: string, body: string, keepImagePaths?: string[] | null, type?: EntryType) => Promise<JournalEntry>
   deleteEntry: (id: string) => Promise<void>
 
   // Images

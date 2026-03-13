@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
+import type { EntryTypeDefinition } from '@shared/entry-types'
+import { getEntryTypeDefinition } from '@shared/entry-types'
+import { getCompletions, parseSlashCommand } from '@shared/slash-commands'
 
 const symbolMap: Record<string, string> = {
   CommandOrControl: '⌘',
@@ -32,6 +35,8 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
   const [submitting, setSubmitting] = useState(false)
   const [screenshotHint, setScreenshotHint] = useState<string | null>(null)
   const [uploadHint, setUploadHint] = useState<string | null>(null)
+  const [completions, setCompletions] = useState<EntryTypeDefinition[]>([])
+  const [selectedCompletionIndex, setSelectedCompletionIndex] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const prevEditingEntryIdRef = useRef<string | null>(null)
 
@@ -58,14 +63,51 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
     prevEditingEntryIdRef.current = editingEntryId
   }, [editingEntryId])
 
+  const handleValueChange = (newValue: string) => {
+    setValue(newValue)
+    const newCompletions = getCompletions(newValue.trimStart())
+    setCompletions(newCompletions)
+    setSelectedCompletionIndex(0)
+  }
+
+  const applyCompletion = (def: EntryTypeDefinition) => {
+    const cmd = def.command! + ' '
+    setValue(cmd)
+    setCompletions([])
+    textareaRef.current?.focus()
+  }
+
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (completions.length > 0) {
+      if (e.key === 'Tab') {
+        e.preventDefault()
+        applyCompletion(completions[selectedCompletionIndex])
+        return
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedCompletionIndex((i) => (i + 1) % completions.length)
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedCompletionIndex((i) => (i - 1 + completions.length) % completions.length)
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setCompletions([])
+        return
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       await submitEntry()
       return
     }
 
-    if (e.key === 'ArrowUp') {
+    if (e.key === 'ArrowUp' && completions.length === 0) {
       const isOnFirstLine = !e.currentTarget.value.substring(0, e.currentTarget.selectionStart).includes('\n')
       if (isOnFirstLine && entries.length > 0) {
         e.preventDefault()
@@ -78,16 +120,19 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
     const trimmed = value.trim()
     if ((!trimmed && pendingImages.length === 0) || submitting) return
 
+    const { type, body } = parseSlashCommand(trimmed)
     const imagesToSubmit = pendingImages
     setValue('')
+    setCompletions([])
     onPendingImagesChange([])
     setSubmitting(true)
 
     try {
       const entry = await window.electronAPI.createEntry(
         activeInvestigation.id,
-        trimmed,
-        imagesToSubmit.length > 0 ? imagesToSubmit : undefined
+        body,
+        imagesToSubmit.length > 0 ? imagesToSubmit : undefined,
+        type
       )
       onEntryCreated(entry)
     } catch (err) {
@@ -141,6 +186,10 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
     return window.electronAPI.onTriggerUpload(handlePickImage)
   }, [handlePickImage])
 
+  // Detect active slash command type for badge display
+  const { type: detectedType } = parseSlashCommand(value.trim())
+  const typeDef = detectedType !== 'note' ? getEntryTypeDefinition(detectedType) : null
+
   return (
     <div className="no-drag px-3 pb-3 pt-2 border-t border-gray-700/50">
       {/* Pending image previews */}
@@ -173,17 +222,42 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
       )}
 
       <div className="relative">
+        {/* Autocomplete dropdown */}
+        {completions.length > 0 && (
+          <div className="absolute bottom-full mb-1 left-0 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-10 min-w-[160px]">
+            {completions.map((def, i) => (
+              <button
+                key={def.type}
+                onMouseDown={(e) => { e.preventDefault(); applyCompletion(def) }}
+                className={`w-full text-left px-3 py-1.5 text-sm font-mono flex items-center gap-2 transition-colors ${
+                  i === selectedCompletionIndex ? 'bg-gray-700 text-gray-100' : 'text-gray-300 hover:bg-gray-700/60'
+                }`}
+              >
+                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${def.tagBgClass} ${def.tagTextClass}`}>
+                  {def.label.toUpperCase()}
+                </span>
+                <span className="text-gray-500">{def.command}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         <textarea
           ref={textareaRef}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => handleValueChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a note… (Enter to save, Shift+Enter for newline)"
           rows={3}
           className="no-drag w-full bg-gray-800/80 text-gray-100 placeholder-gray-600 font-mono text-sm rounded-lg px-3 py-2.5 border border-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none transition-colors"
         />
-        <div className="absolute bottom-2 right-2 text-xs text-gray-600 select-none pointer-events-none">
-          ↵ save
+        <div className="absolute bottom-2 right-2 flex items-center gap-1.5 select-none pointer-events-none">
+          {typeDef && (
+            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${typeDef.tagBgClass} ${typeDef.tagTextClass}`}>
+              {typeDef.label.toUpperCase()}
+            </span>
+          )}
+          <span className="text-xs text-gray-600">↵ save</span>
         </div>
       </div>
 

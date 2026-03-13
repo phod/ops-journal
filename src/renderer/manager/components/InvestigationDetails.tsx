@@ -3,6 +3,8 @@ import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { DetailsEntryList } from '../../details/components/DetailsEntryList'
 import { formatDate } from '@shared/format-date'
 
+type Filter = 'all' | 'images' | 'finding' | 'action'
+
 interface Props {
   investigationId: string
   onBack: () => void
@@ -12,6 +14,7 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
   const [investigation, setInvestigation] = useState<Investigation | null>(null)
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<Filter>('all')
 
   useEffect(() => {
     setLoading(true)
@@ -50,6 +53,26 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
 
   const isActive = investigation.is_active === 1
 
+  const filteredEntries = entries.filter((e) => {
+    if (filter === 'all') return true
+    if (filter === 'images') return e.image_paths.length > 0
+    return e.type === filter
+  })
+
+  const counts = {
+    all: entries.length,
+    images: entries.filter((e) => e.image_paths.length > 0).length,
+    finding: entries.filter((e) => e.type === 'finding').length,
+    action: entries.filter((e) => e.type === 'action').length
+  }
+
+  const tabs: { key: Filter; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'images', label: 'Images' },
+    { key: 'finding', label: 'Findings' },
+    { key: 'action', label: 'Actions' }
+  ]
+
   return (
     <div className="flex flex-col gap-6">
       {/* Back + header */}
@@ -80,10 +103,29 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
 
       {/* Entry timeline */}
       <div>
-        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-3">
-          {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+        {/* Filter tabs */}
+        <div className="flex gap-1 mb-3 border-b border-gray-700/50">
+          {tabs.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`text-xs px-3 py-1.5 rounded-t font-medium transition-colors ${
+                filter === key
+                  ? 'bg-gray-700 text-gray-100 border border-b-0 border-gray-600'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              {label}
+              {counts[key] > 0 && (
+                <span className="ml-1.5 text-gray-500">{counts[key]}</span>
+              )}
+            </button>
+          ))}
         </div>
-        <DetailsEntryList entries={entries} />
+        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-3">
+          {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+        </div>
+        <DetailsEntryList entries={filteredEntries} onEntryUpdated={(updated) => setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))} />
       </div>
     </div>
   )

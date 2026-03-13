@@ -85,6 +85,7 @@ describe('InvestigationList', () => {
         onDelete={onDelete}
       />
     )
+    await user.click(screen.getByTitle('More options'))
     await user.click(screen.getByRole('button', { name: /delete/i }))
     expect(window.confirm).toHaveBeenCalled()
   })
@@ -101,6 +102,7 @@ describe('InvestigationList', () => {
         onDelete={onDelete}
       />
     )
+    await user.click(screen.getByTitle('More options'))
     await user.click(screen.getByRole('button', { name: /delete/i }))
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith('inv-1'))
   })
@@ -117,6 +119,7 @@ describe('InvestigationList', () => {
         onDelete={onDelete}
       />
     )
+    await user.click(screen.getByTitle('More options'))
     await user.click(screen.getByRole('button', { name: /delete/i }))
     expect(onDelete).not.toHaveBeenCalled()
   })

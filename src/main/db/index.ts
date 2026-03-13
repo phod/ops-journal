@@ -11,7 +11,6 @@ export function getDb(): Database.Database {
   const dbPath = path.join(app.getPath('userData'), 'ops-journal.db')
   db = new Database(dbPath)
 
-  // Performance and correctness pragmas
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
 
@@ -22,7 +21,6 @@ export function getDb(): Database.Database {
 }
 
 function runMigrations(database: Database.Database): void {
-  // Create migrations tracking table
   database.exec(`
     CREATE TABLE IF NOT EXISTS _migrations (
       id INTEGER PRIMARY KEY,
@@ -30,13 +28,13 @@ function runMigrations(database: Database.Database): void {
     )
   `)
 
-  const getApplied = database.prepare('SELECT id FROM _migrations ORDER BY id')
+  const applied = new Set(
+    (database.prepare('SELECT id FROM _migrations').all() as { id: number }[]).map((r) => r.id)
+  )
   const insertMigration = database.prepare('INSERT INTO _migrations (id) VALUES (?)')
 
-  const applied = (getApplied.all() as { id: number }[]).map((r) => r.id)
-
   for (let i = 0; i < migrations.length; i++) {
-    if (!applied.includes(i)) {
+    if (!applied.has(i)) {
       database.exec(migrations[i])
       insertMigration.run(i)
       console.log(`[db] Applied migration ${i}`)

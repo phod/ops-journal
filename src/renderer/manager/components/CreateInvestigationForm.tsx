@@ -1,8 +1,7 @@
-import React, { useState, useRef } from 'react'
-import type { Investigation } from '../../../../shared/ipc-types'
+import { type FormEvent, useState, useRef } from 'react'
 
 interface Props {
-  onCreated: (investigation: Investigation) => void
+  onCreated: () => void
 }
 
 export function CreateInvestigationForm({ onCreated }: Props) {
@@ -11,7 +10,7 @@ export function CreateInvestigationForm({ onCreated }: Props) {
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) return
@@ -21,10 +20,10 @@ export function CreateInvestigationForm({ onCreated }: Props) {
 
     try {
       // Create then immediately set as active
-      const investigation = await window.electronAPI.createInvestigation(trimmed)
-      await window.electronAPI.setActiveInvestigation(investigation.id)
+      const { id } = await window.electronAPI.createInvestigation(trimmed)
+      await window.electronAPI.setActiveInvestigation(id)
       setName('')
-      onCreated(investigation)
+      onCreated()
       inputRef.current?.focus()
     } catch (err) {
       console.error('[manager] Failed to create investigation:', err)

@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 
 const isDev = process.env.NODE_ENV === 'development' || process.env.ELECTRON_IS_DEV === '1'
+const devServerUrl = process.env['ELECTRON_RENDERER_URL']
 
 let overlayWindow: BrowserWindow | null = null
 let managerWindow: BrowserWindow | null = null
@@ -37,6 +38,23 @@ function saveBounds(win: BrowserWindow): void {
   }
 }
 
+function loadWindowUrl(win: BrowserWindow, page: string): void {
+  if (isDev && devServerUrl) {
+    win.loadURL(`${devServerUrl}/${page}`)
+  } else {
+    win.loadFile(path.join(__dirname, `../renderer/${page}`))
+  }
+}
+
+function sharedWebPreferences(): Electron.WebPreferences {
+  return {
+    preload: path.join(__dirname, '../preload/index.js'),
+    sandbox: false,
+    contextIsolation: true,
+    nodeIntegration: false
+  }
+}
+
 export function createOverlayWindow(): BrowserWindow {
   const saved = loadBounds()
   const win = new BrowserWindow({
@@ -51,12 +69,7 @@ export function createOverlayWindow(): BrowserWindow {
     show: false,
     resizable: true,
     hasShadow: true,
-    webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
-      sandbox: false,
-      contextIsolation: true,
-      nodeIntegration: false
-    }
+    webPreferences: sharedWebPreferences()
   })
 
   win.on('move', () => saveBounds(win))
@@ -65,11 +78,7 @@ export function createOverlayWindow(): BrowserWindow {
   win.setAlwaysOnTop(true, 'floating')
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
-  if (isDev && process.env['ELECTRON_RENDERER_URL']) {
-    win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html`)
-  } else {
-    win.loadFile(path.join(__dirname, '../renderer/index.html'))
-  }
+  loadWindowUrl(win, 'index.html')
 
   overlayWindow = win
   return win
@@ -81,12 +90,7 @@ export function createManagerWindow(): BrowserWindow {
     height: 600,
     show: false,
     titleBarStyle: 'default',
-    webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
-      sandbox: false,
-      contextIsolation: true,
-      nodeIntegration: false
-    }
+    webPreferences: sharedWebPreferences()
   })
 
   win.setTitle('Ops Journal — Investigations')
@@ -103,11 +107,7 @@ export function createManagerWindow(): BrowserWindow {
     }
   })
 
-  if (isDev && process.env['ELECTRON_RENDERER_URL']) {
-    win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/manager.html`)
-  } else {
-    win.loadFile(path.join(__dirname, '../renderer/manager.html'))
-  }
+  loadWindowUrl(win, 'manager.html')
 
   managerWindow = win
   return win

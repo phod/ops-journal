@@ -134,15 +134,11 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
 
   // Listen for global hotkey triggers from main process
   useEffect(() => {
-    return window.electronAPI.onTriggerScreenshot((dataUrl) => {
-      addImages([dataUrl])
-    })
+    return window.electronAPI.onTriggerScreenshot((dataUrl) => addImages([dataUrl]))
   }, [addImages])
 
   useEffect(() => {
-    return window.electronAPI.onTriggerUpload(() => {
-      handlePickImage()
-    })
+    return window.electronAPI.onTriggerUpload(handlePickImage)
   }, [handlePickImage])
 
   return (

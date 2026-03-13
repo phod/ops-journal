@@ -1,5 +1,5 @@
-import { app, BrowserWindow } from 'electron'
-import { createOverlayWindow, createManagerWindow, hideOverlay, getOverlayWindow, setAppQuitting } from './windows'
+import { app } from 'electron'
+import { createOverlayWindow, createManagerWindow, getOverlayWindow, setAppQuitting } from './windows'
 import { createTray, updateTrayMenu } from './tray'
 import { registerHotkey, registerImageHotkeys, unregisterAllHotkeys } from './hotkey'
 import { registerIpcHandlers } from './ipc-handlers'
@@ -75,6 +75,3 @@ if (!gotLock) {
     // Don't show any window on activate — let the user use the hotkey or tray
   })
 }
-
-// Suppress unused import warning
-void BrowserWindow

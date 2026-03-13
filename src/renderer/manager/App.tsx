@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import type { Investigation } from '../../shared/ipc-types'
+import { useState, useEffect, useCallback } from 'react'
 import { CreateInvestigationForm } from './components/CreateInvestigationForm'
-import { InvestigationList } from './components/InvestigationList'
 import { HotkeySettings } from './components/HotkeySettings'
 import { InvestigationDetails } from './components/InvestigationDetails'
+import { InvestigationList } from './components/InvestigationList'
+import type { Investigation } from '@shared/ipc-types'
 
 export default function App() {
   const [investigations, setInvestigations] = useState<Investigation[]>([])
@@ -27,38 +27,25 @@ export default function App() {
     fetchInvestigations().finally(() => setLoading(false))
   }, [fetchInvestigations])
 
-  // Subscribe to push events
   useEffect(() => {
-    const unsubscribe = window.electronAPI.onInvestigationChanged(() => {
-      // Re-fetch the full list whenever anything changes
-      fetchInvestigations()
-    })
-    return unsubscribe
+    return window.electronAPI.onInvestigationChanged(() => fetchInvestigations())
   }, [fetchInvestigations])
 
-  // Navigate to details when triggered from main process or overlay
   useEffect(() => {
-    const unsubscribe = window.electronAPI.onShowDetails((id) => {
-      setDetailsId(id)
-    })
-    return unsubscribe
+    return window.electronAPI.onShowDetails(setDetailsId)
   }, [])
 
-  const handleCreated = (_investigation: Investigation) => {
-    fetchInvestigations()
-  }
-
-  const handleSetActive = async (id: string) => {
+  async function handleSetActive(id: string): Promise<void> {
     await window.electronAPI.setActiveInvestigation(id)
     await fetchInvestigations()
   }
 
-  const handleDeactivate = async (id: string) => {
+  async function handleDeactivate(id: string): Promise<void> {
     await window.electronAPI.deactivateInvestigation(id)
     await fetchInvestigations()
   }
 
-  const handleDelete = async (id: string) => {
+  async function handleDelete(id: string): Promise<void> {
     await window.electronAPI.deleteInvestigation(id)
     await fetchInvestigations()
   }
@@ -89,7 +76,7 @@ export default function App() {
             <>
               {/* Create form */}
               <section className="bg-gray-800/50 rounded-xl p-5 border border-gray-700/50">
-                <CreateInvestigationForm onCreated={handleCreated} />
+                <CreateInvestigationForm onCreated={fetchInvestigations} />
               </section>
 
               {/* List */}

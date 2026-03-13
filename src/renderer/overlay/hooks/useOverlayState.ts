@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { Investigation, JournalEntry } from '../../../shared/ipc-types'
+import type { Investigation, JournalEntry } from '@shared/ipc-types'
 
 interface OverlayState {
   activeInvestigations: Investigation[]
@@ -11,7 +11,7 @@ interface OverlayState {
   addOptimisticEntry: (entry: JournalEntry) => void
   updateEntry: (updated: JournalEntry) => void
   deleteEntry: (id: string) => void
-  refreshEntries: (investigationId: string) => Promise<void>
+  fetchEntries: (investigationId: string) => Promise<void>
 }
 
 export function useOverlayState(): OverlayState {
@@ -31,13 +31,6 @@ export function useOverlayState(): OverlayState {
       setEntries([])
     }
   }, [])
-
-  const refreshEntries = useCallback(
-    async (investigationId: string) => {
-      await fetchEntries(investigationId)
-    },
-    [fetchEntries]
-  )
 
   const switchToInvestigation = useCallback(
     (id: string) => {
@@ -133,6 +126,6 @@ export function useOverlayState(): OverlayState {
     addOptimisticEntry,
     updateEntry,
     deleteEntry,
-    refreshEntries
+    fetchEntries
   }
 }

@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { EntryInput } from '../EntryInput'
-import type { Investigation, JournalEntry } from '../../../../../shared/ipc-types'
+import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 
 const mockInvestigation: Investigation = {
@@ -31,6 +31,9 @@ function Wrapper({
   return (
     <EntryInput
       activeInvestigation={mockInvestigation}
+      entries={[]}
+      editingEntryId={null}
+      onSetEditingEntryId={() => {}}
       onEntryCreated={onEntryCreated}
       pendingImages={pendingImages}
       onPendingImagesChange={setPendingImages}

@@ -1,9 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { EntryList } from '../EntryList'
-import type { JournalEntry } from '../../../../../shared/ipc-types'
+import type { JournalEntry } from '@shared/ipc-types'
 
 function makeEntry(overrides: Partial<JournalEntry> = {}): JournalEntry {
   return {
@@ -14,6 +14,28 @@ function makeEntry(overrides: Partial<JournalEntry> = {}): JournalEntry {
     created_at: '2024-01-01 10:00:00',
     ...overrides
   }
+}
+
+// Wrapper that manages editingEntryId state as the real parent would
+function Wrapper({
+  entries,
+  onEntryUpdated,
+  onEntryDeleted
+}: {
+  entries: JournalEntry[]
+  onEntryUpdated: (entry: JournalEntry) => void
+  onEntryDeleted: (id: string) => void
+}) {
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
+  return (
+    <EntryList
+      entries={entries}
+      editingEntryId={editingEntryId}
+      onEditingEntryIdChange={setEditingEntryId}
+      onEntryUpdated={onEntryUpdated}
+      onEntryDeleted={onEntryDeleted}
+    />
+  )
 }
 
 describe('EntryList', () => {
@@ -27,7 +49,7 @@ describe('EntryList', () => {
   })
 
   it('shows empty state when there are no entries', () => {
-    render(<EntryList entries={[]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+    render(<Wrapper entries={[]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
     expect(screen.getByText(/no entries yet/i)).toBeInTheDocument()
   })
 
@@ -36,7 +58,7 @@ describe('EntryList', () => {
       makeEntry({ id: '1', body: 'First note' }),
       makeEntry({ id: '2', body: 'Second note' })
     ]
-    render(<EntryList entries={entries} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+    render(<Wrapper entries={entries} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
     expect(screen.getByText('First note')).toBeInTheDocument()
     expect(screen.getByText('Second note')).toBeInTheDocument()
   })
@@ -47,7 +69,7 @@ describe('EntryList', () => {
       window.electronAPI.getEntryImage = vi.fn().mockResolvedValue(dataUrl)
 
       const entry = makeEntry({ image_paths: ['/some/path.png'] })
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await waitFor(() => {
         const img = screen.getByAltText('Attached')
@@ -59,7 +81,7 @@ describe('EntryList', () => {
     it('does not show images when image_paths is empty', () => {
       window.electronAPI.getEntryImage = vi.fn()
       const entry = makeEntry({ image_paths: [] })
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       expect(screen.queryByAltText('Attached')).not.toBeInTheDocument()
       expect(window.electronAPI.getEntryImage).not.toHaveBeenCalled()
@@ -72,7 +94,7 @@ describe('EntryList', () => {
         .mockResolvedValueOnce(dataUrls[1])
 
       const entry = makeEntry({ image_paths: ['/a.png', '/b.png'] })
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await waitFor(() => {
         expect(screen.getAllByAltText('Attached')).toHaveLength(2)
@@ -84,7 +106,7 @@ describe('EntryList', () => {
       window.electronAPI.getEntryImage = vi.fn().mockResolvedValue(dataUrl)
 
       const entry = makeEntry({ image_paths: ['/img.png'] })
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       const img = await screen.findByAltText('Attached')
       expect(img).toHaveClass('max-h-24')
@@ -103,7 +125,7 @@ describe('EntryList', () => {
       const entry = makeEntry()
       window.electronAPI.deleteEntry = vi.fn().mockResolvedValue(undefined)
 
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       const deleteBtn = screen.getByTitle('Delete')
       await user.click(deleteBtn)
@@ -117,7 +139,7 @@ describe('EntryList', () => {
       window.electronAPI.deleteEntry = vi.fn().mockResolvedValue(undefined)
       ;(window.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true)
 
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await user.click(screen.getByTitle('Delete'))
       await waitFor(() => expect(window.electronAPI.deleteEntry).toHaveBeenCalledWith('entry-1'))
@@ -130,7 +152,7 @@ describe('EntryList', () => {
       window.electronAPI.deleteEntry = vi.fn()
       ;(window.confirm as ReturnType<typeof vi.fn>).mockReturnValue(false)
 
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await user.click(screen.getByTitle('Delete'))
       expect(window.electronAPI.deleteEntry).not.toHaveBeenCalled()
@@ -143,7 +165,7 @@ describe('EntryList', () => {
       const user = userEvent.setup()
       const entry = makeEntry({ body: 'Original text' })
 
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await user.click(screen.getByTitle('Edit'))
       expect(screen.getByRole('textbox')).toHaveValue('Original text')
@@ -153,7 +175,7 @@ describe('EntryList', () => {
       const user = userEvent.setup()
       const entry = makeEntry({ body: 'Double click me' })
 
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await user.dblClick(screen.getByText('Double click me'))
       expect(screen.getByRole('textbox')).toBeInTheDocument()
@@ -165,7 +187,7 @@ describe('EntryList', () => {
       const updated = { ...entry, body: 'New text' }
       window.electronAPI.updateEntry = vi.fn().mockResolvedValue(updated)
 
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await user.click(screen.getByTitle('Edit'))
       const textarea = screen.getByRole('textbox')
@@ -184,7 +206,7 @@ describe('EntryList', () => {
       const entry = makeEntry({ body: 'Stay the same' })
       window.electronAPI.updateEntry = vi.fn()
 
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await user.click(screen.getByTitle('Edit'))
       await user.type(screen.getByRole('textbox'), ' modified')
@@ -199,7 +221,7 @@ describe('EntryList', () => {
       const entry = makeEntry({ body: 'Original' })
       window.electronAPI.updateEntry = vi.fn()
 
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await user.click(screen.getByTitle('Edit'))
       await user.click(screen.getByText('Cancel'))
@@ -213,7 +235,7 @@ describe('EntryList', () => {
       const entry = makeEntry({ body: 'Same text' })
       window.electronAPI.updateEntry = vi.fn()
 
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await user.click(screen.getByTitle('Edit'))
       await user.keyboard('{Enter}')
@@ -227,7 +249,7 @@ describe('EntryList', () => {
       window.electronAPI.updateEntry = vi.fn()
 
       const entry = makeEntry({ image_paths: ['/img.png'] })
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await screen.findByAltText('Attached')
 
@@ -243,7 +265,7 @@ describe('EntryList', () => {
       window.electronAPI.updateEntry = vi.fn().mockResolvedValue(makeEntry({ image_paths: [] }))
 
       const entry = makeEntry({ image_paths: ['/img.png'] })
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await screen.findByAltText('Attached')
 
@@ -262,7 +284,7 @@ describe('EntryList', () => {
       window.electronAPI.updateEntry = vi.fn().mockResolvedValue(updatedEntry)
 
       const entry = makeEntry({ body: 'Same text', image_paths: ['/img.png'] })
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await screen.findByAltText('Attached')
 
@@ -283,7 +305,7 @@ describe('EntryList', () => {
       window.electronAPI.getEntryImage = vi.fn().mockResolvedValue(dataUrl)
 
       const entry = makeEntry({ image_paths: ['/img.png'] })
-      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await screen.findByAltText('Attached')
 

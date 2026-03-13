@@ -8,13 +8,12 @@ import {
   deactivateInvestigation
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry } from './db/entries'
-import { getOverlayWindow, getManagerWindow, showManager, hideOverlay, navigateManagerToDetails } from './windows'
+import { getOverlayWindow, showManager, hideOverlay, navigateManagerToDetails } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
 import { getHotkey, getScreenshotHotkey, getUploadHotkey } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
 import type { Investigation } from '@shared/ipc-types'
-import { readFileSync } from 'fs'
 
 function broadcastInvestigationChanged(investigations: Investigation[]): void {
   const windows = BrowserWindow.getAllWindows()
@@ -33,17 +32,11 @@ function dataUrlToBuffer(dataUrl: string): Buffer {
 export function registerIpcHandlers(): void {
   // --- Investigations ---
 
-  ipcMain.handle('investigation:getActive', () => {
-    return getActiveInvestigations()
-  })
+  ipcMain.handle('investigation:getActive', () => getActiveInvestigations())
 
-  ipcMain.handle('investigation:list', () => {
-    return listInvestigations()
-  })
+  ipcMain.handle('investigation:list', () => listInvestigations())
 
-  ipcMain.handle('investigation:create', (_event, { name }: { name: string }) => {
-    return createInvestigation(name)
-  })
+  ipcMain.handle('investigation:create', (_event, { name }: { name: string }) => createInvestigation(name))
 
   ipcMain.handle('investigation:delete', (_event, { id }: { id: string }) => {
     deleteInvestigation(id)
@@ -63,30 +56,23 @@ export function registerIpcHandlers(): void {
 
   // --- Entries ---
 
-  ipcMain.handle('entry:list', (_event, { investigationId }: { investigationId: string }) => {
-    return listEntries(investigationId)
-  })
+  ipcMain.handle('entry:list', (_event, { investigationId }: { investigationId: string }) => listEntries(investigationId))
 
   ipcMain.handle(
     'entry:create',
     (_event, { investigationId, body, imageDataUrls }: { investigationId: string; body: string; imageDataUrls?: string[] }) => {
-      const imagePaths: string[] = []
-      for (const dataUrl of (imageDataUrls ?? [])) {
-        imagePaths.push(saveImage(dataUrlToBuffer(dataUrl)))
-      }
+      const imagePaths = (imageDataUrls ?? []).map((dataUrl) => saveImage(dataUrlToBuffer(dataUrl)))
       return createEntry(investigationId, body, imagePaths)
     }
   )
 
   ipcMain.handle('entry:update', (_event, { id, body, keepImagePaths }: { id: string; body: string; keepImagePaths?: string[] | null }) => {
-    const existing = getEntry(id)
-    const existingPaths = existing?.image_paths ?? []
+    const existingPaths = getEntry(id)?.image_paths ?? []
 
-    if (keepImagePaths === null) {
-      for (const p of existingPaths) deleteImage(p)
-    } else if (keepImagePaths !== undefined) {
+    if (keepImagePaths !== undefined) {
+      const pathsToKeep = keepImagePaths ?? []
       for (const p of existingPaths) {
-        if (!keepImagePaths.includes(p)) deleteImage(p)
+        if (!pathsToKeep.includes(p)) deleteImage(p)
       }
     }
 
@@ -100,79 +86,42 @@ export function registerIpcHandlers(): void {
 
   // --- Images ---
 
-  ipcMain.handle('image:pick', async (_event) => {
-    const overlayWin = getOverlayWindow()
-    const result = await dialog.showOpenDialog(overlayWin ?? BrowserWindow.getFocusedWindow() ?? new BrowserWindow(), {
-      properties: ['openFile', 'multiSelections'],
+  ipcMain.handle('image:pick', async () => {
+    const parentWindow = getOverlayWindow() ?? BrowserWindow.getFocusedWindow()
+    const dialogOptions = {
+      properties: ['openFile', 'multiSelections'] as const,
       filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }]
-    })
+    }
+    const result = parentWindow
+      ? await dialog.showOpenDialog(parentWindow, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions)
     if (result.canceled || result.filePaths.length === 0) return []
-    return result.filePaths.map((p) => {
-      const buffer = readFileSync(p)
-      return `data:image/png;base64,${buffer.toString('base64')}`
-    })
+    return result.filePaths.map((p) => readImageAsDataUrl(p))
   })
 
-  ipcMain.handle('image:getEntryImage', (_event, { imagePath }: { imagePath: string }) => {
-    return readImageAsDataUrl(imagePath)
-  })
+  ipcMain.handle('image:getEntryImage', (_event, { imagePath }: { imagePath: string }) => readImageAsDataUrl(imagePath))
 
-  ipcMain.handle('screenshot:capture', async () => {
-    return captureScreenshot()
-  })
-
-  // Screenshot window IPC relay — forward selection from selector window back to main
-  ipcMain.on('screenshot:selection', (_event, rect) => {
-    // This is handled inside captureScreenshot() via ipcMain.once
-    void rect
-  })
+  ipcMain.handle('screenshot:capture', () => captureScreenshot())
 
   // --- Settings ---
 
-  ipcMain.handle('settings:getHotkey', () => {
-    return getHotkey()
-  })
+  ipcMain.handle('settings:getHotkey', () => getHotkey())
+  ipcMain.handle('settings:setHotkey', (_event, { accelerator }: { accelerator: string }) => reregisterHotkey(accelerator))
 
-  ipcMain.handle('settings:setHotkey', (_event, { accelerator }: { accelerator: string }) => {
-    return reregisterHotkey(accelerator)
-  })
+  ipcMain.handle('settings:getScreenshotHotkey', () => getScreenshotHotkey())
+  ipcMain.handle('settings:setScreenshotHotkey', (_event, { accelerator }: { accelerator: string }) => reregisterScreenshotHotkey(accelerator))
 
-  ipcMain.handle('settings:getScreenshotHotkey', () => {
-    return getScreenshotHotkey()
-  })
-
-  ipcMain.handle('settings:setScreenshotHotkey', (_event, { accelerator }: { accelerator: string }) => {
-    return reregisterScreenshotHotkey(accelerator)
-  })
-
-  ipcMain.handle('settings:getUploadHotkey', () => {
-    return getUploadHotkey()
-  })
-
-  ipcMain.handle('settings:setUploadHotkey', (_event, { accelerator }: { accelerator: string }) => {
-    return reregisterUploadHotkey(accelerator)
-  })
+  ipcMain.handle('settings:getUploadHotkey', () => getUploadHotkey())
+  ipcMain.handle('settings:setUploadHotkey', (_event, { accelerator }: { accelerator: string }) => reregisterUploadHotkey(accelerator))
 
   // --- Window management ---
 
-  ipcMain.handle('window:openManager', () => {
-    showManager()
-  })
-
-  ipcMain.handle('overlay:hide', () => {
-    hideOverlay()
-  })
-
-  ipcMain.handle('window:openDetails', (_event, { id }: { id: string }) => {
-    navigateManagerToDetails(id)
-  })
+  ipcMain.handle('window:openManager', () => showManager())
+  ipcMain.handle('overlay:hide', () => hideOverlay())
+  ipcMain.handle('window:openDetails', (_event, { id }: { id: string }) => navigateManagerToDetails(id))
 
   console.log('[ipc] All handlers registered')
 }
 
 // Export for use by tray/other non-IPC callers
 export { broadcastInvestigationChanged }
-
-// Suppress unused import warning
-void getOverlayWindow
-void getManagerWindow

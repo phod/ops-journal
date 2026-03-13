@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { InvestigationList } from '../InvestigationList'
-import type { Investigation } from '../../../../../shared/ipc-types'
+import type { Investigation } from '@shared/ipc-types'
 
 function makeInvestigation(overrides: Partial<Investigation> = {}): Investigation {
   return {

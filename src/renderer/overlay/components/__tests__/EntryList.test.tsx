@@ -12,6 +12,7 @@ function makeEntry(overrides: Partial<JournalEntry> = {}): JournalEntry {
     body: 'Test entry',
     image_paths: [],
     created_at: '2024-01-01 10:00:00',
+    type: 'note',
     ...overrides
   }
 }
@@ -318,6 +319,71 @@ describe('EntryList', () => {
       await user.click(screen.getByText('Cancel'))
 
       expect(screen.queryByText(/image will be removed on save/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('entry type badge', () => {
+    it('shows ACTION badge for action entries', () => {
+      const entry = makeEntry({ type: 'action' })
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      expect(screen.getByTitle('Change entry type')).toHaveTextContent('ACTION')
+    })
+
+    it('shows FINDING badge for finding entries', () => {
+      const entry = makeEntry({ type: 'finding' })
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      expect(screen.getByTitle('Change entry type')).toHaveTextContent('FINDING')
+    })
+
+    it('shows a tag icon for note entries instead of a colored badge', () => {
+      const entry = makeEntry({ type: 'note' })
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+      expect(screen.queryByTitle('Change entry type')).not.toBeInTheDocument()
+      expect(screen.getByTitle('Set entry type')).toBeInTheDocument()
+    })
+
+    it('opens the type picker menu when the badge is clicked', async () => {
+      const user = userEvent.setup()
+      const entry = makeEntry({ type: 'action' })
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+
+      await user.click(screen.getByTitle('Change entry type'))
+
+      expect(screen.getByText('NOTE')).toBeInTheDocument()
+      expect(screen.getByText('FINDING')).toBeInTheDocument()
+    })
+
+    it('calls updateEntry and onEntryUpdated when a different type is selected', async () => {
+      const user = userEvent.setup()
+      const entry = makeEntry({ id: 'entry-1', body: 'Test entry', type: 'action' })
+      const updated = makeEntry({ id: 'entry-1', body: 'Test entry', type: 'finding' })
+      window.electronAPI.updateEntry = vi.fn().mockResolvedValue(updated)
+
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+
+      await user.click(screen.getByTitle('Change entry type'))
+      fireEvent.mouseDown(screen.getByText('FINDING').closest('button')!)
+
+      await waitFor(() =>
+        expect(window.electronAPI.updateEntry).toHaveBeenCalledWith('entry-1', 'Test entry', undefined, 'finding')
+      )
+      expect(onEntryUpdated).toHaveBeenCalledWith(updated)
+    })
+
+    it('does not call updateEntry when the same type is selected', async () => {
+      const user = userEvent.setup()
+      const entry = makeEntry({ id: 'entry-1', type: 'action' })
+
+      render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+
+      await user.click(screen.getByTitle('Change entry type'))
+      // Find the ACTION option in the menu (no title, contains ACTION text with checkmark)
+      const menuActionBtn = screen.getAllByRole('button').find(
+        (btn) => btn.textContent?.includes('ACTION') && !btn.title
+      )
+      fireEvent.mouseDown(menuActionBtn!)
+
+      expect(window.electronAPI.updateEntry).not.toHaveBeenCalled()
     })
   })
 })

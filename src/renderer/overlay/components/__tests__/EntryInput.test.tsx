@@ -18,7 +18,8 @@ const mockEntry: JournalEntry = {
   investigation_id: 'inv-1',
   body: 'Test note',
   image_paths: [],
-  created_at: '2024-01-01 10:01:00'
+  created_at: '2024-01-01 10:01:00',
+  type: 'note'
 }
 
 // Wrapper that manages pendingImages state as the real parent would
@@ -268,6 +269,77 @@ describe('EntryInput', () => {
       const limitedButtons = screen.getAllByTitle(`Image limit reached (${MAX_IMAGES_PER_ENTRY})`)
       expect(limitedButtons.length).toBeGreaterThan(0)
       for (const btn of limitedButtons) expect(btn).toBeDisabled()
+    })
+  })
+
+  describe('slash commands', () => {
+    it('shows autocomplete dropdown when typing /', async () => {
+      const user = userEvent.setup()
+      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      await user.type(screen.getByRole('textbox'), '/')
+      expect(screen.getByText('/action')).toBeInTheDocument()
+      expect(screen.getByText('/finding')).toBeInTheDocument()
+    })
+
+    it('filters completions by prefix', async () => {
+      const user = userEvent.setup()
+      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      await user.type(screen.getByRole('textbox'), '/a')
+      expect(screen.getByText('/action')).toBeInTheDocument()
+      expect(screen.queryByText('/finding')).not.toBeInTheDocument()
+    })
+
+    it('applies completion and sets value on Tab', async () => {
+      const user = userEvent.setup()
+      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      await user.type(screen.getByRole('textbox'), '/')
+      await user.keyboard('{Tab}')
+      expect(screen.getByRole('textbox')).toHaveValue('/action ')
+    })
+
+    it('dismisses autocomplete on Escape', async () => {
+      const user = userEvent.setup()
+      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      await user.type(screen.getByRole('textbox'), '/')
+      expect(screen.getByText('/action')).toBeInTheDocument()
+      await user.keyboard('{Escape}')
+      expect(screen.queryByText('/action')).not.toBeInTheDocument()
+    })
+
+    it('submits /action command as action type with stripped body', async () => {
+      const user = userEvent.setup()
+      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      await user.type(screen.getByRole('textbox'), '/action restarted service')
+      await user.keyboard('{Enter}')
+      expect(window.electronAPI.createEntry).toHaveBeenCalledWith(
+        'inv-1', 'restarted service', undefined, 'action'
+      )
+    })
+
+    it('submits /finding command as finding type with stripped body', async () => {
+      const user = userEvent.setup()
+      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      await user.type(screen.getByRole('textbox'), '/finding root cause identified')
+      await user.keyboard('{Enter}')
+      expect(window.electronAPI.createEntry).toHaveBeenCalledWith(
+        'inv-1', 'root cause identified', undefined, 'finding'
+      )
+    })
+
+    it('shows type badge when an action command is active', async () => {
+      const user = userEvent.setup()
+      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      await user.type(screen.getByRole('textbox'), '/action ')
+      // After the trailing space, completions are gone and the badge is visible
+      expect(screen.getByText('ACTION')).toBeInTheDocument()
+    })
+
+    it('does not show type badge for plain text', async () => {
+      const user = userEvent.setup()
+      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      await user.type(screen.getByRole('textbox'), 'just a note')
+      expect(screen.queryByText('ACTION')).not.toBeInTheDocument()
+      expect(screen.queryByText('FINDING')).not.toBeInTheDocument()
     })
   })
 })

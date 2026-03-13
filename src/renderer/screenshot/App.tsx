@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Rect {
   x: number
@@ -7,19 +7,29 @@ interface Rect {
   height: number
 }
 
-export function App() {
+const MIN_SELECTION_SIZE = 4
+
+function getSelectionRect(start: { x: number; y: number }, end: { x: number; y: number }): Rect {
+  return {
+    x: Math.min(start.x, end.x),
+    y: Math.min(start.y, end.y),
+    width: Math.abs(end.x - start.x),
+    height: Math.abs(end.y - start.y)
+  }
+}
+
+export function App(): JSX.Element {
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
   const [startPos, setStartPos] = useState({ x: 0, y: 0 })
   const [currentPos, setCurrentPos] = useState({ x: 0, y: 0 })
-  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const cleanup = window.electronAPI.onScreenshotData((dataUrl) => {
       setBackgroundUrl(dataUrl)
     })
 
-    const onKeyDown = (e: KeyboardEvent) => {
+    function onKeyDown(e: KeyboardEvent): void {
       if (e.key === 'Escape') {
         window.electronAPI.sendScreenshotSelection(null)
       }
@@ -32,43 +42,32 @@ export function App() {
     }
   }, [])
 
-  const getSelectionRect = (): Rect => {
-    const x = Math.min(startPos.x, currentPos.x)
-    const y = Math.min(startPos.y, currentPos.y)
-    const width = Math.abs(currentPos.x - startPos.x)
-    const height = Math.abs(currentPos.y - startPos.y)
-    return { x, y, width, height }
-  }
-
-  const handleMouseDown = (e: React.MouseEvent) => {
+  function handleMouseDown(e: React.MouseEvent): void {
     e.preventDefault()
-    setStartPos({ x: e.clientX, y: e.clientY })
-    setCurrentPos({ x: e.clientX, y: e.clientY })
+    const pos = { x: e.clientX, y: e.clientY }
+    setStartPos(pos)
+    setCurrentPos(pos)
     setDragging(true)
   }
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  function handleMouseMove(e: React.MouseEvent): void {
     if (!dragging) return
     setCurrentPos({ x: e.clientX, y: e.clientY })
   }
 
-  const handleMouseUp = (e: React.MouseEvent) => {
+  function handleMouseUp(): void {
     if (!dragging) return
     setDragging(false)
-    const rect = getSelectionRect()
-    if (rect.width < 4 || rect.height < 4) {
-      // Too small, treat as cancel
-      window.electronAPI.sendScreenshotSelection(null)
-      return
-    }
-    window.electronAPI.sendScreenshotSelection(rect)
+
+    const rect = getSelectionRect(startPos, currentPos)
+    const isTooSmall = rect.width < MIN_SELECTION_SIZE || rect.height < MIN_SELECTION_SIZE
+    window.electronAPI.sendScreenshotSelection(isTooSmall ? null : rect)
   }
 
-  const sel = dragging ? getSelectionRect() : null
+  const sel = dragging ? getSelectionRect(startPos, currentPos) : null
 
   return (
     <div
-      ref={containerRef}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -79,16 +78,21 @@ export function App() {
         userSelect: 'none'
       }}
     >
-      {/* Full-screen background image */}
       {backgroundUrl && (
         <img
           src={backgroundUrl}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', pointerEvents: 'none' }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'fill',
+            pointerEvents: 'none'
+          }}
           draggable={false}
         />
       )}
 
-      {/* Dark overlay */}
       <div
         style={{
           position: 'absolute',
@@ -98,7 +102,6 @@ export function App() {
         }}
       />
 
-      {/* Selection rectangle cut-out */}
       {sel && sel.width > 0 && sel.height > 0 && (
         <div
           style={{
@@ -115,7 +118,6 @@ export function App() {
         />
       )}
 
-      {/* Instruction hint */}
       {!dragging && (
         <div
           style={{

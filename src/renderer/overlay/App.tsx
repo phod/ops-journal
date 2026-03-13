@@ -3,7 +3,6 @@ import { useOverlayState } from './hooks/useOverlayState'
 import { TabBar } from './components/TabBar'
 import { EntryList } from './components/EntryList'
 import { EntryInput } from './components/EntryInput'
-import type { JournalEntry } from '@shared/ipc-types'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 
 export default function App() {
@@ -22,10 +21,6 @@ export default function App() {
   const [pendingImages, setPendingImages] = useState<string[]>([])
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
 
-  const handleEntryCreated = (entry: JournalEntry) => {
-    addOptimisticEntry(entry)
-  }
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -42,19 +37,17 @@ export default function App() {
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(false)
-    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'))
-    for (const file of files) {
-      setPendingImages((prev) => {
-        if (prev.length >= MAX_IMAGES_PER_ENTRY) return prev
-        const reader = new FileReader()
-        reader.onload = () => {
-          if (typeof reader.result === 'string') {
-            setPendingImages((p) => p.length < MAX_IMAGES_PER_ENTRY ? [...p, reader.result as string] : p)
-          }
+    const imageFiles = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'))
+    for (const file of imageFiles) {
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setPendingImages((prev) =>
+            prev.length < MAX_IMAGES_PER_ENTRY ? [...prev, reader.result as string] : prev
+          )
         }
-        reader.readAsDataURL(file)
-        return prev
-      })
+      }
+      reader.readAsDataURL(file)
     }
   }
 
@@ -68,6 +61,57 @@ export default function App() {
       <div className="w-full h-full flex items-center justify-center bg-gray-900/95 rounded-xl">
         <div className="text-gray-500 text-sm font-mono">Loading…</div>
       </div>
+    )
+  }
+
+  function renderMainContent(): React.ReactNode {
+    if (activeInvestigations.length === 0) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
+          <div className="text-center">
+            <div className="text-4xl mb-3">📋</div>
+            <h2 className="text-gray-200 font-semibold text-base mb-1">No active investigation</h2>
+            <p className="text-gray-500 text-sm font-mono leading-relaxed">
+              Create an investigation to start capturing notes.
+            </p>
+          </div>
+          <button
+            onClick={() => window.electronAPI.openManager()}
+            className="no-drag px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            Open Investigation Manager
+          </button>
+        </div>
+      )
+    }
+
+    if (currentInvestigation === null) {
+      return (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-gray-500 text-sm font-mono">Select a tab above</div>
+        </div>
+      )
+    }
+
+    return (
+      <>
+        <EntryList
+          entries={entries}
+          editingEntryId={editingEntryId}
+          onEditingEntryIdChange={setEditingEntryId}
+          onEntryUpdated={updateEntry}
+          onEntryDeleted={deleteEntry}
+        />
+        <EntryInput
+          activeInvestigation={currentInvestigation}
+          entries={entries}
+          editingEntryId={editingEntryId}
+          onSetEditingEntryId={setEditingEntryId}
+          onEntryCreated={addOptimisticEntry}
+          pendingImages={pendingImages}
+          onPendingImagesChange={setPendingImages}
+        />
+      </>
     )
   }
 
@@ -108,7 +152,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Tab bar */}
       <TabBar
         investigations={activeInvestigations}
         currentId={currentInvestigationId}
@@ -124,47 +167,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Main content */}
-      {activeInvestigations.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
-          <div className="text-center">
-            <div className="text-4xl mb-3">📋</div>
-            <h2 className="text-gray-200 font-semibold text-base mb-1">No active investigation</h2>
-            <p className="text-gray-500 text-sm font-mono leading-relaxed">
-              Create an investigation to start capturing notes.
-            </p>
-          </div>
-          <button
-            onClick={() => window.electronAPI.openManager()}
-            className="no-drag px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            Open Investigation Manager
-          </button>
-        </div>
-      ) : currentInvestigation === null ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-gray-500 text-sm font-mono">Select a tab above</div>
-        </div>
-      ) : (
-        <>
-          <EntryList
-            entries={entries}
-            editingEntryId={editingEntryId}
-            onEditingEntryIdChange={setEditingEntryId}
-            onEntryUpdated={updateEntry}
-            onEntryDeleted={deleteEntry}
-          />
-          <EntryInput
-            activeInvestigation={currentInvestigation}
-            entries={entries}
-            editingEntryId={editingEntryId}
-            onSetEditingEntryId={setEditingEntryId}
-            onEntryCreated={handleEntryCreated}
-            pendingImages={pendingImages}
-            onPendingImagesChange={setPendingImages}
-          />
-        </>
-      )}
+      {renderMainContent()}
     </div>
   )
 }

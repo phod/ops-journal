@@ -1,25 +1,11 @@
-import React, { useEffect, useState } from 'react'
-import type { Investigation, JournalEntry } from '../../../../shared/ipc-types'
+import { useEffect, useState } from 'react'
+import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { DetailsEntryList } from '../../details/components/DetailsEntryList'
+import { formatDate } from '@shared/format-date'
 
 interface Props {
   investigationId: string
   onBack: () => void
-}
-
-function formatDate(isoString: string): string {
-  try {
-    const normalized = isoString.endsWith('Z') ? isoString : isoString + 'Z'
-    return new Date(normalized).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  } catch {
-    return isoString
-  }
 }
 
 export function InvestigationDetails({ investigationId, onBack }: Props) {
@@ -85,7 +71,9 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
             }`}>
               {isActive ? 'active' : 'inactive'}
             </span>
-            <span className="text-xs text-gray-500">Created {formatDate(investigation.created_at)}</span>
+            <span className="text-xs text-gray-500">
+              Created {formatDate(investigation.created_at, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </span>
           </div>
         </div>
       </div>

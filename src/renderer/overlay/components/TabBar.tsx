@@ -1,5 +1,5 @@
 import React, { useState, useRef, useLayoutEffect, useCallback } from 'react'
-import type { Investigation } from '../../../../shared/ipc-types'
+import type { Investigation } from '@shared/ipc-types'
 
 interface Props {
   investigations: Investigation[]

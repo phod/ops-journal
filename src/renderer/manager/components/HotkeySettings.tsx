@@ -1,21 +1,21 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { toAccelerator } from '../utils/hotkey'
 
-// Render an accelerator string as styled key badges
+const KEY_SYMBOLS: Record<string, string> = {
+  Command: '⌘',
+  CommandOrControl: '⌘',
+  Control: '⌃',
+  Alt: '⌥',
+  Shift: '⇧',
+  Return: '↵',
+  Space: '␣',
+  Up: '↑',
+  Down: '↓',
+  Left: '←',
+  Right: '→'
+}
+
 function AcceleratorBadge({ accelerator }: { accelerator: string }) {
-  const symbolMap: Record<string, string> = {
-    Command: '⌘',
-    CommandOrControl: '⌘',
-    Control: '⌃',
-    Alt: '⌥',
-    Shift: '⇧',
-    Return: '↵',
-    Space: '␣',
-    Up: '↑',
-    Down: '↓',
-    Left: '←',
-    Right: '→'
-  }
   const parts = accelerator.split('+')
   return (
     <span className="flex items-center gap-1">
@@ -24,7 +24,7 @@ function AcceleratorBadge({ accelerator }: { accelerator: string }) {
           key={i}
           className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gray-700 border border-gray-600 text-gray-200 text-xs font-mono min-w-[1.5rem]"
         >
-          {symbolMap[part] ?? part}
+          {KEY_SYMBOLS[part] ?? part}
         </kbd>
       ))}
     </span>
@@ -56,19 +56,13 @@ function HotkeyRow({ label, description, getter, setter }: HotkeyRowProps) {
     }
   }, [capturing])
 
-  const startCapture = () => {
-    setCaptured(null)
-    setError(null)
-    setCapturing(true)
-  }
-
-  const cancelCapture = () => {
-    setCapturing(false)
+  function resetCapture(active: boolean): void {
+    setCapturing(active)
     setCaptured(null)
     setError(null)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  function handleKeyDown(e: KeyboardEvent<HTMLDivElement>): void {
     e.preventDefault()
     e.stopPropagation()
     const accelerator = toAccelerator(e.nativeEvent)
@@ -78,7 +72,7 @@ function HotkeyRow({ label, description, getter, setter }: HotkeyRowProps) {
     }
   }
 
-  const saveHotkey = async () => {
+  async function saveHotkey(): Promise<void> {
     if (!captured) return
     setSaving(true)
     setError(null)
@@ -86,8 +80,7 @@ function HotkeyRow({ label, description, getter, setter }: HotkeyRowProps) {
       const success = await setter(captured)
       if (success) {
         setCurrentHotkey(captured)
-        setCapturing(false)
-        setCaptured(null)
+        resetCapture(false)
       } else {
         setError('That shortcut is already in use by another application.')
       }
@@ -114,7 +107,7 @@ function HotkeyRow({ label, description, getter, setter }: HotkeyRowProps) {
 
       {!capturing ? (
         <button
-          onClick={startCapture}
+          onClick={() => resetCapture(true)}
           className="mt-3 text-xs px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 transition-colors"
         >
           Change shortcut
@@ -146,7 +139,7 @@ function HotkeyRow({ label, description, getter, setter }: HotkeyRowProps) {
               Save
             </button>
             <button
-              onClick={cancelCapture}
+              onClick={() => resetCapture(false)}
               className="text-xs px-3 py-1.5 rounded-lg text-gray-400 hover:text-gray-200 transition-colors"
             >
               Cancel

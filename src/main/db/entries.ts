@@ -2,9 +2,13 @@ import { v4 as uuidv4 } from 'uuid'
 import { getDb } from './index'
 import type { JournalEntry } from '@shared/ipc-types'
 
+const ENTRY_COLUMNS = `
+  je.id, je.investigation_id, je.body, je.created_at,
+  json_group_array(ei.image_path) FILTER (WHERE ei.image_path IS NOT NULL) as image_paths_json
+`
+
 const SELECT_ENTRY = `
-  SELECT je.id, je.investigation_id, je.body, je.created_at,
-    json_group_array(ei.image_path) FILTER (WHERE ei.image_path IS NOT NULL) as image_paths_json
+  SELECT ${ENTRY_COLUMNS}
   FROM journal_entries je
   LEFT JOIN entry_images ei ON ei.entry_id = je.id
   WHERE je.id = ?
@@ -12,8 +16,7 @@ const SELECT_ENTRY = `
 `
 
 const SELECT_ENTRIES_FOR_INVESTIGATION = `
-  SELECT je.id, je.investigation_id, je.body, je.created_at,
-    json_group_array(ei.image_path) FILTER (WHERE ei.image_path IS NOT NULL) as image_paths_json
+  SELECT ${ENTRY_COLUMNS}
   FROM journal_entries je
   LEFT JOIN entry_images ei ON ei.entry_id = je.id
   WHERE je.investigation_id = ?
@@ -49,7 +52,9 @@ export function createEntry(investigationId: string, body: string, imagePaths?: 
   db.prepare('INSERT INTO journal_entries (id, investigation_id, body) VALUES (?, ?, ?)').run(id, investigationId, body)
   if (imagePaths && imagePaths.length > 0) {
     const insertImage = db.prepare('INSERT INTO entry_images (entry_id, image_path, sort_order) VALUES (?, ?, ?)')
-    imagePaths.forEach((path, i) => insertImage.run(id, path, i))
+    for (let i = 0; i < imagePaths.length; i++) {
+      insertImage.run(id, imagePaths[i], i)
+    }
   }
   return getEntry(id)!
 }
@@ -57,16 +62,19 @@ export function createEntry(investigationId: string, body: string, imagePaths?: 
 export function updateEntry(id: string, body: string, keepImagePaths?: string[] | null): JournalEntry {
   const db = getDb()
   db.prepare('UPDATE journal_entries SET body = ? WHERE id = ?').run(body, id)
-  if (keepImagePaths === null) {
+
+  if (keepImagePaths === null || (Array.isArray(keepImagePaths) && keepImagePaths.length === 0)) {
     db.prepare('DELETE FROM entry_images WHERE entry_id = ?').run(id)
   } else if (keepImagePaths !== undefined) {
+    const deleteImage = db.prepare('DELETE FROM entry_images WHERE entry_id = ? AND image_path = ?')
     const existing = db.prepare('SELECT image_path FROM entry_images WHERE entry_id = ?').all(id) as { image_path: string }[]
     for (const { image_path } of existing) {
       if (!keepImagePaths.includes(image_path)) {
-        db.prepare('DELETE FROM entry_images WHERE entry_id = ? AND image_path = ?').run(id, image_path)
+        deleteImage.run(id, image_path)
       }
     }
   }
+
   return getEntry(id)!
 }
 

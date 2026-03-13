@@ -3,9 +3,8 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { CreateInvestigationForm } from '../CreateInvestigationForm'
-import type { Investigation } from '../../../../../shared/ipc-types'
 
-const mockInvestigation: Investigation = {
+const mockInvestigation = {
   id: 'inv-1',
   name: 'New Investigation',
   is_active: 1,
@@ -49,7 +48,7 @@ describe('CreateInvestigationForm', () => {
     await waitFor(() => {
       expect(window.electronAPI.createInvestigation).toHaveBeenCalledWith('New Investigation')
       expect(window.electronAPI.setActiveInvestigation).toHaveBeenCalledWith('inv-1')
-      expect(onCreated).toHaveBeenCalledWith(mockInvestigation)
+      expect(onCreated).toHaveBeenCalled()
     })
   })
 

@@ -8,8 +8,8 @@ import {
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry } from './db/entries'
 import { getOverlayWindow, getManagerWindow, showManager, hideOverlay } from './windows'
-import { reregisterHotkey } from './hotkey'
-import { getHotkey } from './settings'
+import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
+import { getHotkey, getScreenshotHotkey, getUploadHotkey } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
 import type { Investigation } from '@shared/ipc-types'
@@ -65,40 +65,33 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(
     'entry:create',
-    (_event, { investigationId, body, imageDataUrl }: { investigationId: string; body: string; imageDataUrl?: string }) => {
-      let imagePath: string | undefined
-      if (imageDataUrl) {
-        const buffer = dataUrlToBuffer(imageDataUrl)
-        imagePath = saveImage(buffer)
+    (_event, { investigationId, body, imageDataUrls }: { investigationId: string; body: string; imageDataUrls?: string[] }) => {
+      const imagePaths: string[] = []
+      for (const dataUrl of (imageDataUrls ?? [])) {
+        imagePaths.push(saveImage(dataUrlToBuffer(dataUrl)))
       }
-      return createEntry(investigationId, body, imagePath)
+      return createEntry(investigationId, body, imagePaths)
     }
   )
 
-  ipcMain.handle('entry:update', (_event, { id, body, imageDataUrl }: { id: string; body: string; imageDataUrl?: string | null }) => {
-    let newImagePath: string | null | undefined = undefined
+  ipcMain.handle('entry:update', (_event, { id, body, keepImagePaths }: { id: string; body: string; keepImagePaths?: string[] | null }) => {
+    const existing = getEntry(id)
+    const existingPaths = existing?.image_paths ?? []
 
-    if (imageDataUrl === null) {
-      // Explicitly remove image
-      const existing = getEntry(id)
-      if (existing?.image_path) deleteImage(existing.image_path)
-      newImagePath = null
-    } else if (imageDataUrl !== undefined) {
-      // Replace image
-      const existing = getEntry(id)
-      if (existing?.image_path) deleteImage(existing.image_path)
-      const buffer = dataUrlToBuffer(imageDataUrl)
-      newImagePath = saveImage(buffer)
+    if (keepImagePaths === null) {
+      for (const p of existingPaths) deleteImage(p)
+    } else if (keepImagePaths !== undefined) {
+      for (const p of existingPaths) {
+        if (!keepImagePaths.includes(p)) deleteImage(p)
+      }
     }
 
-    return updateEntry(id, body, newImagePath)
+    return updateEntry(id, body, keepImagePaths)
   })
 
   ipcMain.handle('entry:delete', (_event, { id }: { id: string }) => {
     const entry = deleteEntry(id)
-    if (entry?.image_path) {
-      deleteImage(entry.image_path)
-    }
+    for (const p of entry?.image_paths ?? []) deleteImage(p)
   })
 
   // --- Images ---
@@ -106,12 +99,14 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('image:pick', async (_event) => {
     const overlayWin = getOverlayWindow()
     const result = await dialog.showOpenDialog(overlayWin ?? BrowserWindow.getFocusedWindow() ?? new BrowserWindow(), {
-      properties: ['openFile'],
+      properties: ['openFile', 'multiSelections'],
       filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }]
     })
-    if (result.canceled || result.filePaths.length === 0) return null
-    const buffer = readFileSync(result.filePaths[0])
-    return `data:image/png;base64,${buffer.toString('base64')}`
+    if (result.canceled || result.filePaths.length === 0) return []
+    return result.filePaths.map((p) => {
+      const buffer = readFileSync(p)
+      return `data:image/png;base64,${buffer.toString('base64')}`
+    })
   })
 
   ipcMain.handle('image:getEntryImage', (_event, { imagePath }: { imagePath: string }) => {
@@ -136,6 +131,22 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('settings:setHotkey', (_event, { accelerator }: { accelerator: string }) => {
     return reregisterHotkey(accelerator)
+  })
+
+  ipcMain.handle('settings:getScreenshotHotkey', () => {
+    return getScreenshotHotkey()
+  })
+
+  ipcMain.handle('settings:setScreenshotHotkey', (_event, { accelerator }: { accelerator: string }) => {
+    return reregisterScreenshotHotkey(accelerator)
+  })
+
+  ipcMain.handle('settings:getUploadHotkey', () => {
+    return getUploadHotkey()
+  })
+
+  ipcMain.handle('settings:setUploadHotkey', (_event, { accelerator }: { accelerator: string }) => {
+    return reregisterUploadHotkey(accelerator)
   })
 
   // --- Window management ---

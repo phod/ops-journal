@@ -5,11 +5,13 @@ export interface Investigation {
   created_at: string
 }
 
+export const MAX_IMAGES_PER_ENTRY = 9
+
 export interface JournalEntry {
   id: string
   investigation_id: string
   body: string
-  image_path: string | null
+  image_paths: string[]
   created_at: string
 }
 
@@ -23,18 +25,22 @@ export interface ElectronAPI {
 
   // Entries
   listEntries: (investigationId: string) => Promise<JournalEntry[]>
-  createEntry: (investigationId: string, body: string, imageDataUrl?: string) => Promise<JournalEntry>
-  updateEntry: (id: string, body: string, imageDataUrl?: string | null) => Promise<JournalEntry>
+  createEntry: (investigationId: string, body: string, imageDataUrls?: string[]) => Promise<JournalEntry>
+  updateEntry: (id: string, body: string, keepImagePaths?: string[] | null) => Promise<JournalEntry>
   deleteEntry: (id: string) => Promise<void>
 
   // Images
-  pickImage: () => Promise<string | null>
+  pickImage: () => Promise<string[]>
   captureScreenshot: () => Promise<string | null>
   getEntryImage: (imagePath: string) => Promise<string>
 
   // Settings
   getHotkey: () => Promise<string>
   setHotkey: (accelerator: string) => Promise<boolean>
+  getScreenshotHotkey: () => Promise<string>
+  setScreenshotHotkey: (accelerator: string) => Promise<boolean>
+  getUploadHotkey: () => Promise<string>
+  setUploadHotkey: (accelerator: string) => Promise<boolean>
 
   // Window management
   openManager: () => Promise<void>
@@ -42,6 +48,8 @@ export interface ElectronAPI {
 
   // Push events
   onInvestigationChanged: (callback: (investigation: Investigation | null) => void) => () => void
+  onTriggerScreenshot: (callback: (dataUrl: string) => void) => () => void
+  onTriggerUpload: (callback: () => void) => () => void
 
   // Screenshot window helpers (used by screenshot renderer)
   onScreenshotData: (callback: (dataUrl: string) => void) => () => void

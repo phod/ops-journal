@@ -3,9 +3,19 @@ import fs from 'fs'
 import path from 'path'
 
 export const DEFAULT_HOTKEY = 'CommandOrControl+Shift+J'
+export const DEFAULT_SCREENSHOT_HOTKEY = 'CommandOrControl+Shift+S'
+export const DEFAULT_UPLOAD_HOTKEY = 'CommandOrControl+Shift+U'
 
 interface Settings {
   hotkey: string
+  screenshotHotkey: string
+  uploadHotkey: string
+}
+
+const DEFAULTS: Settings = {
+  hotkey: DEFAULT_HOTKEY,
+  screenshotHotkey: DEFAULT_SCREENSHOT_HOTKEY,
+  uploadHotkey: DEFAULT_UPLOAD_HOTKEY
 }
 
 function settingsPath(): string {
@@ -15,9 +25,9 @@ function settingsPath(): string {
 function load(): Settings {
   try {
     const raw = fs.readFileSync(settingsPath(), 'utf-8')
-    return { hotkey: DEFAULT_HOTKEY, ...JSON.parse(raw) }
+    return { ...DEFAULTS, ...JSON.parse(raw) }
   } catch {
-    return { hotkey: DEFAULT_HOTKEY }
+    return { ...DEFAULTS }
   }
 }
 
@@ -31,4 +41,20 @@ export function getHotkey(): string {
 
 export function setHotkey(hotkey: string): void {
   save({ ...load(), hotkey })
+}
+
+export function getScreenshotHotkey(): string {
+  return load().screenshotHotkey
+}
+
+export function setScreenshotHotkey(hotkey: string): void {
+  save({ ...load(), screenshotHotkey: hotkey })
+}
+
+export function getUploadHotkey(): string {
+  return load().uploadHotkey
+}
+
+export function setUploadHotkey(hotkey: string): void {
+  save({ ...load(), uploadHotkey: hotkey })
 }

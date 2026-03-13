@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { createOverlayWindow, createManagerWindow, hideOverlay, getOverlayWindow, setAppQuitting } from './windows'
 import { createTray, updateTrayMenu } from './tray'
-import { registerHotkey, unregisterAllHotkeys } from './hotkey'
+import { registerHotkey, registerImageHotkeys, unregisterAllHotkeys } from './hotkey'
 import { registerIpcHandlers } from './ipc-handlers'
 import { getDb, closeDb } from './db/index'
 
@@ -49,8 +49,9 @@ if (!gotLock) {
       overlayWin.on('hide', () => updateTrayMenu())
     }
 
-    // Register global hotkey
+    // Register global hotkeys
     registerHotkey()
+    registerImageHotkeys()
 
     // macOS: re-apply accessory policy after ready (belt and suspenders)
     if (process.platform === 'darwin') {

@@ -9,7 +9,7 @@ vi.mock('../index', () => ({
 }))
 
 import { createInvestigation } from '../investigations'
-import { createEntry, listEntries, updateEntry, deleteEntry } from '../entries'
+import { createEntry, listEntries, updateEntry, deleteEntry, getEntry } from '../entries'
 
 let investigationId: string
 
@@ -30,6 +30,38 @@ describe('createEntry', () => {
     expect(entry.investigation_id).toBe(investigationId)
     expect(entry.id).toBeTruthy()
     expect(entry.created_at).toBeTruthy()
+    expect(entry.image_paths).toEqual([])
+  })
+
+  it('creates an entry with image paths', () => {
+    const entry = createEntry(investigationId, 'With image', ['/path/to/image.png'])
+    expect(entry.body).toBe('With image')
+    expect(entry.image_paths).toEqual(['/path/to/image.png'])
+  })
+
+  it('creates an entry with multiple image paths', () => {
+    const paths = ['/a.png', '/b.png', '/c.png']
+    const entry = createEntry(investigationId, 'Multi', paths)
+    expect(entry.image_paths).toEqual(paths)
+  })
+
+  it('stores empty image_paths when not provided', () => {
+    const entry = createEntry(investigationId, 'No image')
+    expect(entry.image_paths).toEqual([])
+  })
+})
+
+describe('getEntry', () => {
+  it('returns the entry by id', () => {
+    const created = createEntry(investigationId, 'Find me')
+    const found = getEntry(created.id)
+    expect(found).toBeDefined()
+    expect(found!.id).toBe(created.id)
+    expect(found!.body).toBe('Find me')
+  })
+
+  it('returns undefined for a non-existent id', () => {
+    expect(getEntry('non-existent')).toBeUndefined()
   })
 })
 
@@ -55,6 +87,14 @@ describe('listEntries', () => {
     expect(listEntries(investigationId)).toHaveLength(1)
     expect(listEntries(investigationId)[0].body).toBe('Mine')
   })
+
+  it('includes image_paths for each entry', () => {
+    createEntry(investigationId, 'With images', ['/a.png', '/b.png'])
+    createEntry(investigationId, 'No images')
+    const entries = listEntries(investigationId)
+    expect(entries[0].image_paths).toEqual(['/a.png', '/b.png'])
+    expect(entries[1].image_paths).toEqual([])
+  })
 })
 
 describe('updateEntry', () => {
@@ -71,6 +111,30 @@ describe('updateEntry', () => {
     const entries = listEntries(investigationId)
     expect(entries[0].body).toBe('After')
   })
+
+  it('preserves image_paths when keepImagePaths is undefined', () => {
+    const entry = createEntry(investigationId, 'Has image', ['/img/path.png'])
+    const updated = updateEntry(entry.id, 'New body')
+    expect(updated.image_paths).toEqual(['/img/path.png'])
+  })
+
+  it('removes specified images when keepImagePaths is provided', () => {
+    const entry = createEntry(investigationId, 'Two images', ['/a.png', '/b.png'])
+    const updated = updateEntry(entry.id, 'Keep one', ['/a.png'])
+    expect(updated.image_paths).toEqual(['/a.png'])
+  })
+
+  it('removes all images when keepImagePaths is an empty array', () => {
+    const entry = createEntry(investigationId, 'Has images', ['/a.png', '/b.png'])
+    const updated = updateEntry(entry.id, 'No images', [])
+    expect(updated.image_paths).toEqual([])
+  })
+
+  it('removes all images when keepImagePaths is null', () => {
+    const entry = createEntry(investigationId, 'Has image', ['/img/path.png'])
+    const updated = updateEntry(entry.id, 'Cleared', null)
+    expect(updated.image_paths).toEqual([])
+  })
 })
 
 describe('deleteEntry', () => {
@@ -78,6 +142,18 @@ describe('deleteEntry', () => {
     const entry = createEntry(investigationId, 'Doomed')
     deleteEntry(entry.id)
     expect(listEntries(investigationId)).toHaveLength(0)
+  })
+
+  it('returns the deleted entry with image_paths', () => {
+    const entry = createEntry(investigationId, 'Return me', ['/img.png'])
+    const deleted = deleteEntry(entry.id)
+    expect(deleted).toBeDefined()
+    expect(deleted!.id).toBe(entry.id)
+    expect(deleted!.image_paths).toEqual(['/img.png'])
+  })
+
+  it('returns undefined when entry does not exist', () => {
+    expect(deleteEntry('non-existent')).toBeUndefined()
   })
 
   it('does not affect other entries', () => {

@@ -2,40 +2,72 @@ import { v4 as uuidv4 } from 'uuid'
 import { getDb } from './index'
 import type { JournalEntry } from '@shared/ipc-types'
 
+const SELECT_ENTRY = `
+  SELECT je.id, je.investigation_id, je.body, je.created_at,
+    json_group_array(ei.image_path) FILTER (WHERE ei.image_path IS NOT NULL) as image_paths_json
+  FROM journal_entries je
+  LEFT JOIN entry_images ei ON ei.entry_id = je.id
+  WHERE je.id = ?
+  GROUP BY je.id
+`
+
+const SELECT_ENTRIES_FOR_INVESTIGATION = `
+  SELECT je.id, je.investigation_id, je.body, je.created_at,
+    json_group_array(ei.image_path) FILTER (WHERE ei.image_path IS NOT NULL) as image_paths_json
+  FROM journal_entries je
+  LEFT JOIN entry_images ei ON ei.entry_id = je.id
+  WHERE je.investigation_id = ?
+  GROUP BY je.id
+  ORDER BY je.created_at ASC, je.rowid ASC
+`
+
+function rowToEntry(row: Record<string, unknown>): JournalEntry {
+  return {
+    id: row.id as string,
+    investigation_id: row.investigation_id as string,
+    body: row.body as string,
+    created_at: row.created_at as string,
+    image_paths: JSON.parse((row.image_paths_json as string) || '[]')
+  }
+}
+
 export function listEntries(investigationId: string): JournalEntry[] {
   const db = getDb()
-  return db
-    .prepare(
-      'SELECT * FROM journal_entries WHERE investigation_id = ? ORDER BY created_at ASC'
-    )
-    .all(investigationId) as JournalEntry[]
+  const rows = db.prepare(SELECT_ENTRIES_FOR_INVESTIGATION).all(investigationId) as Record<string, unknown>[]
+  return rows.map(rowToEntry)
 }
 
 export function getEntry(id: string): JournalEntry | undefined {
   const db = getDb()
-  return db.prepare('SELECT * FROM journal_entries WHERE id = ?').get(id) as JournalEntry | undefined
+  const row = db.prepare(SELECT_ENTRY).get(id) as Record<string, unknown> | undefined
+  return row ? rowToEntry(row) : undefined
 }
 
-export function createEntry(investigationId: string, body: string, imagePath?: string): JournalEntry {
+export function createEntry(investigationId: string, body: string, imagePaths?: string[]): JournalEntry {
   const db = getDb()
   const id = uuidv4()
-  db.prepare(
-    'INSERT INTO journal_entries (id, investigation_id, body, image_path) VALUES (?, ?, ?, ?)'
-  ).run(id, investigationId, body, imagePath ?? null)
-  return db
-    .prepare('SELECT * FROM journal_entries WHERE id = ?')
-    .get(id) as JournalEntry
+  db.prepare('INSERT INTO journal_entries (id, investigation_id, body) VALUES (?, ?, ?)').run(id, investigationId, body)
+  if (imagePaths && imagePaths.length > 0) {
+    const insertImage = db.prepare('INSERT INTO entry_images (entry_id, image_path, sort_order) VALUES (?, ?, ?)')
+    imagePaths.forEach((path, i) => insertImage.run(id, path, i))
+  }
+  return getEntry(id)!
 }
 
-export function updateEntry(id: string, body: string, imagePath?: string | null): JournalEntry {
+export function updateEntry(id: string, body: string, keepImagePaths?: string[] | null): JournalEntry {
   const db = getDb()
-  if (imagePath === undefined) {
-    // Don't touch image_path
-    db.prepare('UPDATE journal_entries SET body = ? WHERE id = ?').run(body, id)
-  } else {
-    db.prepare('UPDATE journal_entries SET body = ?, image_path = ? WHERE id = ?').run(body, imagePath, id)
+  db.prepare('UPDATE journal_entries SET body = ? WHERE id = ?').run(body, id)
+  if (keepImagePaths === null) {
+    db.prepare('DELETE FROM entry_images WHERE entry_id = ?').run(id)
+  } else if (keepImagePaths !== undefined) {
+    const existing = db.prepare('SELECT image_path FROM entry_images WHERE entry_id = ?').all(id) as { image_path: string }[]
+    for (const { image_path } of existing) {
+      if (!keepImagePaths.includes(image_path)) {
+        db.prepare('DELETE FROM entry_images WHERE entry_id = ? AND image_path = ?').run(id, image_path)
+      }
+    }
   }
-  return db.prepare('SELECT * FROM journal_entries WHERE id = ?').get(id) as JournalEntry
+  return getEntry(id)!
 }
 
 export function deleteEntry(id: string): JournalEntry | undefined {

@@ -20,17 +20,17 @@ const electronAPI: ElectronAPI = {
   listEntries: (investigationId: string) =>
     ipcRenderer.invoke('entry:list', { investigationId }),
 
-  createEntry: (investigationId: string, body: string, imageDataUrl?: string) =>
-    ipcRenderer.invoke('entry:create', { investigationId, body, imageDataUrl }),
+  createEntry: (investigationId: string, body: string, imageDataUrls?: string[]) =>
+    ipcRenderer.invoke('entry:create', { investigationId, body, imageDataUrls }),
 
-  updateEntry: (id: string, body: string, imageDataUrl?: string | null) =>
-    ipcRenderer.invoke('entry:update', { id, body, imageDataUrl }),
+  updateEntry: (id: string, body: string, keepImagePaths?: string[] | null) =>
+    ipcRenderer.invoke('entry:update', { id, body, keepImagePaths }),
 
   deleteEntry: (id: string) =>
     ipcRenderer.invoke('entry:delete', { id }),
 
   // Images
-  pickImage: () => ipcRenderer.invoke('image:pick'),
+  pickImage: () => ipcRenderer.invoke('image:pick') as Promise<string[]>,
 
   captureScreenshot: () => ipcRenderer.invoke('screenshot:capture'),
 
@@ -40,6 +40,10 @@ const electronAPI: ElectronAPI = {
   // Settings
   getHotkey: () => ipcRenderer.invoke('settings:getHotkey'),
   setHotkey: (accelerator: string) => ipcRenderer.invoke('settings:setHotkey', { accelerator }),
+  getScreenshotHotkey: () => ipcRenderer.invoke('settings:getScreenshotHotkey'),
+  setScreenshotHotkey: (accelerator: string) => ipcRenderer.invoke('settings:setScreenshotHotkey', { accelerator }),
+  getUploadHotkey: () => ipcRenderer.invoke('settings:getUploadHotkey'),
+  setUploadHotkey: (accelerator: string) => ipcRenderer.invoke('settings:setUploadHotkey', { accelerator }),
 
   // Window management
   openManager: () => ipcRenderer.invoke('window:openManager'),
@@ -55,6 +59,19 @@ const electronAPI: ElectronAPI = {
     return () => {
       ipcRenderer.removeListener('investigation:changed', listener)
     }
+  },
+
+  // Image hotkey push events
+  onTriggerScreenshot: (callback: (dataUrl: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, dataUrl: string) => callback(dataUrl)
+    ipcRenderer.on('overlay:screenshotCaptured', listener)
+    return () => ipcRenderer.removeListener('overlay:screenshotCaptured', listener)
+  },
+
+  onTriggerUpload: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('overlay:triggerUpload', listener)
+    return () => ipcRenderer.removeListener('overlay:triggerUpload', listener)
   },
 
   // Screenshot window helpers

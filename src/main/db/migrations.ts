@@ -20,5 +20,18 @@ export const migrations: string[] = [
   `,
 
   // Migration 1 — add image_path to journal_entries
-  `ALTER TABLE journal_entries ADD COLUMN image_path TEXT;`
+  `ALTER TABLE journal_entries ADD COLUMN image_path TEXT;`,
+
+  // Migration 2 — multi-image support via entry_images table
+  `
+  CREATE TABLE IF NOT EXISTS entry_images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entry_id TEXT NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    image_path TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0
+  );
+
+  INSERT INTO entry_images (entry_id, image_path, sort_order)
+    SELECT id, image_path, 0 FROM journal_entries WHERE image_path IS NOT NULL;
+  `
 ]

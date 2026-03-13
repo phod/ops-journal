@@ -4,6 +4,7 @@ import type { Investigation } from '../../../../shared/ipc-types'
 interface Props {
   investigations: Investigation[]
   onSetActive: (id: string) => Promise<void>
+  onDeactivate: (id: string) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
 
@@ -22,7 +23,7 @@ function formatDate(isoString: string): string {
   }
 }
 
-export function InvestigationList({ investigations, onSetActive, onDelete }: Props) {
+export function InvestigationList({ investigations, onSetActive, onDeactivate, onDelete }: Props) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
   if (investigations.length === 0) {
@@ -37,6 +38,15 @@ export function InvestigationList({ investigations, onSetActive, onDelete }: Pro
     setLoadingId(id)
     try {
       await onSetActive(id)
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const handleDeactivate = async (id: string) => {
+    setLoadingId(id)
+    try {
+      await onDeactivate(id)
     } finally {
       setLoadingId(null)
     }
@@ -98,13 +108,13 @@ export function InvestigationList({ investigations, onSetActive, onDelete }: Pro
 
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
-                onClick={() => handleSetActive(inv.id)}
-                disabled={isActive || isLoading}
+                onClick={() => isActive ? handleDeactivate(inv.id) : handleSetActive(inv.id)}
+                disabled={isLoading}
                 className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors
                   bg-gray-700 hover:bg-gray-600 text-gray-200
                   disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {isLoading ? '…' : 'Set Active'}
+                {isLoading ? '…' : isActive ? 'Deactivate' : 'Activate'}
               </button>
               <button
                 onClick={() => handleDelete(inv)}

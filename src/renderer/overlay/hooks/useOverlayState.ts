@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback } from 'react'
 import type { Investigation, JournalEntry } from '../../../shared/ipc-types'
 
 interface OverlayState {
-  activeInvestigation: Investigation | null
+  activeInvestigations: Investigation[]
+  currentInvestigationId: string | null
+  currentInvestigation: Investigation | null
   entries: JournalEntry[]
   loading: boolean
+  switchToInvestigation: (id: string) => void
   addOptimisticEntry: (entry: JournalEntry) => void
   updateEntry: (updated: JournalEntry) => void
   deleteEntry: (id: string) => void
@@ -12,9 +15,12 @@ interface OverlayState {
 }
 
 export function useOverlayState(): OverlayState {
-  const [activeInvestigation, setActiveInvestigation] = useState<Investigation | null>(null)
+  const [activeInvestigations, setActiveInvestigations] = useState<Investigation[]>([])
+  const [currentInvestigationId, setCurrentInvestigationId] = useState<string | null>(null)
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
+
+  const currentInvestigation = activeInvestigations.find((i) => i.id === currentInvestigationId) ?? null
 
   const fetchEntries = useCallback(async (investigationId: string) => {
     try {
@@ -29,6 +35,14 @@ export function useOverlayState(): OverlayState {
   const refreshEntries = useCallback(
     async (investigationId: string) => {
       await fetchEntries(investigationId)
+    },
+    [fetchEntries]
+  )
+
+  const switchToInvestigation = useCallback(
+    (id: string) => {
+      setCurrentInvestigationId(id)
+      fetchEntries(id)
     },
     [fetchEntries]
   )
@@ -51,12 +65,14 @@ export function useOverlayState(): OverlayState {
 
     async function init() {
       try {
-        const investigation = await window.electronAPI.getActiveInvestigation()
+        const investigations = await window.electronAPI.getActiveInvestigations()
         if (cancelled) return
-        setActiveInvestigation(investigation)
+        setActiveInvestigations(investigations)
 
-        if (investigation) {
-          await fetchEntries(investigation.id)
+        if (investigations.length > 0) {
+          const firstId = investigations[0].id
+          setCurrentInvestigationId(firstId)
+          await fetchEntries(firstId)
         } else {
           setEntries([])
         }
@@ -77,13 +93,19 @@ export function useOverlayState(): OverlayState {
   // Subscribe to push events
   useEffect(() => {
     const unsubscribe = window.electronAPI.onInvestigationChanged(
-      async (investigation: Investigation | null) => {
-        setActiveInvestigation(investigation)
-        if (investigation) {
-          await fetchEntries(investigation.id)
-        } else {
-          setEntries([])
-        }
+      (investigations: Investigation[]) => {
+        setActiveInvestigations(investigations)
+        setCurrentInvestigationId((currentId) => {
+          const stillPresent = investigations.some((i) => i.id === currentId)
+          if (!stillPresent) {
+            const nextId = investigations.length > 0 ? investigations[0].id : null
+            if (nextId) fetchEntries(nextId)
+            else setEntries([])
+            return nextId
+          }
+          // Current is still present — keep selection, don't re-fetch
+          return currentId
+        })
       }
     )
 
@@ -101,5 +123,16 @@ export function useOverlayState(): OverlayState {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  return { activeInvestigation, entries, loading, addOptimisticEntry, updateEntry, deleteEntry, refreshEntries }
+  return {
+    activeInvestigations,
+    currentInvestigationId,
+    currentInvestigation,
+    entries,
+    loading,
+    switchToInvestigation,
+    addOptimisticEntry,
+    updateEntry,
+    deleteEntry,
+    refreshEntries
+  }
 }

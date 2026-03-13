@@ -1,13 +1,23 @@
 import React, { useState } from 'react'
 import { useOverlayState } from './hooks/useOverlayState'
-import { InvestigationBadge } from './components/InvestigationBadge'
+import { TabBar } from './components/TabBar'
 import { EntryList } from './components/EntryList'
 import { EntryInput } from './components/EntryInput'
 import type { JournalEntry } from '@shared/ipc-types'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 
 export default function App() {
-  const { activeInvestigation, entries, loading, addOptimisticEntry, updateEntry, deleteEntry } = useOverlayState()
+  const {
+    activeInvestigations,
+    currentInvestigation,
+    currentInvestigationId,
+    entries,
+    loading,
+    switchToInvestigation,
+    addOptimisticEntry,
+    updateEntry,
+    deleteEntry
+  } = useOverlayState()
   const [isDragging, setIsDragging] = useState(false)
   const [pendingImages, setPendingImages] = useState<string[]>([])
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
@@ -48,6 +58,11 @@ export default function App() {
     }
   }
 
+  const handleCreateInvestigation = async (name: string) => {
+    const inv = await window.electronAPI.createInvestigation(name)
+    await window.electronAPI.setActiveInvestigation(inv.id)
+  }
+
   if (loading) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-900/95 rounded-xl">
@@ -65,23 +80,33 @@ export default function App() {
     >
       {/* Drag handle / header */}
       <div className="drag-handle flex items-center justify-between px-3 py-2.5 border-b border-gray-700/50 bg-gray-800/60">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs text-gray-500 font-mono flex-shrink-0">ops-journal</span>
-          {activeInvestigation && (
-            <>
-              <span className="text-gray-600 text-xs flex-shrink-0">/</span>
-              <InvestigationBadge investigation={activeInvestigation} />
-            </>
-          )}
+        <span className="text-xs text-gray-500 font-mono flex-shrink-0">ops-journal</span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => window.electronAPI.openManager()}
+            className="no-drag text-gray-600 hover:text-gray-400 text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
+            title="Open Investigation Manager"
+          >
+            ⚙
+          </button>
+          <button
+            onClick={() => window.electronAPI.hideOverlay()}
+            className="no-drag text-gray-600 hover:text-gray-400 text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
+            title="Close (Esc)"
+          >
+            ✕
+          </button>
         </div>
-        <button
-          onClick={() => window.electronAPI.hideOverlay()}
-          className="no-drag text-gray-600 hover:text-gray-400 text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
-          title="Close (Esc)"
-        >
-          ✕
-        </button>
       </div>
+
+      {/* Tab bar */}
+      <TabBar
+        investigations={activeInvestigations}
+        currentId={currentInvestigationId}
+        onSelect={switchToInvestigation}
+        onDeactivate={(id) => window.electronAPI.deactivateInvestigation(id)}
+        onCreate={handleCreateInvestigation}
+      />
 
       {/* Drag overlay */}
       {isDragging && (
@@ -91,7 +116,7 @@ export default function App() {
       )}
 
       {/* Main content */}
-      {activeInvestigation === null ? (
+      {activeInvestigations.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
           <div className="text-center">
             <div className="text-4xl mb-3">📋</div>
@@ -107,6 +132,10 @@ export default function App() {
             Open Investigation Manager
           </button>
         </div>
+      ) : currentInvestigation === null ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-gray-500 text-sm font-mono">Select a tab above</div>
+        </div>
       ) : (
         <>
           <EntryList
@@ -117,7 +146,7 @@ export default function App() {
             onEntryDeleted={deleteEntry}
           />
           <EntryInput
-            activeInvestigation={activeInvestigation}
+            activeInvestigation={currentInvestigation}
             entries={entries}
             editingEntryId={editingEntryId}
             onSetEditingEntryId={setEditingEntryId}

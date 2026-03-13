@@ -2,12 +2,11 @@ import { v4 as uuidv4 } from 'uuid'
 import { getDb } from './index'
 import type { Investigation } from '@shared/ipc-types'
 
-export function getActiveInvestigation(): Investigation | null {
+export function getActiveInvestigations(): Investigation[] {
   const db = getDb()
-  const row = db
-    .prepare('SELECT * FROM investigations WHERE is_active = 1 LIMIT 1')
-    .get() as Investigation | undefined
-  return row ?? null
+  return db
+    .prepare('SELECT * FROM investigations WHERE is_active = 1 ORDER BY created_at ASC')
+    .all() as Investigation[]
 }
 
 export function listInvestigations(): Investigation[] {
@@ -33,15 +32,11 @@ export function deleteInvestigation(id: string): void {
 
 export function setActiveInvestigation(id: string): Investigation {
   const db = getDb()
-
-  const setActive = db.transaction(() => {
-    // Clear any currently active investigation
-    db.prepare('UPDATE investigations SET is_active = 0 WHERE is_active = 1').run()
-    // Set the new active
-    db.prepare('UPDATE investigations SET is_active = 1 WHERE id = ?').run(id)
-  })
-
-  setActive()
-
+  db.prepare('UPDATE investigations SET is_active = 1 WHERE id = ?').run(id)
   return db.prepare('SELECT * FROM investigations WHERE id = ?').get(id) as Investigation
+}
+
+export function deactivateInvestigation(id: string): void {
+  const db = getDb()
+  db.prepare('UPDATE investigations SET is_active = 0 WHERE id = ?').run(id)
 }

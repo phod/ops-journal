@@ -11,8 +11,9 @@ vi.mock('../index', () => ({
 import {
   createInvestigation,
   listInvestigations,
-  getActiveInvestigation,
+  getActiveInvestigations,
   setActiveInvestigation,
+  deactivateInvestigation,
   deleteInvestigation
 } from '../investigations'
 
@@ -58,18 +59,31 @@ describe('listInvestigations', () => {
   })
 })
 
-describe('getActiveInvestigation', () => {
-  it('returns null when no investigation is active', () => {
+describe('getActiveInvestigations', () => {
+  it('returns empty array when no investigation is active', () => {
     createInvestigation('Inactive')
-    expect(getActiveInvestigation()).toBeNull()
+    expect(getActiveInvestigations()).toEqual([])
   })
 
   it('returns the active investigation', () => {
     const inv = createInvestigation('Active One')
     setActiveInvestigation(inv.id)
-    const active = getActiveInvestigation()
-    expect(active?.id).toBe(inv.id)
-    expect(active?.is_active).toBe(1)
+    const active = getActiveInvestigations()
+    expect(active).toHaveLength(1)
+    expect(active[0].id).toBe(inv.id)
+    expect(active[0].is_active).toBe(1)
+  })
+
+  it('returns multiple active investigations', () => {
+    const a = createInvestigation('A')
+    const b = createInvestigation('B')
+    setActiveInvestigation(a.id)
+    setActiveInvestigation(b.id)
+    const active = getActiveInvestigations()
+    expect(active).toHaveLength(2)
+    const ids = active.map((i) => i.id)
+    expect(ids).toContain(a.id)
+    expect(ids).toContain(b.id)
   })
 })
 
@@ -77,33 +91,38 @@ describe('setActiveInvestigation', () => {
   it('sets an investigation as active', () => {
     const inv = createInvestigation('To Activate')
     setActiveInvestigation(inv.id)
-    expect(getActiveInvestigation()?.id).toBe(inv.id)
+    const active = getActiveInvestigations()
+    expect(active).toHaveLength(1)
+    expect(active[0].id).toBe(inv.id)
   })
 
-  it('replaces a previously active investigation', () => {
-    const first = createInvestigation('First')
-    const second = createInvestigation('Second')
-
-    setActiveInvestigation(first.id)
-    expect(getActiveInvestigation()?.id).toBe(first.id)
-
-    setActiveInvestigation(second.id)
-    expect(getActiveInvestigation()?.id).toBe(second.id)
-
-    const all = listInvestigations()
-    const firstRow = all.find((i) => i.id === first.id)
-    expect(firstRow?.is_active).toBe(0)
-  })
-
-  it('only one investigation can be active at a time', () => {
+  it('allows multiple investigations to be active simultaneously', () => {
     const a = createInvestigation('A')
     const b = createInvestigation('B')
     setActiveInvestigation(a.id)
     setActiveInvestigation(b.id)
 
     const active = listInvestigations().filter((i) => i.is_active === 1)
-    expect(active).toHaveLength(1)
-    expect(active[0].id).toBe(b.id)
+    expect(active).toHaveLength(2)
+  })
+})
+
+describe('deactivateInvestigation', () => {
+  it('sets is_active to 0', () => {
+    const inv = createInvestigation('To Deactivate')
+    setActiveInvestigation(inv.id)
+    expect(getActiveInvestigations()).toHaveLength(1)
+
+    deactivateInvestigation(inv.id)
+    expect(getActiveInvestigations()).toHaveLength(0)
+    const row = listInvestigations().find((i) => i.id === inv.id)
+    expect(row?.is_active).toBe(0)
+  })
+
+  it('is a no-op on an already inactive investigation', () => {
+    const inv = createInvestigation('Inactive')
+    deactivateInvestigation(inv.id)
+    expect(getActiveInvestigations()).toHaveLength(0)
   })
 })
 

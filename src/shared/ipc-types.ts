@@ -17,11 +17,12 @@ export interface JournalEntry {
 
 export interface ElectronAPI {
   // Investigations
-  getActiveInvestigation: () => Promise<Investigation | null>
+  getActiveInvestigations: () => Promise<Investigation[]>
   listInvestigations: () => Promise<Investigation[]>
   createInvestigation: (name: string) => Promise<Investigation>
   deleteInvestigation: (id: string) => Promise<void>
   setActiveInvestigation: (id: string) => Promise<Investigation>
+  deactivateInvestigation: (id: string) => Promise<void>
 
   // Entries
   listEntries: (investigationId: string) => Promise<JournalEntry[]>
@@ -47,7 +48,7 @@ export interface ElectronAPI {
   hideOverlay: () => Promise<void>
 
   // Push events
-  onInvestigationChanged: (callback: (investigation: Investigation | null) => void) => () => void
+  onInvestigationChanged: (callback: (investigations: Investigation[]) => void) => () => void
   onTriggerScreenshot: (callback: (dataUrl: string) => void) => () => void
   onTriggerUpload: (callback: () => void) => () => void
 

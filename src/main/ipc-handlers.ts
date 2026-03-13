@@ -8,7 +8,7 @@ import {
   deactivateInvestigation
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry } from './db/entries'
-import { getOverlayWindow, getManagerWindow, showManager, hideOverlay } from './windows'
+import { getOverlayWindow, getManagerWindow, showManager, hideOverlay, navigateManagerToDetails } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
 import { getHotkey, getScreenshotHotkey, getUploadHotkey } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
@@ -161,6 +161,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('overlay:hide', () => {
     hideOverlay()
+  })
+
+  ipcMain.handle('window:openDetails', (_event, { id }: { id: string }) => {
+    navigateManagerToDetails(id)
   })
 
   console.log('[ipc] All handlers registered')

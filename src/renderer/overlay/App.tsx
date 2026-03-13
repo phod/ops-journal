@@ -82,6 +82,15 @@ export default function App() {
       <div className="drag-handle flex items-center justify-between px-3 py-2.5 border-b border-gray-700/50 bg-gray-800/60">
         <span className="text-xs text-gray-500 font-mono flex-shrink-0">ops-journal</span>
         <div className="flex items-center gap-1">
+          {currentInvestigation && (
+            <button
+              onClick={() => window.electronAPI.openDetails(currentInvestigation.id)}
+              className="no-drag text-gray-600 hover:text-gray-400 text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
+              title="Open Investigation Details"
+            >
+              ↗
+            </button>
+          )}
           <button
             onClick={() => window.electronAPI.openManager()}
             className="no-drag text-gray-600 hover:text-gray-400 text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0"

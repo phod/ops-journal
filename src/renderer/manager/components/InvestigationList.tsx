@@ -117,6 +117,15 @@ export function InvestigationList({ investigations, onSetActive, onDeactivate, o
                 {isLoading ? '…' : isActive ? 'Deactivate' : 'Activate'}
               </button>
               <button
+                onClick={() => window.electronAPI.openDetails(inv.id)}
+                disabled={isLoading}
+                className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors
+                  bg-gray-700 hover:bg-gray-600 text-gray-200
+                  disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Details
+              </button>
+              <button
                 onClick={() => handleDelete(inv)}
                 disabled={isLoading}
                 className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors

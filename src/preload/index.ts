@@ -53,6 +53,14 @@ const electronAPI: ElectronAPI = {
 
   hideOverlay: () => ipcRenderer.invoke('overlay:hide'),
 
+  openDetails: (id: string) => ipcRenderer.invoke('window:openDetails', { id }),
+
+  onShowDetails: (callback: (id: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, id: string) => callback(id)
+    ipcRenderer.on('navigate:details', listener)
+    return () => ipcRenderer.removeListener('navigate:details', listener)
+  },
+
   // Push events
   onInvestigationChanged: (callback: (investigations: Investigation[]) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, investigations: Investigation[]) => {

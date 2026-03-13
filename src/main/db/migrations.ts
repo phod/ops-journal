@@ -33,5 +33,8 @@ export const migrations: string[] = [
 
   INSERT INTO entry_images (entry_id, image_path, sort_order)
     SELECT id, image_path, 0 FROM journal_entries WHERE image_path IS NOT NULL;
-  `
+  `,
+
+  // Migration 3 — allow multiple active investigations
+  `DROP INDEX IF EXISTS idx_one_active;`
 ]

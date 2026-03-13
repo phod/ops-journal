@@ -1,10 +1,11 @@
 import { ipcMain, BrowserWindow, dialog } from 'electron'
 import {
-  getActiveInvestigation,
+  getActiveInvestigations,
   listInvestigations,
   createInvestigation,
   deleteInvestigation,
-  setActiveInvestigation
+  setActiveInvestigation,
+  deactivateInvestigation
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry } from './db/entries'
 import { getOverlayWindow, getManagerWindow, showManager, hideOverlay } from './windows'
@@ -15,11 +16,11 @@ import { captureScreenshot } from './screenshot'
 import type { Investigation } from '@shared/ipc-types'
 import { readFileSync } from 'fs'
 
-function broadcastInvestigationChanged(investigation: Investigation | null): void {
+function broadcastInvestigationChanged(investigations: Investigation[]): void {
   const windows = BrowserWindow.getAllWindows()
   for (const win of windows) {
     if (!win.isDestroyed()) {
-      win.webContents.send('investigation:changed', investigation)
+      win.webContents.send('investigation:changed', investigations)
     }
   }
 }
@@ -33,7 +34,7 @@ export function registerIpcHandlers(): void {
   // --- Investigations ---
 
   ipcMain.handle('investigation:getActive', () => {
-    return getActiveInvestigation()
+    return getActiveInvestigations()
   })
 
   ipcMain.handle('investigation:list', () => {
@@ -46,15 +47,18 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('investigation:delete', (_event, { id }: { id: string }) => {
     deleteInvestigation(id)
-    // After deletion, broadcast the current active (may now be null)
-    const active = getActiveInvestigation()
-    broadcastInvestigationChanged(active)
+    broadcastInvestigationChanged(getActiveInvestigations())
   })
 
   ipcMain.handle('investigation:setActive', (_event, { id }: { id: string }) => {
     const investigation = setActiveInvestigation(id)
-    broadcastInvestigationChanged(investigation)
+    broadcastInvestigationChanged(getActiveInvestigations())
     return investigation
+  })
+
+  ipcMain.handle('investigation:deactivate', (_event, { id }: { id: string }) => {
+    deactivateInvestigation(id)
+    broadcastInvestigationChanged(getActiveInvestigations())
   })
 
   // --- Entries ---

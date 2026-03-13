@@ -3,7 +3,7 @@ import type { ElectronAPI, Investigation } from '../shared/ipc-types'
 
 const electronAPI: ElectronAPI = {
   // Investigations
-  getActiveInvestigation: () => ipcRenderer.invoke('investigation:getActive'),
+  getActiveInvestigations: () => ipcRenderer.invoke('investigation:getActive'),
 
   listInvestigations: () => ipcRenderer.invoke('investigation:list'),
 
@@ -15,6 +15,9 @@ const electronAPI: ElectronAPI = {
 
   setActiveInvestigation: (id: string) =>
     ipcRenderer.invoke('investigation:setActive', { id }),
+
+  deactivateInvestigation: (id: string) =>
+    ipcRenderer.invoke('investigation:deactivate', { id }),
 
   // Entries
   listEntries: (investigationId: string) =>
@@ -51,9 +54,9 @@ const electronAPI: ElectronAPI = {
   hideOverlay: () => ipcRenderer.invoke('overlay:hide'),
 
   // Push events
-  onInvestigationChanged: (callback: (investigation: Investigation | null) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, investigation: Investigation | null) => {
-      callback(investigation)
+  onInvestigationChanged: (callback: (investigations: Investigation[]) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, investigations: Investigation[]) => {
+      callback(investigations)
     }
     ipcRenderer.on('investigation:changed', listener)
     return () => {

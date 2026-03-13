@@ -43,6 +43,11 @@ export default function App() {
     await fetchInvestigations()
   }
 
+  const handleDeactivate = async (id: string) => {
+    await window.electronAPI.deactivateInvestigation(id)
+    await fetchInvestigations()
+  }
+
   const handleDelete = async (id: string) => {
     await window.electronAPI.deleteInvestigation(id)
     await fetchInvestigations()
@@ -87,6 +92,7 @@ export default function App() {
               <InvestigationList
                 investigations={investigations}
                 onSetActive={handleSetActive}
+                onDeactivate={handleDeactivate}
                 onDelete={handleDelete}
               />
             )}

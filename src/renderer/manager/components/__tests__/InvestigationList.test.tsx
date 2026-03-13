@@ -17,16 +17,18 @@ function makeInvestigation(overrides: Partial<Investigation> = {}): Investigatio
 
 describe('InvestigationList', () => {
   let onSetActive: ReturnType<typeof vi.fn>
+  let onDeactivate: ReturnType<typeof vi.fn>
   let onDelete: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     onSetActive = vi.fn().mockResolvedValue(undefined)
+    onDeactivate = vi.fn().mockResolvedValue(undefined)
     onDelete = vi.fn().mockResolvedValue(undefined)
     window.confirm = vi.fn().mockReturnValue(true)
   })
 
   it('shows empty state when no investigations exist', () => {
-    render(<InvestigationList investigations={[]} onSetActive={onSetActive} onDelete={onDelete} />)
+    render(<InvestigationList investigations={[]} onSetActive={onSetActive} onDeactivate={onDeactivate} onDelete={onDelete} />)
     expect(screen.getByText(/no investigations yet/i)).toBeInTheDocument()
   })
 
@@ -35,7 +37,7 @@ describe('InvestigationList', () => {
       makeInvestigation({ id: '1', name: 'Alpha' }),
       makeInvestigation({ id: '2', name: 'Beta' })
     ]
-    render(<InvestigationList investigations={investigations} onSetActive={onSetActive} onDelete={onDelete} />)
+    render(<InvestigationList investigations={investigations} onSetActive={onSetActive} onDeactivate={onDeactivate} onDelete={onDelete} />)
     expect(screen.getByText('Alpha')).toBeInTheDocument()
     expect(screen.getByText('Beta')).toBeInTheDocument()
   })
@@ -45,23 +47,32 @@ describe('InvestigationList', () => {
       makeInvestigation({ id: '1', name: 'Active One', is_active: 1 }),
       makeInvestigation({ id: '2', name: 'Inactive', is_active: 0 })
     ]
-    render(<InvestigationList investigations={investigations} onSetActive={onSetActive} onDelete={onDelete} />)
+    render(<InvestigationList investigations={investigations} onSetActive={onSetActive} onDeactivate={onDeactivate} onDelete={onDelete} />)
     expect(screen.getByText('active')).toBeInTheDocument()
   })
 
-  it('disables "Set Active" for the already-active investigation', () => {
+  it('shows "Deactivate" button for the active investigation', () => {
     const investigations = [makeInvestigation({ is_active: 1 })]
-    render(<InvestigationList investigations={investigations} onSetActive={onSetActive} onDelete={onDelete} />)
-    expect(screen.getByRole('button', { name: /set active/i })).toBeDisabled()
+    render(<InvestigationList investigations={investigations} onSetActive={onSetActive} onDeactivate={onDeactivate} onDelete={onDelete} />)
+    expect(screen.getByRole('button', { name: /deactivate/i })).toBeInTheDocument()
   })
 
-  it('calls onSetActive when "Set Active" is clicked', async () => {
+  it('calls onSetActive when "Activate" is clicked for inactive investigation', async () => {
     const user = userEvent.setup()
     const investigations = [makeInvestigation({ id: 'inv-1', is_active: 0 })]
-    render(<InvestigationList investigations={investigations} onSetActive={onSetActive} onDelete={onDelete} />)
+    render(<InvestigationList investigations={investigations} onSetActive={onSetActive} onDeactivate={onDeactivate} onDelete={onDelete} />)
 
-    await user.click(screen.getByRole('button', { name: /set active/i }))
+    await user.click(screen.getByRole('button', { name: /activate/i }))
     await waitFor(() => expect(onSetActive).toHaveBeenCalledWith('inv-1'))
+  })
+
+  it('calls onDeactivate when "Deactivate" is clicked for active investigation', async () => {
+    const user = userEvent.setup()
+    const investigations = [makeInvestigation({ id: 'inv-1', is_active: 1 })]
+    render(<InvestigationList investigations={investigations} onSetActive={onSetActive} onDeactivate={onDeactivate} onDelete={onDelete} />)
+
+    await user.click(screen.getByRole('button', { name: /deactivate/i }))
+    await waitFor(() => expect(onDeactivate).toHaveBeenCalledWith('inv-1'))
   })
 
   it('prompts for confirmation before deleting', async () => {
@@ -70,6 +81,7 @@ describe('InvestigationList', () => {
       <InvestigationList
         investigations={[makeInvestigation({ name: 'Doomed' })]}
         onSetActive={onSetActive}
+        onDeactivate={onDeactivate}
         onDelete={onDelete}
       />
     )
@@ -85,6 +97,7 @@ describe('InvestigationList', () => {
       <InvestigationList
         investigations={[makeInvestigation({ id: 'inv-1' })]}
         onSetActive={onSetActive}
+        onDeactivate={onDeactivate}
         onDelete={onDelete}
       />
     )
@@ -100,6 +113,7 @@ describe('InvestigationList', () => {
       <InvestigationList
         investigations={[makeInvestigation()]}
         onSetActive={onSetActive}
+        onDeactivate={onDeactivate}
         onDelete={onDelete}
       />
     )

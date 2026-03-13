@@ -3,8 +3,8 @@ import type { JournalEntry } from '../../../../shared/ipc-types'
 
 interface Props {
   entries: JournalEntry[]
-  editingEntryId: string | null
-  onEditingEntryIdChange: (id: string | null) => void
+  editingEntryId?: string | null
+  onEditingEntryIdChange?: (id: string | null) => void
   onEntryUpdated: (entry: JournalEntry) => void
   onEntryDeleted: (id: string) => void
 }
@@ -283,7 +283,10 @@ function EntryRow({ entry, isEditing, onEditStart, onEditEnd, onNavigateUp, onNa
   )
 }
 
-export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onEntryUpdated, onEntryDeleted }: Props) {
+export function EntryList({ entries, editingEntryId: externalEditingId, onEditingEntryIdChange, onEntryUpdated, onEntryDeleted }: Props) {
+  const [internalEditingId, setInternalEditingId] = useState<string | null>(null)
+  const editingEntryId = externalEditingId !== undefined ? externalEditingId : internalEditingId
+  const setEditingEntryId = onEditingEntryIdChange ?? setInternalEditingId
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -307,10 +310,10 @@ export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onE
           key={entry.id}
           entry={entry}
           isEditing={editingEntryId === entry.id}
-          onEditStart={() => onEditingEntryIdChange(entry.id)}
-          onEditEnd={() => onEditingEntryIdChange(null)}
-          onNavigateUp={i > 0 ? () => onEditingEntryIdChange(entries[i - 1].id) : undefined}
-          onNavigateDown={() => i < entries.length - 1 ? onEditingEntryIdChange(entries[i + 1].id) : onEditingEntryIdChange(null)}
+          onEditStart={() => setEditingEntryId(entry.id)}
+          onEditEnd={() => setEditingEntryId(null)}
+          onNavigateUp={i > 0 ? () => setEditingEntryId(entries[i - 1].id) : undefined}
+          onNavigateDown={() => i < entries.length - 1 ? setEditingEntryId(entries[i + 1].id) : setEditingEntryId(null)}
           onUpdated={onEntryUpdated}
           onDeleted={onEntryDeleted}
         />

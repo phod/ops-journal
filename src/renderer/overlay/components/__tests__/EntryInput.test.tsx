@@ -67,7 +67,7 @@ describe('EntryInput', () => {
     await user.type(screen.getByRole('textbox'), 'My log entry')
     await user.keyboard('{Enter}')
 
-    expect(window.electronAPI.createEntry).toHaveBeenCalledWith('inv-1', 'My log entry', undefined)
+    expect(window.electronAPI.createEntry).toHaveBeenCalledWith('inv-1', 'My log entry', undefined, 'note')
     expect(onEntryCreated).toHaveBeenCalledWith(mockEntry)
   })
 
@@ -114,7 +114,7 @@ describe('EntryInput', () => {
     await user.type(screen.getByRole('textbox'), '  trimmed  ')
     await user.keyboard('{Enter}')
 
-    expect(window.electronAPI.createEntry).toHaveBeenCalledWith('inv-1', 'trimmed', undefined)
+    expect(window.electronAPI.createEntry).toHaveBeenCalledWith('inv-1', 'trimmed', undefined, 'note')
   })
 
   describe('image attachment', () => {
@@ -200,7 +200,7 @@ describe('EntryInput', () => {
       await user.type(screen.getByRole('textbox'), 'Note with image')
       await user.keyboard('{Enter}')
 
-      expect(window.electronAPI.createEntry).toHaveBeenCalledWith('inv-1', 'Note with image', [dataUrl])
+      expect(window.electronAPI.createEntry).toHaveBeenCalledWith('inv-1', 'Note with image', [dataUrl], 'note')
     })
 
     it('can submit with only images and no text', async () => {
@@ -216,7 +216,7 @@ describe('EntryInput', () => {
       await user.click(screen.getByRole('textbox'))
       await user.keyboard('{Enter}')
 
-      expect(window.electronAPI.createEntry).toHaveBeenCalledWith('inv-1', '', [dataUrl])
+      expect(window.electronAPI.createEntry).toHaveBeenCalledWith('inv-1', '', [dataUrl], 'note')
     })
 
     it('clears pending images after successful submit', async () => {

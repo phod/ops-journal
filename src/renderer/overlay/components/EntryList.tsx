@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
+import { getEntryTypeDefinition, ENTRY_TYPES } from '@shared/entry-types'
 
 interface Props {
   entries: JournalEntry[]
@@ -50,12 +51,12 @@ interface EntryRowProps {
 function EntryRow({ entry, isEditing, onEditStart, onEditEnd, onNavigateUp, onNavigateDown, onUpdated, onDeleted }: EntryRowProps) {
   const [draft, setDraft] = useState(entry.body)
   const [saving, setSaving] = useState(false)
-  // Maps image_path → loaded data URL for display
   const [imageDataUrls, setImageDataUrls] = useState<Record<string, string>>({})
-  // Paths to remove on save (subset of entry.image_paths)
   const [pendingRemovals, setPendingRemovals] = useState<Set<string>>(new Set())
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
+  const [showTypeMenu, setShowTypeMenu] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const typeMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     for (const path of entry.image_paths) {
@@ -77,6 +78,28 @@ function EntryRow({ entry, isEditing, onEditStart, onEditEnd, onNavigateUp, onNa
       textareaRef.current?.setSelectionRange(len, len)
     }
   }, [isEditing])
+
+  useEffect(() => {
+    if (!showTypeMenu) return
+    const handler = (e: MouseEvent) => {
+      if (typeMenuRef.current && !typeMenuRef.current.contains(e.target as Node)) {
+        setShowTypeMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showTypeMenu])
+
+  const changeType = async (newType: import('@shared/ipc-types').EntryType) => {
+    setShowTypeMenu(false)
+    if (newType === entry.type) return
+    try {
+      const updated = await window.electronAPI.updateEntry(entry.id, entry.body, undefined, newType)
+      onUpdated(updated)
+    } catch (err) {
+      console.error('[overlay] Failed to change entry type:', err)
+    }
+  }
 
   const cancelEdit = () => {
     setDraft(entry.body)
@@ -156,11 +179,65 @@ function EntryRow({ entry, isEditing, onEditStart, onEditEnd, onNavigateUp, onNa
 
   const visiblePaths = entry.image_paths.filter((p) => !pendingRemovals.has(p))
 
+  const typeDef = getEntryTypeDefinition(entry.type ?? 'note')
+  const isTyped = entry.type && entry.type !== 'note'
+
+  const cardClass = isTyped
+    ? `group border-l-4 ${typeDef.leftBorderClass} ${typeDef.cardBgClass} ${typeDef.cardBorderClass} rounded-lg px-3 py-2 border`
+    : 'group bg-gray-800/60 rounded-lg px-3 py-2 border border-gray-700/50'
+
   return (
-    <div className="group bg-gray-800/60 rounded-lg px-3 py-2 border border-gray-700/50">
+    <div className={cardClass}>
       <div className="flex items-center justify-between mb-1">
-        <div className="text-xs text-gray-500 font-mono select-none">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono select-none">
           {formatTimestamp(entry.created_at)}
+          {/* Type badge — clickable to open picker */}
+          <div className="relative" ref={typeMenuRef}>
+            {isTyped ? (
+              <button
+                onClick={() => setShowTypeMenu((v) => !v)}
+                className={`no-drag px-1.5 py-0.5 rounded text-xs ${typeDef.tagBgClass} ${typeDef.tagTextClass} cursor-pointer`}
+                title="Change entry type"
+              >
+                {typeDef.label.toUpperCase()}
+              </button>
+            ) : (
+              !isEditing && (
+                <button
+                  onClick={() => setShowTypeMenu((v) => !v)}
+                  className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-gray-400 px-1"
+                  title="Set entry type"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                    <line x1="7" y1="7" x2="7.01" y2="7"/>
+                  </svg>
+                </button>
+              )
+            )}
+            {showTypeMenu && (
+              <div className="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-20 min-w-[120px] shadow-lg">
+                {ENTRY_TYPES.map((def) => (
+                  <button
+                    key={def.type}
+                    onMouseDown={(e) => { e.preventDefault(); changeType(def.type) }}
+                    className={`no-drag w-full text-left px-3 py-1.5 text-xs font-mono flex items-center gap-2 transition-colors hover:bg-gray-700 ${
+                      entry.type === def.type ? 'text-gray-100' : 'text-gray-400'
+                    }`}
+                  >
+                    {def.type !== 'note' ? (
+                      <span className={`px-1.5 py-0.5 rounded text-xs ${def.tagBgClass} ${def.tagTextClass}`}>
+                        {def.label.toUpperCase()}
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-gray-700 text-gray-400">NOTE</span>
+                    )}
+                    {entry.type === def.type && <span className="ml-auto text-gray-500">✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {!isEditing && (
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

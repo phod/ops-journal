@@ -25,10 +25,10 @@ const electronAPI: ElectronAPI = {
 
   // Entries
   listEntries: (investigationId) => ipcRenderer.invoke('entry:list', { investigationId }),
-  createEntry: (investigationId, body, imageDataUrls) =>
-    ipcRenderer.invoke('entry:create', { investigationId, body, imageDataUrls }),
-  updateEntry: (id, body, keepImagePaths) =>
-    ipcRenderer.invoke('entry:update', { id, body, keepImagePaths }),
+  createEntry: (investigationId, body, imageDataUrls, type) =>
+    ipcRenderer.invoke('entry:create', { investigationId, body, imageDataUrls, type }),
+  updateEntry: (id, body, keepImagePaths, type) =>
+    ipcRenderer.invoke('entry:update', { id, body, keepImagePaths, type }),
   deleteEntry: (id) => ipcRenderer.invoke('entry:delete', { id }),
 
   // Images

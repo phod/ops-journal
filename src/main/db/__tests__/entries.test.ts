@@ -33,6 +33,21 @@ describe('createEntry', () => {
     expect(entry.image_paths).toEqual([])
   })
 
+  it('defaults type to note when not provided', () => {
+    const entry = createEntry(investigationId, 'A note')
+    expect(entry.type).toBe('note')
+  })
+
+  it('stores action type correctly', () => {
+    const entry = createEntry(investigationId, 'Restarted service', [], 'action')
+    expect(entry.type).toBe('action')
+  })
+
+  it('stores finding type correctly', () => {
+    const entry = createEntry(investigationId, 'Root cause found', [], 'finding')
+    expect(entry.type).toBe('finding')
+  })
+
   it('creates an entry with image paths', () => {
     const entry = createEntry(investigationId, 'With image', ['/path/to/image.png'])
     expect(entry.body).toBe('With image')
@@ -58,6 +73,12 @@ describe('getEntry', () => {
     expect(found).toBeDefined()
     expect(found!.id).toBe(created.id)
     expect(found!.body).toBe('Find me')
+  })
+
+  it('returns the type field', () => {
+    const created = createEntry(investigationId, 'Action entry', [], 'action')
+    const found = getEntry(created.id)
+    expect(found!.type).toBe('action')
   })
 
   it('returns undefined for a non-existent id', () => {
@@ -94,6 +115,16 @@ describe('listEntries', () => {
     const entries = listEntries(investigationId)
     expect(entries[0].image_paths).toEqual(['/a.png', '/b.png'])
     expect(entries[1].image_paths).toEqual([])
+  })
+
+  it('returns the type field for each entry', () => {
+    createEntry(investigationId, 'Note', [], 'note')
+    createEntry(investigationId, 'Action', [], 'action')
+    createEntry(investigationId, 'Finding', [], 'finding')
+    const entries = listEntries(investigationId)
+    expect(entries[0].type).toBe('note')
+    expect(entries[1].type).toBe('action')
+    expect(entries[2].type).toBe('finding')
   })
 })
 

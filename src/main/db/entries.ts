@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from 'uuid'
 import { getDb } from './index'
-import type { JournalEntry } from '@shared/ipc-types'
+import type { JournalEntry, EntryType } from '@shared/ipc-types'
 
 const ENTRY_COLUMNS = `
-  je.id, je.investigation_id, je.body, je.created_at,
+  je.id, je.investigation_id, je.body, je.created_at, je.type,
   json_group_array(ei.image_path) FILTER (WHERE ei.image_path IS NOT NULL) as image_paths_json
 `
 
@@ -30,6 +30,7 @@ function rowToEntry(row: Record<string, unknown>): JournalEntry {
     investigation_id: row.investigation_id as string,
     body: row.body as string,
     created_at: row.created_at as string,
+    type: (row.type as EntryType) ?? 'note',
     image_paths: JSON.parse((row.image_paths_json as string) || '[]')
   }
 }
@@ -46,10 +47,10 @@ export function getEntry(id: string): JournalEntry | undefined {
   return row ? rowToEntry(row) : undefined
 }
 
-export function createEntry(investigationId: string, body: string, imagePaths?: string[]): JournalEntry {
+export function createEntry(investigationId: string, body: string, imagePaths?: string[], type: EntryType = 'note'): JournalEntry {
   const db = getDb()
   const id = uuidv4()
-  db.prepare('INSERT INTO journal_entries (id, investigation_id, body) VALUES (?, ?, ?)').run(id, investigationId, body)
+  db.prepare('INSERT INTO journal_entries (id, investigation_id, body, type) VALUES (?, ?, ?, ?)').run(id, investigationId, body, type)
   if (imagePaths && imagePaths.length > 0) {
     const insertImage = db.prepare('INSERT INTO entry_images (entry_id, image_path, sort_order) VALUES (?, ?, ?)')
     for (let i = 0; i < imagePaths.length; i++) {
@@ -59,9 +60,13 @@ export function createEntry(investigationId: string, body: string, imagePaths?: 
   return getEntry(id)!
 }
 
-export function updateEntry(id: string, body: string, keepImagePaths?: string[] | null): JournalEntry {
+export function updateEntry(id: string, body: string, keepImagePaths?: string[] | null, type?: EntryType): JournalEntry {
   const db = getDb()
-  db.prepare('UPDATE journal_entries SET body = ? WHERE id = ?').run(body, id)
+  if (type !== undefined) {
+    db.prepare('UPDATE journal_entries SET body = ?, type = ? WHERE id = ?').run(body, type, id)
+  } else {
+    db.prepare('UPDATE journal_entries SET body = ? WHERE id = ?').run(body, id)
+  }
 
   if (keepImagePaths === null || (Array.isArray(keepImagePaths) && keepImagePaths.length === 0)) {
     db.prepare('DELETE FROM entry_images WHERE entry_id = ?').run(id)

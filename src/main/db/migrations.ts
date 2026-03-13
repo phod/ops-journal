@@ -36,5 +36,8 @@ export const migrations: string[] = [
   `,
 
   // Migration 3 — allow multiple active investigations
-  `DROP INDEX IF EXISTS idx_one_active;`
+  `DROP INDEX IF EXISTS idx_one_active;`,
+
+  // Migration 4 — add type column to journal_entries
+  `ALTER TABLE journal_entries ADD COLUMN type TEXT NOT NULL DEFAULT 'note';`
 ]

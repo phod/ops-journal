@@ -60,13 +60,13 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(
     'entry:create',
-    (_event, { investigationId, body, imageDataUrls }: { investigationId: string; body: string; imageDataUrls?: string[] }) => {
+    (_event, { investigationId, body, imageDataUrls, type }: { investigationId: string; body: string; imageDataUrls?: string[]; type?: import('@shared/ipc-types').EntryType }) => {
       const imagePaths = (imageDataUrls ?? []).map((dataUrl) => saveImage(dataUrlToBuffer(dataUrl)))
-      return createEntry(investigationId, body, imagePaths)
+      return createEntry(investigationId, body, imagePaths, type)
     }
   )
 
-  ipcMain.handle('entry:update', (_event, { id, body, keepImagePaths }: { id: string; body: string; keepImagePaths?: string[] | null }) => {
+  ipcMain.handle('entry:update', (_event, { id, body, keepImagePaths, type }: { id: string; body: string; keepImagePaths?: string[] | null; type?: import('@shared/ipc-types').EntryType }) => {
     const existingPaths = getEntry(id)?.image_paths ?? []
 
     if (keepImagePaths !== undefined) {
@@ -76,7 +76,7 @@ export function registerIpcHandlers(): void {
       }
     }
 
-    return updateEntry(id, body, keepImagePaths)
+    return updateEntry(id, body, keepImagePaths, type)
   })
 
   ipcMain.handle('entry:delete', (_event, { id }: { id: string }) => {

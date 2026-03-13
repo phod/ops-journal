@@ -68,11 +68,6 @@ export default function App() {
             <CreateInvestigationForm onCreated={handleCreated} />
           </section>
 
-          {/* Settings */}
-          <section>
-            <HotkeySettings />
-          </section>
-
           {/* List */}
           <section>
             <h2 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
@@ -95,6 +90,11 @@ export default function App() {
                 onDelete={handleDelete}
               />
             )}
+          </section>
+
+          {/* Settings */}
+          <section>
+            <HotkeySettings />
           </section>
         </div>
       </div>

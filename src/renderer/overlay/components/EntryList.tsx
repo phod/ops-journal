@@ -44,18 +44,22 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(entry.body)
   const [saving, setSaving] = useState(false)
-  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
-  const [imageExpanded, setImageExpanded] = useState(false)
-  const [removeImage, setRemoveImage] = useState(false)
+  // Maps image_path → loaded data URL for display
+  const [imageDataUrls, setImageDataUrls] = useState<Record<string, string>>({})
+  // Paths to remove on save (subset of entry.image_paths)
+  const [pendingRemovals, setPendingRemovals] = useState<Set<string>>(new Set())
+  const [expandedPath, setExpandedPath] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
-    if (entry.image_path) {
-      window.electronAPI.getEntryImage(entry.image_path).then(setImageDataUrl).catch(() => {})
-    } else {
-      setImageDataUrl(null)
+    for (const path of entry.image_paths) {
+      if (!imageDataUrls[path]) {
+        window.electronAPI.getEntryImage(path).then((dataUrl) => {
+          setImageDataUrls((prev) => ({ ...prev, [path]: dataUrl }))
+        }).catch(() => {})
+      }
     }
-  }, [entry.image_path])
+  }, [entry.image_paths])
 
   useEffect(() => {
     if (editing) {
@@ -67,34 +71,36 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
 
   const startEdit = () => {
     setDraft(entry.body)
-    setRemoveImage(false)
+    setPendingRemovals(new Set())
     setEditing(true)
   }
 
   const cancelEdit = () => {
     setEditing(false)
     setDraft(entry.body)
-    setRemoveImage(false)
+    setPendingRemovals(new Set())
   }
 
   const saveEdit = async () => {
     const trimmed = draft.trim()
-    if (!trimmed && !imageDataUrl && !removeImage) {
+    const hasImages = entry.image_paths.length > pendingRemovals.size
+    if (!trimmed && !hasImages) {
       cancelEdit()
       return
     }
-    if (trimmed === entry.body && !removeImage) {
+    if (trimmed === entry.body && pendingRemovals.size === 0) {
       cancelEdit()
       return
     }
     setSaving(true)
     try {
-      // imageDataUrl param: null = remove, undefined = keep existing
-      const imageParam = removeImage ? null : undefined
-      const updated = await window.electronAPI.updateEntry(entry.id, trimmed, imageParam)
+      const keepImagePaths = pendingRemovals.size > 0
+        ? entry.image_paths.filter((p) => !pendingRemovals.has(p))
+        : undefined
+      const updated = await window.electronAPI.updateEntry(entry.id, trimmed, keepImagePaths)
       onUpdated(updated)
       setEditing(false)
-      setRemoveImage(false)
+      setPendingRemovals(new Set())
     } catch (err) {
       console.error('[overlay] Failed to update entry:', err)
     } finally {
@@ -121,6 +127,17 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
       console.error('[overlay] Failed to delete entry:', err)
     }
   }
+
+  const toggleRemoval = (path: string) => {
+    setPendingRemovals((prev) => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
+  }
+
+  const visiblePaths = entry.image_paths.filter((p) => !pendingRemovals.has(p))
 
   return (
     <div className="group bg-gray-800/60 rounded-lg px-3 py-2 border border-gray-700/50">
@@ -167,19 +184,39 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
             rows={3}
             className="no-drag w-full bg-gray-700/80 text-gray-100 font-mono text-sm rounded px-2 py-1.5 border border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
           />
-          {imageDataUrl && !removeImage && (
-            <div className="mt-1.5 flex items-center gap-2">
-              <img src={imageDataUrl} alt="Attached" className="max-h-20 rounded border border-gray-600 object-contain" />
-              <button
-                onClick={() => setRemoveImage(true)}
-                className="no-drag text-xs text-red-400 hover:text-red-300 transition-colors"
-              >
-                Remove image
-              </button>
+          {entry.image_paths.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {entry.image_paths.map((path) => {
+                const markedForRemoval = pendingRemovals.has(path)
+                return (
+                  <div key={path} className="relative inline-block">
+                    <img
+                      src={imageDataUrls[path]}
+                      alt="Attached"
+                      className={`max-h-20 max-w-[100px] rounded border object-contain transition-opacity ${
+                        markedForRemoval ? 'opacity-30 border-red-500' : 'border-gray-600'
+                      }`}
+                    />
+                    <button
+                      onClick={() => toggleRemoval(path)}
+                      className={`no-drag absolute -top-1.5 -right-1.5 rounded-full w-4 h-4 flex items-center justify-center text-xs leading-none transition-colors ${
+                        markedForRemoval
+                          ? 'bg-gray-600 hover:bg-gray-500 text-gray-400'
+                          : 'bg-red-700 hover:bg-red-600 text-white'
+                      }`}
+                      title={markedForRemoval ? 'Keep image' : 'Remove image'}
+                    >
+                      {markedForRemoval ? '↩' : '×'}
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           )}
-          {removeImage && (
-            <div className="mt-1 text-xs text-gray-500">Image will be removed on save.</div>
+          {pendingRemovals.size > 0 && (
+            <div className="mt-1 text-xs text-gray-500">
+              {pendingRemovals.size} image{pendingRemovals.size > 1 ? 's' : ''} will be removed on save.
+            </div>
           )}
           <div className="flex gap-2 mt-1.5">
             <button
@@ -207,17 +244,20 @@ function EntryRow({ entry, onUpdated, onDeleted }: EntryRowProps) {
               {entry.body}
             </div>
           )}
-          {imageDataUrl && (
-            <div className={entry.body ? 'mt-1.5' : ''}>
-              <img
-                src={imageDataUrl}
-                alt="Attached"
-                onClick={() => setImageExpanded((v) => !v)}
-                className={`rounded border border-gray-600 object-contain cursor-pointer transition-all ${
-                  imageExpanded ? 'max-h-none w-full' : 'max-h-48'
-                }`}
-                title={imageExpanded ? 'Click to collapse' : 'Click to expand'}
-              />
+          {visiblePaths.length > 0 && (
+            <div className={`flex flex-wrap gap-1.5 ${entry.body ? 'mt-1.5' : ''}`}>
+              {visiblePaths.map((path) => (
+                <img
+                  key={path}
+                  src={imageDataUrls[path]}
+                  alt="Attached"
+                  onClick={() => setExpandedPath(expandedPath === path ? null : path)}
+                  className={`rounded border border-gray-600 object-contain cursor-pointer transition-all ${
+                    expandedPath === path ? 'max-h-none w-full' : 'max-h-24'
+                  }`}
+                  title={expandedPath === path ? 'Click to collapse' : 'Click to expand'}
+                />
+              ))}
             </div>
           )}
         </>

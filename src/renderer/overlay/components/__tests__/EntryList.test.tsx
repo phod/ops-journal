@@ -10,6 +10,7 @@ function makeEntry(overrides: Partial<JournalEntry> = {}): JournalEntry {
     id: 'entry-1',
     investigation_id: 'inv-1',
     body: 'Test entry',
+    image_paths: [],
     created_at: '2024-01-01 10:00:00',
     ...overrides
   }
@@ -38,6 +39,62 @@ describe('EntryList', () => {
     render(<EntryList entries={entries} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
     expect(screen.getByText('First note')).toBeInTheDocument()
     expect(screen.getByText('Second note')).toBeInTheDocument()
+  })
+
+  describe('image display', () => {
+    it('loads and shows images when image_paths is set', async () => {
+      const dataUrl = 'data:image/png;base64,abc123'
+      window.electronAPI.getEntryImage = vi.fn().mockResolvedValue(dataUrl)
+
+      const entry = makeEntry({ image_paths: ['/some/path.png'] })
+      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+
+      await waitFor(() => {
+        const img = screen.getByAltText('Attached')
+        expect(img).toBeInTheDocument()
+        expect(img).toHaveAttribute('src', dataUrl)
+      })
+    })
+
+    it('does not show images when image_paths is empty', () => {
+      window.electronAPI.getEntryImage = vi.fn()
+      const entry = makeEntry({ image_paths: [] })
+      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+
+      expect(screen.queryByAltText('Attached')).not.toBeInTheDocument()
+      expect(window.electronAPI.getEntryImage).not.toHaveBeenCalled()
+    })
+
+    it('loads and shows multiple images', async () => {
+      const dataUrls = ['data:image/png;base64,a', 'data:image/png;base64,b']
+      window.electronAPI.getEntryImage = vi.fn()
+        .mockResolvedValueOnce(dataUrls[0])
+        .mockResolvedValueOnce(dataUrls[1])
+
+      const entry = makeEntry({ image_paths: ['/a.png', '/b.png'] })
+      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+
+      await waitFor(() => {
+        expect(screen.getAllByAltText('Attached')).toHaveLength(2)
+      })
+    })
+
+    it('toggles image expansion on click', async () => {
+      const dataUrl = 'data:image/png;base64,abc'
+      window.electronAPI.getEntryImage = vi.fn().mockResolvedValue(dataUrl)
+
+      const entry = makeEntry({ image_paths: ['/img.png'] })
+      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+
+      const img = await screen.findByAltText('Attached')
+      expect(img).toHaveClass('max-h-24')
+
+      fireEvent.click(img)
+      expect(img).not.toHaveClass('max-h-24')
+
+      fireEvent.click(img)
+      expect(img).toHaveClass('max-h-24')
+    })
   })
 
   describe('delete', () => {
@@ -117,7 +174,7 @@ describe('EntryList', () => {
       await user.keyboard('{Enter}')
 
       await waitFor(() =>
-        expect(window.electronAPI.updateEntry).toHaveBeenCalledWith('entry-1', 'New text')
+        expect(window.electronAPI.updateEntry).toHaveBeenCalledWith('entry-1', 'New text', undefined)
       )
       expect(onEntryUpdated).toHaveBeenCalledWith(updated)
     })
@@ -151,7 +208,7 @@ describe('EntryList', () => {
       expect(screen.getByText('Original')).toBeInTheDocument()
     })
 
-    it('does not save if the text is unchanged', async () => {
+    it('does not save if the text is unchanged and no image change', async () => {
       const user = userEvent.setup()
       const entry = makeEntry({ body: 'Same text' })
       window.electronAPI.updateEntry = vi.fn()
@@ -162,6 +219,83 @@ describe('EntryList', () => {
       await user.keyboard('{Enter}')
 
       expect(window.electronAPI.updateEntry).not.toHaveBeenCalled()
+    })
+
+    it('shows remove button for each image in edit mode', async () => {
+      const dataUrl = 'data:image/png;base64,abc'
+      window.electronAPI.getEntryImage = vi.fn().mockResolvedValue(dataUrl)
+      window.electronAPI.updateEntry = vi.fn()
+
+      const entry = makeEntry({ image_paths: ['/img.png'] })
+      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+
+      await screen.findByAltText('Attached')
+
+      const user = userEvent.setup()
+      await user.click(screen.getByTitle('Edit'))
+
+      await waitFor(() => expect(screen.getByTitle('Remove image')).toBeInTheDocument())
+    })
+
+    it('shows removal count message after marking an image for removal', async () => {
+      const dataUrl = 'data:image/png;base64,abc'
+      window.electronAPI.getEntryImage = vi.fn().mockResolvedValue(dataUrl)
+      window.electronAPI.updateEntry = vi.fn().mockResolvedValue(makeEntry({ image_paths: [] }))
+
+      const entry = makeEntry({ image_paths: ['/img.png'] })
+      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+
+      await screen.findByAltText('Attached')
+
+      const user = userEvent.setup()
+      await user.click(screen.getByTitle('Edit'))
+      await waitFor(() => expect(screen.getByTitle('Remove image')).toBeInTheDocument())
+      await user.click(screen.getByTitle('Remove image'))
+
+      expect(screen.getByText(/image will be removed on save/i)).toBeInTheDocument()
+    })
+
+    it('sends keepImagePaths without the removed path on save', async () => {
+      const dataUrl = 'data:image/png;base64,abc'
+      window.electronAPI.getEntryImage = vi.fn().mockResolvedValue(dataUrl)
+      const updatedEntry = makeEntry({ body: 'Same text', image_paths: [] })
+      window.electronAPI.updateEntry = vi.fn().mockResolvedValue(updatedEntry)
+
+      const entry = makeEntry({ body: 'Same text', image_paths: ['/img.png'] })
+      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+
+      await screen.findByAltText('Attached')
+
+      const user = userEvent.setup()
+      await user.click(screen.getByTitle('Edit'))
+      await waitFor(() => expect(screen.getByTitle('Remove image')).toBeInTheDocument())
+      await user.click(screen.getByTitle('Remove image'))
+
+      await user.click(screen.getByRole('button', { name: /save/i }))
+
+      await waitFor(() =>
+        expect(window.electronAPI.updateEntry).toHaveBeenCalledWith('entry-1', 'Same text', [])
+      )
+    })
+
+    it('resets pending removals on cancel', async () => {
+      const dataUrl = 'data:image/png;base64,abc'
+      window.electronAPI.getEntryImage = vi.fn().mockResolvedValue(dataUrl)
+
+      const entry = makeEntry({ image_paths: ['/img.png'] })
+      render(<EntryList entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
+
+      await screen.findByAltText('Attached')
+
+      const user = userEvent.setup()
+      await user.click(screen.getByTitle('Edit'))
+      await waitFor(() => expect(screen.getByTitle('Remove image')).toBeInTheDocument())
+      await user.click(screen.getByTitle('Remove image'))
+      expect(screen.getByText(/image will be removed on save/i)).toBeInTheDocument()
+
+      await user.click(screen.getByText('Cancel'))
+
+      expect(screen.queryByText(/image will be removed on save/i)).not.toBeInTheDocument()
     })
   })
 })

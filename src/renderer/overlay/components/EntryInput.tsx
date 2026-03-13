@@ -1,16 +1,42 @@
-import React, { useState, useRef, useEffect } from 'react'
-import type { Investigation, JournalEntry } from '../../../../shared/ipc-types'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import type { Investigation, JournalEntry } from '@shared/ipc-types'
+import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
+
+const symbolMap: Record<string, string> = {
+  CommandOrControl: '⌘',
+  Command: '⌘',
+  Control: '⌃',
+  Alt: '⌥',
+  Shift: '⇧'
+}
+
+function toHotkeyHint(accelerator: string): string {
+  return accelerator
+    .split('+')
+    .map((part) => symbolMap[part] ?? part)
+    .join('')
+}
 
 interface Props {
   activeInvestigation: Investigation
   onEntryCreated: (entry: JournalEntry) => void
+  pendingImages: string[]
+  onPendingImagesChange: (images: string[]) => void
 }
 
-export function EntryInput({ activeInvestigation, onEntryCreated }: Props) {
+export function EntryInput({ activeInvestigation, onEntryCreated, pendingImages, onPendingImagesChange }: Props) {
   const [value, setValue] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [pendingImage, setPendingImage] = useState<string | null>(null)
+  const [screenshotHint, setScreenshotHint] = useState<string | null>(null)
+  const [uploadHint, setUploadHint] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const atLimit = pendingImages.length >= MAX_IMAGES_PER_ENTRY
+
+  useEffect(() => {
+    window.electronAPI.getScreenshotHotkey().then((hk) => setScreenshotHint(toHotkeyHint(hk)))
+    window.electronAPI.getUploadHotkey().then((hk) => setUploadHint(toHotkeyHint(hk)))
+  }, [])
 
   // Focus on mount and whenever the window regains focus
   useEffect(() => {
@@ -29,65 +55,103 @@ export function EntryInput({ activeInvestigation, onEntryCreated }: Props) {
 
   const submitEntry = async () => {
     const trimmed = value.trim()
-    if ((!trimmed && !pendingImage) || submitting) return
+    if ((!trimmed && pendingImages.length === 0) || submitting) return
 
-    const imageToSubmit = pendingImage
+    const imagesToSubmit = pendingImages
     setValue('')
-    setPendingImage(null)
+    onPendingImagesChange([])
     setSubmitting(true)
 
     try {
       const entry = await window.electronAPI.createEntry(
         activeInvestigation.id,
         trimmed,
-        imageToSubmit ?? undefined
+        imagesToSubmit.length > 0 ? imagesToSubmit : undefined
       )
       onEntryCreated(entry)
     } catch (err) {
       console.error('[overlay] Failed to create entry:', err)
       setValue(trimmed)
-      setPendingImage(imageToSubmit)
+      onPendingImagesChange(imagesToSubmit)
     } finally {
       setSubmitting(false)
       textareaRef.current?.focus()
     }
   }
 
-  const handlePickImage = async () => {
+  const addImages = useCallback((dataUrls: string[]) => {
+    onPendingImagesChange((prev: string[]) => {
+      const slots = MAX_IMAGES_PER_ENTRY - prev.length
+      if (slots <= 0) return prev
+      return [...prev, ...dataUrls.slice(0, slots)]
+    })
+  }, [onPendingImagesChange])
+
+  const removeImage = useCallback((index: number) => {
+    onPendingImagesChange((prev: string[]) => prev.filter((_, i) => i !== index))
+  }, [onPendingImagesChange])
+
+  const handlePickImage = useCallback(async () => {
+    if (atLimit) return
     try {
-      const dataUrl = await window.electronAPI.pickImage()
-      if (dataUrl) setPendingImage(dataUrl)
+      const dataUrls = await window.electronAPI.pickImage()
+      if (dataUrls.length > 0) addImages(dataUrls)
     } catch (err) {
       console.error('[overlay] Failed to pick image:', err)
     }
-  }
+  }, [atLimit, addImages])
 
-  const handleCaptureScreenshot = async () => {
+  const handleCaptureScreenshot = useCallback(async () => {
+    if (atLimit) return
     try {
       const dataUrl = await window.electronAPI.captureScreenshot()
-      if (dataUrl) setPendingImage(dataUrl)
+      if (dataUrl) addImages([dataUrl])
     } catch (err) {
       console.error('[overlay] Failed to capture screenshot:', err)
     }
-  }
+  }, [atLimit, addImages])
+
+  // Listen for global hotkey triggers from main process
+  useEffect(() => {
+    return window.electronAPI.onTriggerScreenshot((dataUrl) => {
+      addImages([dataUrl])
+    })
+  }, [addImages])
+
+  useEffect(() => {
+    return window.electronAPI.onTriggerUpload(() => {
+      handlePickImage()
+    })
+  }, [handlePickImage])
 
   return (
     <div className="no-drag px-3 pb-3 pt-2 border-t border-gray-700/50">
-      {/* Pending image preview */}
-      {pendingImage && (
-        <div className="relative mb-2 inline-block">
-          <img
-            src={pendingImage}
-            alt="Pending attachment"
-            className="max-h-32 rounded border border-gray-600 object-contain"
-          />
-          <button
-            onClick={() => setPendingImage(null)}
-            className="no-drag absolute -top-1.5 -right-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-full w-4 h-4 flex items-center justify-center text-xs leading-none"
-            title="Remove image"
-          >
-            ×
-          </button>
+      {/* Pending image previews */}
+      {pendingImages.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-2">
+          {pendingImages.map((src, i) => (
+            <div key={i} className="relative inline-block">
+              <img
+                src={src}
+                alt={`Pending attachment ${i + 1}`}
+                className="max-h-24 max-w-[120px] rounded border border-gray-600 object-contain"
+              />
+              <button
+                onClick={() => removeImage(i)}
+                className="no-drag absolute -top-1.5 -right-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-full w-4 h-4 flex items-center justify-center text-xs leading-none"
+                title="Remove image"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Limit warning */}
+      {atLimit && (
+        <div className="text-xs text-amber-500 font-mono mb-2">
+          Image limit reached ({MAX_IMAGES_PER_ENTRY}/{MAX_IMAGES_PER_ENTRY})
         </div>
       )}
 
@@ -99,12 +163,7 @@ export function EntryInput({ activeInvestigation, onEntryCreated }: Props) {
           onKeyDown={handleKeyDown}
           placeholder="Type a note… (Enter to save, Shift+Enter for newline)"
           rows={3}
-          className={`
-            no-drag w-full bg-gray-800/80 text-gray-100 placeholder-gray-600
-            font-mono text-sm rounded-lg px-3 py-2.5
-            border border-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500
-            outline-none resize-none transition-colors
-          `}
+          className="no-drag w-full bg-gray-800/80 text-gray-100 placeholder-gray-600 font-mono text-sm rounded-lg px-3 py-2.5 border border-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none transition-colors"
         />
         <div className="absolute bottom-2 right-2 text-xs text-gray-600 select-none pointer-events-none">
           ↵ save
@@ -115,21 +174,22 @@ export function EntryInput({ activeInvestigation, onEntryCreated }: Props) {
       <div className="flex gap-1.5 mt-1.5">
         <button
           onClick={handlePickImage}
-          disabled={submitting}
+          disabled={submitting || atLimit}
           className="no-drag flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-40 px-1 py-0.5"
-          title="Attach image"
+          title={atLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Attach image'}
         >
           {/* Paperclip icon */}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
           </svg>
           <span>Upload</span>
+          {uploadHint && <span className="text-gray-600 font-mono">{uploadHint}</span>}
         </button>
         <button
           onClick={handleCaptureScreenshot}
-          disabled={submitting}
+          disabled={submitting || atLimit}
           className="no-drag flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-40 px-1 py-0.5"
-          title="Capture screenshot region"
+          title={atLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Capture screenshot region'}
         >
           {/* Scissors icon */}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -140,6 +200,7 @@ export function EntryInput({ activeInvestigation, onEntryCreated }: Props) {
             <line x1="8.12" y1="8.12" x2="12" y2="12"/>
           </svg>
           <span>Screenshot</span>
+          {screenshotHint && <span className="text-gray-600 font-mono">{screenshotHint}</span>}
         </button>
       </div>
     </div>

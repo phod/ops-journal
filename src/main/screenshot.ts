@@ -46,7 +46,12 @@ export async function captureScreenshot(): Promise<string | null> {
     })
 
     selectorWin.loadFile(join(__dirname, '../renderer/screenshot.html'))
-    selectorWin.setFullScreen(true)
+    // Use simple fullscreen on macOS — covers the menu bar without creating a
+    // new Space (which setFullScreen(true) would do, causing an animated slide).
+    if (process.platform === 'darwin') {
+      selectorWin.setSimpleFullScreen(true)
+    }
+    selectorWin.setAlwaysOnTop(true, 'screen-saver')
 
     // Wait for window to be ready, then send screenshot data
     await new Promise<void>((resolve) => {
@@ -66,6 +71,7 @@ export async function captureScreenshot(): Promise<string | null> {
     )
 
     if (!selectorWin.isDestroyed()) {
+      if (process.platform === 'darwin') selectorWin.setSimpleFullScreen(false)
       selectorWin.destroy()
     }
 

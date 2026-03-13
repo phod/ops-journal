@@ -4,7 +4,15 @@ import type { Investigation } from '@shared/ipc-types'
 
 function getInvestigation(id: string): Investigation {
   const db = getDb()
-  return db.prepare('SELECT * FROM investigations WHERE id = ?').get(id) as Investigation
+  return db
+    .prepare(
+      `SELECT i.*, COUNT(e.id) AS entry_count, MAX(e.created_at) AS last_entry_at
+       FROM investigations i
+       LEFT JOIN journal_entries e ON e.investigation_id = i.id
+       WHERE i.id = ?
+       GROUP BY i.id`
+    )
+    .get(id) as Investigation
 }
 
 export function getActiveInvestigations(): Investigation[] {
@@ -17,7 +25,13 @@ export function getActiveInvestigations(): Investigation[] {
 export function listInvestigations(): Investigation[] {
   const db = getDb()
   return db
-    .prepare('SELECT * FROM investigations ORDER BY created_at DESC')
+    .prepare(
+      `SELECT i.*, COUNT(e.id) AS entry_count, MAX(e.created_at) AS last_entry_at
+       FROM investigations i
+       LEFT JOIN journal_entries e ON e.investigation_id = i.id
+       GROUP BY i.id
+       ORDER BY i.created_at DESC`
+    )
     .all() as Investigation[]
 }
 

@@ -10,6 +10,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [detailsId, setDetailsId] = useState<string | null>(null)
+  const [tab, setTab] = useState<'investigations' | 'settings'>('investigations')
 
   const fetchInvestigations = useCallback(async () => {
     try {
@@ -53,15 +54,32 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col">
       {/* Header */}
-      <div className="border-b border-gray-800 px-6 py-4">
-        <div className="flex items-center gap-3">
+      <div className="border-b border-gray-800 px-6 pt-4">
+        <div className="flex items-center gap-3 pb-3">
           <div className="w-2 h-2 rounded-full bg-indigo-500" />
           <h1 className="text-lg font-semibold text-gray-100">Ops Journal</h1>
           <span className="text-gray-600 text-sm">/</span>
           <span className="text-gray-400 text-sm">
-            {detailsId ? 'Investigation Details' : 'Investigations'}
+            {detailsId ? 'Investigation Details' : tab === 'settings' ? 'Settings' : 'Investigations'}
           </span>
         </div>
+        {!detailsId && (
+          <div className="flex gap-0">
+            {(['investigations', 'settings'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors capitalize
+                  ${tab === t
+                    ? 'border-indigo-500 text-indigo-300'
+                    : 'border-transparent text-gray-500 hover:text-gray-300'
+                  }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Main content */}
@@ -72,6 +90,10 @@ export default function App() {
               investigationId={detailsId}
               onBack={() => setDetailsId(null)}
             />
+          ) : tab === 'settings' ? (
+            <section>
+              <HotkeySettings />
+            </section>
           ) : (
             <>
               {/* Create form */}
@@ -102,11 +124,6 @@ export default function App() {
                     onDelete={handleDelete}
                   />
                 )}
-              </section>
-
-              {/* Settings */}
-              <section>
-                <HotkeySettings />
               </section>
             </>
           )}

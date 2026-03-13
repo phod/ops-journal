@@ -3,6 +3,8 @@ export interface Investigation {
   name: string
   is_active: number // 0 or 1
   created_at: string
+  entry_count: number
+  last_entry_at: string | null
 }
 
 export const MAX_IMAGES_PER_ENTRY = 9

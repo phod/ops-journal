@@ -39,20 +39,6 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
     return unsubscribe
   }, [investigationId])
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16 text-gray-500 text-sm">Loading…</div>
-    )
-  }
-
-  if (!investigation) {
-    return (
-      <div className="flex items-center justify-center py-16 text-gray-500 text-sm">Investigation not found.</div>
-    )
-  }
-
-  const isActive = investigation.is_active === 1
-
   const counts = useMemo(() => entries.reduce(
     (acc, e) => {
       acc.all++
@@ -69,6 +55,20 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
     if (filter === 'images') return e.image_paths.length > 0
     return e.type === filter
   }), [entries, filter])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-gray-500 text-sm">Loading…</div>
+    )
+  }
+
+  if (!investigation) {
+    return (
+      <div className="flex items-center justify-center py-16 text-gray-500 text-sm">Investigation not found.</div>
+    )
+  }
+
+  const isActive = investigation.is_active === 1
 
   const tabs: { key: Filter; label: string }[] = [
     { key: 'all', label: 'All' },

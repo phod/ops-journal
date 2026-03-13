@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
 import { DetailsEntryList } from './components/DetailsEntryList'
@@ -66,18 +66,22 @@ export default function App(): JSX.Element {
     ? 'bg-green-900/60 text-green-300 border border-green-700/50'
     : 'bg-gray-700/60 text-gray-400 border border-gray-600/50'
 
-  const filteredEntries = entries.filter((e) => {
+  const counts = useMemo(() => entries.reduce(
+    (acc, e) => {
+      acc.all++
+      if (e.image_paths.length > 0) acc.images++
+      if (e.type === 'finding') acc.finding++
+      if (e.type === 'action') acc.action++
+      return acc
+    },
+    { all: 0, images: 0, finding: 0, action: 0 }
+  ), [entries])
+
+  const filteredEntries = useMemo(() => entries.filter((e) => {
     if (filter === 'all') return true
     if (filter === 'images') return e.image_paths.length > 0
     return e.type === filter
-  })
-
-  const counts = {
-    all: entries.length,
-    images: entries.filter((e) => e.image_paths.length > 0).length,
-    finding: entries.filter((e) => e.type === 'finding').length,
-    action: entries.filter((e) => e.type === 'action').length
-  }
+  }), [entries, filter])
 
   const tabs: { key: Filter; label: string }[] = [
     { key: 'all', label: 'All' },

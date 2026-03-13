@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import type { Investigation, JournalEntry } from '@shared/ipc-types'
+import type { Investigation, JournalEntry, EntryType } from '@shared/ipc-types'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 import type { EntryTypeDefinition } from '@shared/entry-types'
 import { getEntryTypeDefinition } from '@shared/entry-types'
@@ -37,6 +37,7 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
   const [uploadHint, setUploadHint] = useState<string | null>(null)
   const [completions, setCompletions] = useState<EntryTypeDefinition[]>([])
   const [selectedCompletionIndex, setSelectedCompletionIndex] = useState(0)
+  const [detectedType, setDetectedType] = useState<EntryType>('note')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const prevEditingEntryIdRef = useRef<string | null>(null)
 
@@ -68,11 +69,13 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
     const newCompletions = getCompletions(newValue.trimStart())
     setCompletions(newCompletions)
     setSelectedCompletionIndex(0)
+    setDetectedType(parseSlashCommand(newValue.trim()).type)
   }
 
   const applyCompletion = (def: EntryTypeDefinition) => {
     const cmd = def.command! + ' '
     setValue(cmd)
+    setDetectedType(def.type)
     setCompletions([])
     textareaRef.current?.focus()
   }
@@ -123,6 +126,7 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
     const { type, body } = parseSlashCommand(trimmed)
     const imagesToSubmit = pendingImages
     setValue('')
+    setDetectedType('note')
     setCompletions([])
     onPendingImagesChange([])
     setSubmitting(true)
@@ -186,8 +190,6 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
     return window.electronAPI.onTriggerUpload(handlePickImage)
   }, [handlePickImage])
 
-  // Detect active slash command type for badge display
-  const { type: detectedType } = parseSlashCommand(value.trim())
   const typeDef = detectedType !== 'note' ? getEntryTypeDefinition(detectedType) : null
 
   return (

@@ -19,8 +19,8 @@ export const ENTRY_TYPES: EntryTypeDefinition[] = [
     leftBorderClass: '',
     cardBgClass: '',
     cardBorderClass: '',
-    tagBgClass: '',
-    tagTextClass: ''
+    tagBgClass: 'bg-gray-700',
+    tagTextClass: 'text-gray-400'
   },
   {
     type: 'action',

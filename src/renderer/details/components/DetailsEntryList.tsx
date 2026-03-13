@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { JournalEntry } from '@shared/ipc-types'
+import type { JournalEntry, EntryType } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
 import { getEntryTypeDefinition, ENTRY_TYPES } from '@shared/entry-types'
 
@@ -47,7 +47,7 @@ function DetailsEntryRow({ entry, onEntryUpdated }: { entry: JournalEntry; onEnt
     return () => document.removeEventListener('mousedown', handler)
   }, [showTypeMenu])
 
-  const changeType = async (newType: import('@shared/ipc-types').EntryType) => {
+  const changeType = async (newType: EntryType) => {
     setShowTypeMenu(false)
     if (newType === entry.type) return
     try {
@@ -59,7 +59,7 @@ function DetailsEntryRow({ entry, onEntryUpdated }: { entry: JournalEntry; onEnt
   }
 
   const typeDef = getEntryTypeDefinition(entry.type ?? 'note')
-  const isTyped = entry.type && entry.type !== 'note'
+  const isTyped = entry.type !== 'note'
 
   const cardClass = isTyped
     ? `group border-l-4 ${typeDef.leftBorderClass} ${typeDef.cardBgClass} ${typeDef.cardBorderClass} rounded-lg px-4 py-3 border`
@@ -100,13 +100,9 @@ function DetailsEntryRow({ entry, onEntryUpdated }: { entry: JournalEntry; onEnt
                     entry.type === def.type ? 'text-gray-100' : 'text-gray-400'
                   }`}
                 >
-                  {def.type !== 'note' ? (
-                    <span className={`px-1.5 py-0.5 rounded text-xs ${def.tagBgClass} ${def.tagTextClass}`}>
-                      {def.label.toUpperCase()}
-                    </span>
-                  ) : (
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-gray-700 text-gray-400">NOTE</span>
-                  )}
+                  <span className={`px-1.5 py-0.5 rounded text-xs ${def.tagBgClass} ${def.tagTextClass}`}>
+                    {def.label.toUpperCase()}
+                  </span>
                   {entry.type === def.type && <span className="ml-auto text-gray-500">✓</span>}
                 </button>
               ))}

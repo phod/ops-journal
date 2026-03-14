@@ -3,7 +3,7 @@ import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { DetailsEntryList } from '../../details/components/DetailsEntryList'
 import { formatDate } from '@shared/format-date'
 
-type Filter = 'all' | 'images' | 'finding' | 'action'
+type Filter = 'all' | 'images' | 'finding' | 'action' | 'hypothesis'
 
 interface Props {
   investigationId: string
@@ -45,9 +45,10 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
       if (e.image_paths.length > 0) acc.images++
       if (e.type === 'finding') acc.finding++
       if (e.type === 'action') acc.action++
+      if (e.type === 'hypothesis') acc.hypothesis++
       return acc
     },
-    { all: 0, images: 0, finding: 0, action: 0 }
+    { all: 0, images: 0, finding: 0, action: 0, hypothesis: 0 }
   ), [entries])
 
   const filteredEntries = useMemo(() => entries.filter((e) => {
@@ -74,7 +75,8 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
     { key: 'all', label: 'All' },
     { key: 'images', label: 'Images' },
     { key: 'finding', label: 'Findings' },
-    { key: 'action', label: 'Actions' }
+    { key: 'action', label: 'Actions' },
+    { key: 'hypothesis', label: 'Hypotheses' }
   ]
 
   return (
@@ -129,7 +131,7 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
         <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-3">
           {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
         </div>
-        <DetailsEntryList entries={filteredEntries} onEntryUpdated={(updated) => setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))} />
+        <DetailsEntryList entries={filteredEntries} allEntries={entries} onEntryUpdated={(updated) => setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))} />
       </div>
     </div>
   )

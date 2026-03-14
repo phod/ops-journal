@@ -14,6 +14,12 @@ describe('parseSlashCommand', () => {
     expect(result.body).toBe('root cause identified')
   })
 
+  it('parses /hypothesis command', () => {
+    const result = parseSlashCommand('/hypothesis maybe the cache is stale')
+    expect(result.type).toBe('hypothesis')
+    expect(result.body).toBe('maybe the cache is stale')
+  })
+
   it('returns note type when no command present', () => {
     const result = parseSlashCommand('just a plain note')
     expect(result.type).toBe('note')
@@ -54,9 +60,10 @@ describe('parseSlashCommand', () => {
 describe('getCompletions', () => {
   it('returns all commands for bare /', () => {
     const results = getCompletions('/')
-    expect(results.length).toBe(2)
+    expect(results.length).toBe(3)
     expect(results.map((r) => r.type)).toContain('action')
     expect(results.map((r) => r.type)).toContain('finding')
+    expect(results.map((r) => r.type)).toContain('hypothesis')
   })
 
   it('returns only action for /a', () => {
@@ -69,6 +76,12 @@ describe('getCompletions', () => {
     const results = getCompletions('/f')
     expect(results).toHaveLength(1)
     expect(results[0].type).toBe('finding')
+  })
+
+  it('returns only hypothesis for /h', () => {
+    const results = getCompletions('/h')
+    expect(results).toHaveLength(1)
+    expect(results[0].type).toBe('hypothesis')
   })
 
   it('returns empty for /x', () => {

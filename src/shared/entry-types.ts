@@ -41,6 +41,16 @@ export const ENTRY_TYPES: EntryTypeDefinition[] = [
     cardBorderClass: 'border-teal-500/40',
     tagBgClass: 'bg-teal-400',
     tagTextClass: 'text-teal-950 font-bold'
+  },
+  {
+    type: 'hypothesis',
+    command: '/hypothesis',
+    label: 'Hypothesis',
+    leftBorderClass: 'border-l-violet-400',
+    cardBgClass: 'bg-violet-400/10',
+    cardBorderClass: 'border-violet-500/40',
+    tagBgClass: 'bg-violet-500',
+    tagTextClass: 'text-violet-50 font-bold'
   }
 ]
 

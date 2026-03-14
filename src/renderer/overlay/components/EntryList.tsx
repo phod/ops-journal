@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
-import type { JournalEntry, EntryType } from '@shared/ipc-types'
+import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
 import { getEntryTypeDefinition, ENTRY_TYPES } from '@shared/entry-types'
+import { LinkFindingModal } from './LinkFindingModal'
 
 interface Props {
   entries: JournalEntry[]
@@ -37,8 +38,23 @@ function formatTimestamp(isoString: string): string {
   }
 }
 
+const HYPOTHESIS_STATUS_LABEL: Record<HypothesisStatus, string> = {
+  open: 'Open',
+  true: 'True',
+  false: 'False',
+  abandoned: 'Abandoned'
+}
+
+const HYPOTHESIS_STATUS_CLASS: Record<HypothesisStatus, string> = {
+  open: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
+  true: 'bg-green-500/20 text-green-300 border border-green-500/30',
+  false: 'bg-red-500/20 text-red-300 border border-red-500/30',
+  abandoned: 'bg-gray-500/20 text-gray-400 border border-gray-600/30'
+}
+
 interface EntryRowProps {
   entry: JournalEntry
+  allEntries: JournalEntry[]
   isEditing: boolean
   onEditStart: () => void
   onEditEnd: () => void
@@ -48,15 +64,18 @@ interface EntryRowProps {
   onDeleted: (id: string) => void
 }
 
-function EntryRow({ entry, isEditing, onEditStart, onEditEnd, onNavigateUp, onNavigateDown, onUpdated, onDeleted }: EntryRowProps) {
+function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavigateUp, onNavigateDown, onUpdated, onDeleted }: EntryRowProps) {
   const [draft, setDraft] = useState(entry.body)
   const [saving, setSaving] = useState(false)
   const [imageDataUrls, setImageDataUrls] = useState<Record<string, string>>({})
   const [pendingRemovals, setPendingRemovals] = useState<Set<string>>(new Set())
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
   const [showTypeMenu, setShowTypeMenu] = useState(false)
+  const [showStatusMenu, setShowStatusMenu] = useState(false)
+  const [showLinkModal, setShowLinkModal] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const typeMenuRef = useRef<HTMLDivElement>(null)
+  const statusMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     for (const path of entry.image_paths) {
@@ -90,6 +109,17 @@ function EntryRow({ entry, isEditing, onEditStart, onEditEnd, onNavigateUp, onNa
     return () => document.removeEventListener('mousedown', handler)
   }, [showTypeMenu])
 
+  useEffect(() => {
+    if (!showStatusMenu) return
+    const handler = (e: MouseEvent) => {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
+        setShowStatusMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showStatusMenu])
+
   const changeType = async (newType: EntryType) => {
     setShowTypeMenu(false)
     if (newType === entry.type) return
@@ -98,6 +128,16 @@ function EntryRow({ entry, isEditing, onEditStart, onEditEnd, onNavigateUp, onNa
       onUpdated(updated)
     } catch (err) {
       console.error('[overlay] Failed to change entry type:', err)
+    }
+  }
+
+  const changeHypothesisStatus = async (status: HypothesisStatus) => {
+    setShowStatusMenu(false)
+    try {
+      const updated = await window.electronAPI.updateHypothesisStatus(entry.id, status)
+      onUpdated(updated)
+    } catch (err) {
+      console.error('[overlay] Failed to change hypothesis status:', err)
     }
   }
 
@@ -179,19 +219,34 @@ function EntryRow({ entry, isEditing, onEditStart, onEditEnd, onNavigateUp, onNa
 
   const visiblePaths = entry.image_paths.filter((p) => !pendingRemovals.has(p))
 
+  const scrollToEntry = (id: string) => {
+    document.getElementById(`entry-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
+
   const typeDef = getEntryTypeDefinition(entry.type ?? 'note')
   const isTyped = entry.type !== 'note'
+  const isHypothesis = entry.type === 'hypothesis'
+  const isFinding = entry.type === 'finding'
+  const status = entry.hypothesis_status ?? 'open'
+
+  const linkedFindings = isHypothesis
+    ? (entry.linked_finding_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+    : []
+
+  const linkedHypotheses = isFinding
+    ? allEntries.filter((e) => e.type === 'hypothesis' && e.linked_finding_ids?.includes(entry.id))
+    : []
 
   const cardClass = isTyped
     ? `group border-l-4 ${typeDef.leftBorderClass} ${typeDef.cardBgClass} ${typeDef.cardBorderClass} rounded-lg px-3 py-2 border`
     : 'group bg-gray-800/60 rounded-lg px-3 py-2 border border-gray-700/50'
 
   return (
-    <div className={cardClass}>
+    <div id={`entry-${entry.id}`} className={cardClass}>
       <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono select-none">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono select-none flex-wrap">
           {formatTimestamp(entry.created_at)}
-          {/* Type badge — clickable to open picker */}
+          {/* Type badge */}
           <div className="relative" ref={typeMenuRef}>
             {isTyped ? (
               <button
@@ -234,6 +289,46 @@ function EntryRow({ entry, isEditing, onEditStart, onEditEnd, onNavigateUp, onNa
               </div>
             )}
           </div>
+          {/* Hypothesis status badge */}
+          {isHypothesis && (
+            <div className="relative" ref={statusMenuRef}>
+              <button
+                onClick={() => setShowStatusMenu((v) => !v)}
+                className={`no-drag px-1.5 py-0.5 rounded text-xs font-semibold cursor-pointer ${HYPOTHESIS_STATUS_CLASS[status]}`}
+                title="Change hypothesis status"
+              >
+                {HYPOTHESIS_STATUS_LABEL[status]}
+              </button>
+              {showStatusMenu && (
+                <div className="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-20 min-w-[110px] shadow-lg">
+                  {(Object.keys(HYPOTHESIS_STATUS_LABEL) as HypothesisStatus[]).map((s) => (
+                    <button
+                      key={s}
+                      onMouseDown={(e) => { e.preventDefault(); changeHypothesisStatus(s) }}
+                      className={`no-drag w-full text-left px-3 py-1.5 text-xs font-mono flex items-center gap-2 transition-colors hover:bg-gray-700 ${
+                        status === s ? 'text-gray-100' : 'text-gray-400'
+                      }`}
+                    >
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${HYPOTHESIS_STATUS_CLASS[s]}`}>
+                        {HYPOTHESIS_STATUS_LABEL[s]}
+                      </span>
+                      {status === s && <span className="ml-auto text-gray-500">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {/* Link Finding button for hypotheses */}
+          {isHypothesis && !isEditing && (
+            <button
+              onClick={() => setShowLinkModal(true)}
+              className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-teal-400 px-1 text-xs"
+              title="Link findings"
+            >
+              + finding
+            </button>
+          )}
         </div>
         {!isEditing && (
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -350,7 +445,47 @@ function EntryRow({ entry, isEditing, onEditStart, onEditEnd, onNavigateUp, onNa
               ))}
             </div>
           )}
+          {/* Linked findings chips for hypothesis entries — click to scroll */}
+          {isHypothesis && linkedFindings.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {linkedFindings.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => scrollToEntry(f.id)}
+                  className="no-drag px-1.5 py-0.5 rounded text-xs font-mono bg-teal-500/15 border border-teal-500/30 text-teal-300 hover:bg-teal-500/30 transition-colors truncate max-w-[160px]"
+                  title={`Go to finding: ${f.body}`}
+                >
+                  {f.body || '(no text)'}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Linked hypothesis chips for finding entries — click to scroll */}
+          {isFinding && linkedHypotheses.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {linkedHypotheses.map((h) => (
+                <button
+                  key={h.id}
+                  onClick={() => scrollToEntry(h.id)}
+                  className="no-drag px-1.5 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/30 transition-colors truncate max-w-[160px]"
+                  title={`Go to hypothesis: ${h.body}`}
+                >
+                  {h.body || '(no text)'}
+                </button>
+              ))}
+            </div>
+          )}
         </>
+      )}
+
+      {/* Link Finding Modal */}
+      {showLinkModal && (
+        <LinkFindingModal
+          hypothesis={entry}
+          findings={allEntries.filter((e) => e.type === 'finding')}
+          onClose={() => setShowLinkModal(false)}
+          onHypothesisUpdated={(updated) => onUpdated(updated)}
+        />
       )}
     </div>
   )
@@ -379,6 +514,7 @@ export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onE
         <EntryRow
           key={entry.id}
           entry={entry}
+          allEntries={entries}
           isEditing={editingEntryId === entry.id}
           onEditStart={() => onEditingEntryIdChange(entry.id)}
           onEditEnd={() => onEditingEntryIdChange(null)}

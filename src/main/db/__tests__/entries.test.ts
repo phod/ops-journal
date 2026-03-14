@@ -9,7 +9,7 @@ vi.mock('../index', () => ({
 }))
 
 import { createInvestigation } from '../investigations'
-import { createEntry, listEntries, updateEntry, deleteEntry, getEntry } from '../entries'
+import { createEntry, listEntries, updateEntry, deleteEntry, getEntry, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses } from '../entries'
 
 let investigationId: string
 
@@ -46,6 +46,13 @@ describe('createEntry', () => {
   it('stores finding type correctly', () => {
     const entry = createEntry(investigationId, 'Root cause found', [], 'finding')
     expect(entry.type).toBe('finding')
+  })
+
+  it('stores hypothesis type with open status', () => {
+    const entry = createEntry(investigationId, 'Maybe the cache?', [], 'hypothesis')
+    expect(entry.type).toBe('hypothesis')
+    expect(entry.hypothesis_status).toBe('open')
+    expect(entry.linked_finding_ids).toEqual([])
   })
 
   it('creates an entry with image paths', () => {
@@ -165,6 +172,69 @@ describe('updateEntry', () => {
     const entry = createEntry(investigationId, 'Has image', ['/img/path.png'])
     const updated = updateEntry(entry.id, 'Cleared', null)
     expect(updated.image_paths).toEqual([])
+  })
+})
+
+describe('hypothesis operations', () => {
+  it('updateHypothesisStatus changes the status', () => {
+    const entry = createEntry(investigationId, 'My hypothesis', [], 'hypothesis')
+    expect(entry.hypothesis_status).toBe('open')
+    const updated = updateHypothesisStatus(entry.id, 'true')
+    expect(updated.hypothesis_status).toBe('true')
+  })
+
+  it('linkHypothesisFinding links a finding and returns updated hypothesis', () => {
+    const hypothesis = createEntry(investigationId, 'Hypothesis', [], 'hypothesis')
+    const finding = createEntry(investigationId, 'Finding', [], 'finding')
+    const updated = linkHypothesisFinding(hypothesis.id, finding.id)
+    expect(updated.linked_finding_ids).toContain(finding.id)
+  })
+
+  it('unlinkHypothesisFinding removes the link', () => {
+    const hypothesis = createEntry(investigationId, 'Hypothesis', [], 'hypothesis')
+    const finding = createEntry(investigationId, 'Finding', [], 'finding')
+    linkHypothesisFinding(hypothesis.id, finding.id)
+    const updated = unlinkHypothesisFinding(hypothesis.id, finding.id)
+    expect(updated.linked_finding_ids).not.toContain(finding.id)
+  })
+
+  it('getHypothesisFindings returns linked findings', () => {
+    const hypothesis = createEntry(investigationId, 'Hypothesis', [], 'hypothesis')
+    const finding1 = createEntry(investigationId, 'Finding 1', [], 'finding')
+    const finding2 = createEntry(investigationId, 'Finding 2', [], 'finding')
+    linkHypothesisFinding(hypothesis.id, finding1.id)
+    linkHypothesisFinding(hypothesis.id, finding2.id)
+    const findings = getHypothesisFindings(hypothesis.id)
+    expect(findings).toHaveLength(2)
+    expect(findings.map((f) => f.id)).toContain(finding1.id)
+    expect(findings.map((f) => f.id)).toContain(finding2.id)
+  })
+
+  it('getFindingHypotheses returns linked hypotheses', () => {
+    const hypothesis = createEntry(investigationId, 'Hypothesis', [], 'hypothesis')
+    const finding = createEntry(investigationId, 'Finding', [], 'finding')
+    linkHypothesisFinding(hypothesis.id, finding.id)
+    const hypotheses = getFindingHypotheses(finding.id)
+    expect(hypotheses).toHaveLength(1)
+    expect(hypotheses[0].id).toBe(hypothesis.id)
+  })
+
+  it('listEntries includes linked_finding_ids for hypothesis entries', () => {
+    const hypothesis = createEntry(investigationId, 'Hypothesis', [], 'hypothesis')
+    const finding = createEntry(investigationId, 'Finding', [], 'finding')
+    linkHypothesisFinding(hypothesis.id, finding.id)
+    const entries = listEntries(investigationId)
+    const h = entries.find((e) => e.id === hypothesis.id)!
+    expect(h.linked_finding_ids).toContain(finding.id)
+  })
+
+  it('cascade-deletes hypothesis_findings when hypothesis entry is deleted', () => {
+    const hypothesis = createEntry(investigationId, 'Hypothesis', [], 'hypothesis')
+    const finding = createEntry(investigationId, 'Finding', [], 'finding')
+    linkHypothesisFinding(hypothesis.id, finding.id)
+    testDb.prepare('DELETE FROM journal_entries WHERE id = ?').run(hypothesis.id)
+    const hypotheses = getFindingHypotheses(finding.id)
+    expect(hypotheses).toHaveLength(0)
   })
 })
 

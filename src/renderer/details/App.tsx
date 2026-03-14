@@ -3,7 +3,7 @@ import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
 import { DetailsEntryList } from './components/DetailsEntryList'
 
-type Filter = 'all' | 'images' | 'finding' | 'action'
+type Filter = 'all' | 'images' | 'finding' | 'action' | 'hypothesis'
 
 export default function App(): JSX.Element {
   const investigationId = new URLSearchParams(window.location.search).get('id')
@@ -51,9 +51,10 @@ export default function App(): JSX.Element {
       if (e.image_paths.length > 0) acc.images++
       if (e.type === 'finding') acc.finding++
       if (e.type === 'action') acc.action++
+      if (e.type === 'hypothesis') acc.hypothesis++
       return acc
     },
-    { all: 0, images: 0, finding: 0, action: 0 }
+    { all: 0, images: 0, finding: 0, action: 0, hypothesis: 0 }
   ), [entries])
 
   const filteredEntries = useMemo(() => entries.filter((e) => {
@@ -87,7 +88,8 @@ export default function App(): JSX.Element {
     { key: 'all', label: 'All' },
     { key: 'images', label: 'Images' },
     { key: 'finding', label: 'Findings' },
-    { key: 'action', label: 'Actions' }
+    { key: 'action', label: 'Actions' },
+    { key: 'hypothesis', label: 'Hypotheses' }
   ]
 
   return (
@@ -140,7 +142,7 @@ export default function App(): JSX.Element {
           <div className="text-xs text-gray-500 font-mono mb-3 uppercase tracking-wider">
             {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
           </div>
-          <DetailsEntryList entries={filteredEntries} onEntryUpdated={(updated) => setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))} />
+          <DetailsEntryList entries={filteredEntries} allEntries={entries} onEntryUpdated={(updated) => setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))} />
         </div>
       </div>
     </div>

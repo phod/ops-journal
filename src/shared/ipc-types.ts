@@ -1,4 +1,5 @@
-export type EntryType = 'note' | 'action' | 'finding'
+export type EntryType = 'note' | 'action' | 'finding' | 'hypothesis'
+export type HypothesisStatus = 'open' | 'true' | 'false' | 'abandoned'
 
 export interface Investigation {
   id: string
@@ -18,6 +19,8 @@ export interface JournalEntry {
   image_paths: string[]
   created_at: string
   type: EntryType
+  hypothesis_status?: HypothesisStatus
+  linked_finding_ids?: string[]
 }
 
 export interface ElectronAPI {
@@ -34,6 +37,13 @@ export interface ElectronAPI {
   createEntry: (investigationId: string, body: string, imageDataUrls?: string[], type?: EntryType) => Promise<JournalEntry>
   updateEntry: (id: string, body: string, keepImagePaths?: string[] | null, type?: EntryType) => Promise<JournalEntry>
   deleteEntry: (id: string) => Promise<void>
+
+  // Hypotheses
+  updateHypothesisStatus: (entryId: string, status: HypothesisStatus) => Promise<JournalEntry>
+  linkHypothesisFinding: (hypothesisId: string, findingId: string) => Promise<JournalEntry>
+  unlinkHypothesisFinding: (hypothesisId: string, findingId: string) => Promise<JournalEntry>
+  getHypothesisFindings: (hypothesisId: string) => Promise<JournalEntry[]>
+  getFindingHypotheses: (findingId: string) => Promise<JournalEntry[]>
 
   // Images
   pickImage: () => Promise<string[]>

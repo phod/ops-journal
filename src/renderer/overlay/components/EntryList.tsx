@@ -550,10 +550,12 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
 export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onEntryUpdated, onEntryDeleted }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  const prevEntriesLengthRef = useRef(entries.length)
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && entries.length > prevEntriesLengthRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
+    prevEntriesLengthRef.current = entries.length
   }, [entries])
 
   // Keep scroll pinned to bottom when the container shrinks (e.g. input box expanding),

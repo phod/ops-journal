@@ -46,6 +46,7 @@ const electronAPI: ElectronAPI = {
   // Summary
   getSummary: (investigationId) => ipcRenderer.invoke('summary:get', { investigationId }),
   saveSummary: (investigationId, summaryJson) => ipcRenderer.invoke('summary:save', { investigationId, summaryJson }),
+  saveSummaryImage: (dataUrl) => ipcRenderer.invoke('summary:saveImage', { dataUrl }),
 
   // Images
   pickImage: () => ipcRenderer.invoke('image:pick') as Promise<string[]>,

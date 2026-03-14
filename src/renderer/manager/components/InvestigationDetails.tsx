@@ -126,7 +126,7 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
           </div>
         </div>
         {view === 'summary' ? (
-          <SummaryView investigationId={investigationId} />
+          <SummaryView investigationId={investigationId} onBack={() => setView('entries')} />
         ) : (
           <>
             <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-3">

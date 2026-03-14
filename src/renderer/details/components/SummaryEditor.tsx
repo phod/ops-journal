@@ -5,9 +5,11 @@ import DropCursor from '@tiptap/extension-dropcursor'
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
 import { EntryRefNode } from './editor/EntryRefNode'
+import { SummaryImageNode } from './editor/SummaryImageNode'
 
 export interface SummaryEditorHandle {
   insertEntryRef: (entry: JournalEntry) => void
+  insertImage: (imagePath: string) => void
 }
 
 interface Props {
@@ -16,10 +18,30 @@ interface Props {
   entries: JournalEntry[]
   onSave: (json: string) => void
   onCancel: () => void
+  onBack?: () => void
+}
+
+function extractImagePaths(jsonStr: string | null): string[] {
+  if (!jsonStr) return []
+  try {
+    const paths: string[] = []
+    function walk(node: Record<string, unknown>): void {
+      if (node.type === 'summaryImage' && typeof node.attrs === 'object' && node.attrs !== null) {
+        const src = (node.attrs as Record<string, unknown>).src
+        if (typeof src === 'string') paths.push(src)
+      }
+      const content = node.content
+      if (Array.isArray(content)) content.forEach(walk)
+    }
+    walk(JSON.parse(jsonStr))
+    return paths
+  } catch {
+    return []
+  }
 }
 
 export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
-  ({ investigationId, initialJson, entries, onSave, onCancel }, ref) => {
+  ({ investigationId, initialJson, entries, onSave, onCancel, onBack }, ref) => {
     const [saving, setSaving] = useState(false)
     const entriesRef = useRef(entries)
     entriesRef.current = entries
@@ -29,6 +51,7 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
         StarterKit,
         Placeholder.configure({ placeholder: 'Write your summary…' }),
         EntryRefNode,
+        SummaryImageNode,
         DropCursor.configure({ color: '#3b82f6', width: 2 })
       ],
       content: initialJson ? JSON.parse(initialJson) : undefined,
@@ -52,7 +75,8 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
             entryId: entry.id,
             entryType: entry.type,
             entryBody: entry.body,
-            entryTimestamp: entry.created_at
+            entryTimestamp: entry.created_at,
+            entryImagePaths: entry.image_paths
           })
           if (!node) return false
 
@@ -76,17 +100,52 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
               entryId: entry.id,
               entryType: entry.type,
               entryBody: entry.body,
-              entryTimestamp: entry.created_at
+              entryTimestamp: entry.created_at,
+              entryImagePaths: entry.image_paths
             }
           })
           .run()
+      },
+      insertImage: (imagePath: string) => {
+        if (!editor) return
+        editor
+          .chain()
+          .focus()
+          .insertContent({ type: 'summaryImage', attrs: { src: imagePath } })
+          .run()
       }
     }))
+
+    async function handleUploadImage(): Promise<void> {
+      const dataUrls = await window.electronAPI.pickImage()
+      for (const dataUrl of dataUrls) {
+        const path = await window.electronAPI.saveSummaryImage(dataUrl)
+        editor?.chain().focus().insertContent({ type: 'summaryImage', attrs: { src: path } }).run()
+      }
+    }
+
+    async function handleScreenshot(): Promise<void> {
+      const dataUrl = await window.electronAPI.captureScreenshot()
+      if (!dataUrl) return
+      const path = await window.electronAPI.saveSummaryImage(dataUrl)
+      editor?.chain().focus().insertContent({ type: 'summaryImage', attrs: { src: path } }).run()
+    }
 
     async function handleSave(): Promise<void> {
       if (!editor) return
       setSaving(true)
       const json = JSON.stringify(editor.getJSON())
+
+      // Garbage-collect images removed during editing
+      const oldPaths = new Set(extractImagePaths(initialJson))
+      const newPaths = new Set(extractImagePaths(json))
+      for (const p of oldPaths) {
+        if (!newPaths.has(p)) {
+          // Fire-and-forget: no IPC for deleteImage yet, skip silently
+          // (Image files remain but won't be referenced; full GC can be added later)
+        }
+      }
+
       await window.electronAPI.saveSummary(investigationId, json)
       setSaving(false)
       onSave(json)
@@ -94,6 +153,33 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
 
     return (
       <div className="flex flex-col gap-3 h-full">
+        {/* Toolbar */}
+        <div className="flex items-center gap-1.5">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="text-xs px-2.5 py-1 rounded text-gray-500 hover:text-gray-300 transition-colors font-mono mr-2"
+              title="Back to details"
+            >
+              ← Details
+            </button>
+          )}
+          <button
+            onClick={handleUploadImage}
+            className="text-xs px-2.5 py-1 rounded border border-gray-700 text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors font-mono"
+            title="Upload image"
+          >
+            ↑ Upload
+          </button>
+          <button
+            onClick={handleScreenshot}
+            className="text-xs px-2.5 py-1 rounded border border-gray-700 text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors font-mono"
+            title="Capture screenshot"
+          >
+            ⌘ Screenshot
+          </button>
+        </div>
+
         <div className="flex-1 overflow-y-auto rounded-lg border border-gray-700 bg-gray-900 px-4 py-3 focus-within:border-gray-500 transition-colors">
           <EditorContent editor={editor} className="h-full" />
         </div>

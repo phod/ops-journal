@@ -48,6 +48,7 @@ export interface ElectronAPI {
   // Summary
   getSummary: (investigationId: string) => Promise<string | null>
   saveSummary: (investigationId: string, summaryJson: string) => Promise<void>
+  saveSummaryImage: (dataUrl: string) => Promise<string>
 
   // Images
   pickImage: () => Promise<string[]>

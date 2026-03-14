@@ -1,5 +1,6 @@
 import { Node, mergeAttributes, ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react'
 import type { NodeViewProps } from '@tiptap/react'
+import { useEffect, useState } from 'react'
 import { getEntryTypeDefinition } from '@shared/entry-types'
 import { formatDate } from '@shared/format-date'
 
@@ -11,9 +12,19 @@ const TIMESTAMP_OPTIONS: Intl.DateTimeFormatOptions = {
 }
 
 function EntryRefNodeView({ node }: NodeViewProps) {
-  const { entryType, entryBody, entryTimestamp } = node.attrs
+  const { entryType, entryBody, entryTimestamp, entryImagePaths } = node.attrs
   const typeDef = getEntryTypeDefinition(entryType ?? 'note')
   const isTyped = entryType !== 'note'
+  const imagePaths: string[] = Array.isArray(entryImagePaths) ? entryImagePaths : []
+  const [dataUrls, setDataUrls] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    for (const p of imagePaths) {
+      window.electronAPI.getEntryImage(p).then((url) => {
+        setDataUrls((prev) => ({ ...prev, [p]: url }))
+      })
+    }
+  }, [imagePaths.join(',')])
 
   return (
     <NodeViewWrapper>
@@ -39,8 +50,17 @@ function EntryRefNodeView({ node }: NodeViewProps) {
             {entryBody}
           </div>
         )}
-        {!entryBody && (
+        {!entryBody && imagePaths.length === 0 && (
           <div className="text-gray-500 text-xs italic">(no text)</div>
+        )}
+        {imagePaths.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {imagePaths.map((p) => (
+              dataUrls[p]
+                ? <img key={p} src={dataUrls[p]} alt="" className="h-16 w-16 object-cover rounded border border-gray-700" />
+                : <div key={p} className="h-16 w-16 rounded border border-gray-700 bg-gray-800" />
+            ))}
+          </div>
         )}
       </div>
     </NodeViewWrapper>
@@ -57,7 +77,8 @@ export const EntryRefNode = Node.create({
       entryId: { default: null },
       entryType: { default: 'note' },
       entryBody: { default: '' },
-      entryTimestamp: { default: '' }
+      entryTimestamp: { default: '' },
+      entryImagePaths: { default: [] }
     }
   },
 

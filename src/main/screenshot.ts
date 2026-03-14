@@ -5,9 +5,10 @@ import { getOverlayWindow } from './windows'
 export async function captureScreenshot(): Promise<string | null> {
   const overlayWin = getOverlayWindow()
 
-  // Hide overlay so it doesn't appear in the screenshot
-  if (overlayWin && !overlayWin.isDestroyed()) {
-    overlayWin.hide()
+  // Hide overlay so it doesn't appear in the screenshot (only if it was visible)
+  const overlayWasVisible = overlayWin != null && !overlayWin.isDestroyed() && overlayWin.isVisible()
+  if (overlayWasVisible) {
+    overlayWin!.hide()
   }
 
   // Small delay to let the window hide
@@ -90,8 +91,8 @@ export async function captureScreenshot(): Promise<string | null> {
 
     return cropped.toDataURL()
   } finally {
-    // Re-show overlay
-    if (overlayWin && !overlayWin.isDestroyed()) {
+    // Re-show overlay only if it was visible before we hid it
+    if (overlayWasVisible && overlayWin != null && !overlayWin.isDestroyed()) {
       overlayWin.show()
     }
   }

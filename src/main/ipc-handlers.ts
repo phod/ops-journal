@@ -5,7 +5,9 @@ import {
   createInvestigation,
   deleteInvestigation,
   setActiveInvestigation,
-  deactivateInvestigation
+  deactivateInvestigation,
+  getSummary,
+  saveSummary
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses } from './db/entries'
 import { getOverlayWindow, showManager, hideOverlay, navigateManagerToDetails } from './windows'
@@ -105,6 +107,12 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('finding:getHypotheses', (_event, { findingId }: { findingId: string }) => {
     return getFindingHypotheses(findingId)
   })
+
+  // --- Summary ---
+
+  ipcMain.handle('summary:get', (_event, { investigationId }: { investigationId: string }) => getSummary(investigationId))
+
+  ipcMain.handle('summary:save', (_event, { investigationId, summaryJson }: { investigationId: string; summaryJson: string }) => saveSummary(investigationId, summaryJson))
 
   // --- Images ---
 

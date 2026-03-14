@@ -14,7 +14,9 @@ import {
   getActiveInvestigations,
   setActiveInvestigation,
   deactivateInvestigation,
-  deleteInvestigation
+  deleteInvestigation,
+  getSummary,
+  saveSummary
 } from '../investigations'
 
 beforeEach(() => {
@@ -140,5 +142,26 @@ describe('deleteInvestigation', () => {
     const remaining = listInvestigations()
     expect(remaining).toHaveLength(1)
     expect(remaining[0].id).toBe(keep.id)
+  })
+})
+
+describe('getSummary / saveSummary', () => {
+  it('returns null when no summary has been saved', () => {
+    const inv = createInvestigation('No Summary')
+    expect(getSummary(inv.id)).toBeNull()
+  })
+
+  it('saves and retrieves a summary', () => {
+    const inv = createInvestigation('With Summary')
+    const json = JSON.stringify({ type: 'doc', content: [] })
+    saveSummary(inv.id, json)
+    expect(getSummary(inv.id)).toBe(json)
+  })
+
+  it('overwrites an existing summary on save', () => {
+    const inv = createInvestigation('Overwrite Test')
+    saveSummary(inv.id, '{"v":1}')
+    saveSummary(inv.id, '{"v":2}')
+    expect(getSummary(inv.id)).toBe('{"v":2}')
   })
 })

@@ -43,6 +43,10 @@ const electronAPI: ElectronAPI = {
   getFindingHypotheses: (findingId: string) =>
     ipcRenderer.invoke('finding:getHypotheses', { findingId }),
 
+  // Summary
+  getSummary: (investigationId) => ipcRenderer.invoke('summary:get', { investigationId }),
+  saveSummary: (investigationId, summaryJson) => ipcRenderer.invoke('summary:save', { investigationId, summaryJson }),
+
   // Images
   pickImage: () => ipcRenderer.invoke('image:pick') as Promise<string[]>,
   captureScreenshot: () => ipcRenderer.invoke('screenshot:capture'),

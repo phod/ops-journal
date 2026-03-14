@@ -57,3 +57,16 @@ export function deactivateInvestigation(id: string): void {
   const db = getDb()
   db.prepare('UPDATE investigations SET is_active = 0 WHERE id = ?').run(id)
 }
+
+export function getSummary(investigationId: string): string | null {
+  const db = getDb()
+  const row = db
+    .prepare('SELECT summary_json FROM investigations WHERE id = ?')
+    .get(investigationId) as { summary_json: string | null } | undefined
+  return row?.summary_json ?? null
+}
+
+export function saveSummary(investigationId: string, summaryJson: string): void {
+  const db = getDb()
+  db.prepare('UPDATE investigations SET summary_json = ? WHERE id = ?').run(summaryJson, investigationId)
+}

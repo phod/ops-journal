@@ -45,6 +45,10 @@ export interface ElectronAPI {
   getHypothesisFindings: (hypothesisId: string) => Promise<JournalEntry[]>
   getFindingHypotheses: (findingId: string) => Promise<JournalEntry[]>
 
+  // Summary
+  getSummary: (investigationId: string) => Promise<string | null>
+  saveSummary: (investigationId: string, summaryJson: string) => Promise<void>
+
   // Images
   pickImage: () => Promise<string[]>
   captureScreenshot: () => Promise<string | null>

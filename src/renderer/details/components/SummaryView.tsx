@@ -6,14 +6,16 @@ import { SummaryEditor } from './SummaryEditor'
 import type { SummaryEditorHandle } from './SummaryEditor'
 import { SummaryEntryPanel } from './SummaryEntryPanel'
 import { EntryRefNode } from './editor/EntryRefNode'
+import { SummaryImageNode } from './editor/SummaryImageNode'
 
 interface Props {
   investigationId: string
+  onBack?: () => void
 }
 
 function ReadOnlyRenderer({ summaryJson }: { summaryJson: string }) {
   const editor = useEditor({
-    extensions: [StarterKit, EntryRefNode],
+    extensions: [StarterKit, EntryRefNode, SummaryImageNode],
     content: JSON.parse(summaryJson),
     editable: false,
     editorProps: {
@@ -27,7 +29,7 @@ function ReadOnlyRenderer({ summaryJson }: { summaryJson: string }) {
   return <EditorContent editor={editor} />
 }
 
-export function SummaryView({ investigationId }: Props) {
+export function SummaryView({ investigationId, onBack }: Props) {
   const [summaryJson, setSummaryJson] = useState<string | null>(null)
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,6 +71,7 @@ export function SummaryView({ investigationId }: Props) {
               setEditing(false)
             }}
             onCancel={() => setEditing(false)}
+            onBack={onBack}
           />
         </div>
 
@@ -77,6 +80,7 @@ export function SummaryView({ investigationId }: Props) {
           <SummaryEntryPanel
             entries={entries}
             onInsert={(entry) => editorRef.current?.insertEntryRef(entry)}
+            onInsertImage={(imagePath) => editorRef.current?.insertImage(imagePath)}
           />
         </div>
       </div>

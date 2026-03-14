@@ -114,6 +114,8 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('summary:save', (_event, { investigationId, summaryJson }: { investigationId: string; summaryJson: string }) => saveSummary(investigationId, summaryJson))
 
+  ipcMain.handle('summary:saveImage', (_event, { dataUrl }: { dataUrl: string }) => saveImage(dataUrlToBuffer(dataUrl)))
+
   // --- Images ---
 
   ipcMain.handle('image:pick', async () => {

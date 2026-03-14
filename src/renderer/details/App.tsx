@@ -137,7 +137,7 @@ export default function App(): JSX.Element {
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
         {view === 'summary' ? (
-          <SummaryView investigationId={investigationId} />
+          <SummaryView investigationId={investigationId} onBack={() => setView('entries')} />
         ) : (
           <div className="max-w-2xl">
             <div className="text-xs text-gray-500 font-mono mb-3 uppercase tracking-wider">

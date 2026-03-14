@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
 import { getEntryTypeDefinition, filterEntries } from '@shared/entry-types'
 import type { Filter } from '@shared/entry-types'
@@ -14,6 +14,7 @@ const TIMESTAMP_OPTIONS: Intl.DateTimeFormatOptions = {
 interface Props {
   entries: JournalEntry[]
   onInsert: (entry: JournalEntry) => void
+  onInsertImage?: (imagePath: string) => void
 }
 
 const PANEL_FILTERS: { label: string; value: Filter }[] = [
@@ -23,7 +24,7 @@ const PANEL_FILTERS: { label: string; value: Filter }[] = [
   { label: 'Hypotheses', value: 'hypothesis' }
 ]
 
-export function SummaryEntryPanel({ entries, onInsert }: Props) {
+export function SummaryEntryPanel({ entries, onInsert, onInsertImage }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const filtered = filterEntries(entries, filter)
 
@@ -58,14 +59,22 @@ export function SummaryEntryPanel({ entries, onInsert }: Props) {
           </div>
         )}
         {filtered.map((entry) => (
-          <PanelEntry key={entry.id} entry={entry} onInsert={onInsert} />
+          <PanelEntry key={entry.id} entry={entry} onInsert={onInsert} onInsertImage={onInsertImage} />
         ))}
       </div>
     </div>
   )
 }
 
-function PanelEntry({ entry, onInsert }: { entry: JournalEntry; onInsert: (entry: JournalEntry) => void }) {
+function PanelEntry({
+  entry,
+  onInsert,
+  onInsertImage
+}: {
+  entry: JournalEntry
+  onInsert: (entry: JournalEntry) => void
+  onInsertImage?: (imagePath: string) => void
+}) {
   const typeDef = getEntryTypeDefinition(entry.type ?? 'note')
   const isTyped = entry.type !== 'note'
 
@@ -109,11 +118,56 @@ function PanelEntry({ entry, onInsert }: { entry: JournalEntry; onInsert: (entry
           {entry.body}
         </div>
       )}
-      {!entry.body && entry.image_paths.length > 0 && (
-        <div className="text-gray-500 italic">
-          {entry.image_paths.length} image{entry.image_paths.length !== 1 ? 's' : ''}
-        </div>
+      {entry.image_paths.length > 0 && onInsertImage && (
+        <EntryImageStrip imagePaths={entry.image_paths} onInsertImage={onInsertImage} />
       )}
+      {!entry.body && entry.image_paths.length === 0 && (
+        <div className="text-gray-500 italic">(empty)</div>
+      )}
+    </div>
+  )
+}
+
+function EntryImageStrip({
+  imagePaths,
+  onInsertImage
+}: {
+  imagePaths: string[]
+  onInsertImage: (imagePath: string) => void
+}) {
+  const [dataUrls, setDataUrls] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    for (const p of imagePaths) {
+      window.electronAPI.getEntryImage(p).then((url) => {
+        setDataUrls((prev) => ({ ...prev, [p]: url }))
+      })
+    }
+  }, [imagePaths])
+
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-1.5">
+      {imagePaths.map((p) => (
+        <div key={p} className="group/img relative">
+          {dataUrls[p] ? (
+            <img
+              src={dataUrls[p]}
+              alt=""
+              className="h-12 w-12 object-cover rounded border border-gray-700"
+            />
+          ) : (
+            <div className="h-12 w-12 rounded border border-gray-700 bg-gray-800" />
+          )}
+          <button
+            onClick={() => onInsertImage(p)}
+            onMouseDown={(e) => e.preventDefault()}
+            className="absolute inset-0 flex items-center justify-center rounded opacity-0 group-hover/img:opacity-100 bg-black/60 text-white text-xs font-medium transition-opacity"
+            title="Insert image"
+          >
+            Insert
+          </button>
+        </div>
+      ))}
     </div>
   )
 }

@@ -3,14 +3,7 @@ import type { NodeViewProps } from '@tiptap/react'
 import { useEffect, useState } from 'react'
 import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
 import type { HypothesisStatus } from '@shared/ipc-types'
-import { formatDate } from '@shared/format-date'
-
-const TIMESTAMP_OPTIONS: Intl.DateTimeFormatOptions = {
-  month: 'short',
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit'
-}
+import { formatDate, TIMESTAMP_OPTIONS_SHORT } from '@shared/format-date'
 
 interface LinkedFinding {
   id: string
@@ -29,10 +22,14 @@ function EntryRefNodeView({ node }: NodeViewProps) {
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
 
   useEffect(() => {
-    for (const p of imagePaths) {
-      window.electronAPI.getEntryImage(p).then((url) => {
-        setDataUrls((prev) => ({ ...prev, [p]: url }))
-      })
+    let cancelled = false
+    Promise.all(imagePaths.map((p) => window.electronAPI.getEntryImage(p).then((url) => [p, url] as const))).then(
+      (pairs) => {
+        if (!cancelled) setDataUrls(Object.fromEntries(pairs))
+      }
+    )
+    return () => {
+      cancelled = true
     }
   }, [imagePaths.join(',')])
 
@@ -58,7 +55,7 @@ function EntryRefNodeView({ node }: NodeViewProps) {
             </span>
           )}
           <span className="text-gray-500 text-xs">
-            {entryTimestamp ? formatDate(entryTimestamp, TIMESTAMP_OPTIONS) : ''}
+            {entryTimestamp ? formatDate(entryTimestamp, TIMESTAMP_OPTIONS_SHORT) : ''}
           </span>
         </div>
 

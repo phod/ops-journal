@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import type { JournalEntry } from '@shared/ipc-types'
 import { SummaryEditor } from './SummaryEditor'
+import type { SummaryEditorHandle } from './SummaryEditor'
+import { SummaryEntryPanel } from './SummaryEntryPanel'
+import { EntryRefNode } from './editor/EntryRefNode'
 
 interface Props {
   investigationId: string
@@ -9,7 +13,7 @@ interface Props {
 
 function ReadOnlyRenderer({ summaryJson }: { summaryJson: string }) {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, EntryRefNode],
     content: JSON.parse(summaryJson),
     editable: false,
     editorProps: {
@@ -25,13 +29,19 @@ function ReadOnlyRenderer({ summaryJson }: { summaryJson: string }) {
 
 export function SummaryView({ investigationId }: Props) {
   const [summaryJson, setSummaryJson] = useState<string | null>(null)
+  const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
+  const editorRef = useRef<SummaryEditorHandle>(null)
 
   useEffect(() => {
     setLoading(true)
-    window.electronAPI.getSummary(investigationId).then((json) => {
+    Promise.all([
+      window.electronAPI.getSummary(investigationId),
+      window.electronAPI.listEntries(investigationId)
+    ]).then(([json, entryList]) => {
       setSummaryJson(json)
+      setEntries(entryList)
       setLoading(false)
     })
   }, [investigationId])
@@ -46,15 +56,30 @@ export function SummaryView({ investigationId }: Props) {
 
   if (editing) {
     return (
-      <SummaryEditor
-        investigationId={investigationId}
-        initialJson={summaryJson}
-        onSave={(json) => {
-          setSummaryJson(json)
-          setEditing(false)
-        }}
-        onCancel={() => setEditing(false)}
-      />
+      <div className="flex gap-4 h-full min-h-0">
+        {/* Editor — left column */}
+        <div className="flex-[3] min-w-0 flex flex-col">
+          <SummaryEditor
+            ref={editorRef}
+            investigationId={investigationId}
+            initialJson={summaryJson}
+            entries={entries}
+            onSave={(json) => {
+              setSummaryJson(json)
+              setEditing(false)
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        </div>
+
+        {/* Side panel — right column */}
+        <div className="flex-[2] min-w-0 min-h-0 border-l border-gray-700/50 pl-4 flex flex-col">
+          <SummaryEntryPanel
+            entries={entries}
+            onInsert={(entry) => editorRef.current?.insertEntryRef(entry)}
+          />
+        </div>
+      </div>
     )
   }
 

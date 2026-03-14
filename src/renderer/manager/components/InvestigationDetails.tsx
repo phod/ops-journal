@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { DetailsEntryList } from '../../details/components/DetailsEntryList'
+import { SummaryView } from '../../details/components/SummaryView'
 import { formatDate } from '@shared/format-date'
 import { countEntries, filterEntries, type Filter } from '@shared/entry-types'
 
@@ -14,6 +15,7 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
+  const [view, setView] = useState<'entries' | 'summary'>('entries')
 
   useEffect(() => {
     setLoading(true)
@@ -91,11 +93,10 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
         </div>
       </div>
 
-      {/* Entry timeline */}
+      {/* Tabs + content */}
       <div>
-        {/* Filter tabs */}
-        <div className="flex gap-1 mb-3 border-b border-gray-700/50">
-          {tabs.map(({ key, label }) => (
+        <div className="flex items-center gap-1 mb-3 border-b border-gray-700/50">
+          {view === 'entries' && tabs.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setFilter(key)}
@@ -111,11 +112,29 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
               )}
             </button>
           ))}
+          <div className="ml-auto">
+            <button
+              onClick={() => setView(view === 'summary' ? 'entries' : 'summary')}
+              className={`text-xs px-3 py-1.5 rounded-t font-medium transition-colors ${
+                view === 'summary'
+                  ? 'bg-gray-700 text-gray-100 border border-b-0 border-gray-600'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Summary
+            </button>
+          </div>
         </div>
-        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-3">
-          {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
-        </div>
-        <DetailsEntryList entries={filteredEntries} allEntries={entries} onEntryUpdated={(updated) => setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))} />
+        {view === 'summary' ? (
+          <SummaryView investigationId={investigationId} />
+        ) : (
+          <>
+            <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-3">
+              {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+            </div>
+            <DetailsEntryList entries={filteredEntries} allEntries={entries} onEntryUpdated={(updated) => setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))} />
+          </>
+        )}
       </div>
     </div>
   )

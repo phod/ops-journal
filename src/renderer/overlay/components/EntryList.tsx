@@ -194,7 +194,12 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     const trimmed = draft.trim()
     const hasImages = entry.image_paths.length > pendingRemovals.size
     if (!trimmed && !hasImages) {
-      cancelEdit()
+      try {
+        await window.electronAPI.deleteEntry(entry.id)
+        onDeleted(entry.id)
+      } catch (err) {
+        console.error('[overlay] Failed to delete empty entry:', err)
+      }
       return
     }
     if (trimmed === entry.body && pendingRemovals.size === 0) {

@@ -32,6 +32,14 @@ const DEFAULT_MOCKS = {
   sendScreenshotSelection: vi.fn()
 } as const
 
+if (typeof window !== 'undefined' && !window.ResizeObserver) {
+  window.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+}
+
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'electronAPI', {
     value: DEFAULT_MOCKS,

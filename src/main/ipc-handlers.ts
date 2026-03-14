@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog } from 'electron'
+import { ipcMain, BrowserWindow, dialog, clipboard } from 'electron'
 import {
   getActiveInvestigations,
   listInvestigations,
@@ -16,6 +16,7 @@ import { getHotkey, getScreenshotHotkey, getUploadHotkey } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
 import type { Investigation } from '@shared/ipc-types'
+import { exportAsMarkdown, exportAsPdf } from './export'
 
 function broadcastInvestigationChanged(investigations: Investigation[]): void {
   const windows = BrowserWindow.getAllWindows()
@@ -134,6 +135,56 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('image:getEntryImage', (_event, { imagePath }: { imagePath: string }) => readImageAsDataUrl(imagePath))
 
   ipcMain.handle('screenshot:capture', () => captureScreenshot())
+
+  // --- Export ---
+
+  ipcMain.handle(
+    'investigation:export',
+    async (
+      _event,
+      {
+        investigationId,
+        investigationName,
+        format,
+        entryIds
+      }: { investigationId: string; investigationName: string; format: 'markdown' | 'pdf' | 'clipboard'; entryIds: string[] }
+    ) => {
+      try {
+        const allEntries = listEntries(investigationId)
+        const entries = allEntries.filter((e) => entryIds.includes(e.id))
+        const investigations = listInvestigations()
+        const investigation = investigations.find((i) => i.id === investigationId)
+        const createdAt = investigation?.created_at ?? new Date().toISOString()
+
+        if (format === 'clipboard') {
+          const md = exportAsMarkdown(investigationName, createdAt, entries)
+          clipboard.writeText(md)
+          return { success: true }
+        }
+
+        const ext = format === 'pdf' ? 'pdf' : 'md'
+        const defaultName = `${investigationName.replace(/[^a-z0-9]/gi, '_')}.${ext}`
+        const focusedWindow = BrowserWindow.getFocusedWindow()
+        const dialogResult = focusedWindow
+          ? await dialog.showSaveDialog(focusedWindow, { defaultPath: defaultName, filters: [{ name: ext.toUpperCase(), extensions: [ext] }] })
+          : await dialog.showSaveDialog({ defaultPath: defaultName, filters: [{ name: ext.toUpperCase(), extensions: [ext] }] })
+
+        if (dialogResult.canceled || !dialogResult.filePath) return { success: false, error: 'Cancelled' }
+
+        if (format === 'pdf') {
+          await exportAsPdf(investigationName, createdAt, entries, dialogResult.filePath)
+        } else {
+          const md = exportAsMarkdown(investigationName, createdAt, entries)
+          const { writeFileSync } = await import('fs')
+          writeFileSync(dialogResult.filePath, md, 'utf-8')
+        }
+
+        return { success: true }
+      } catch (err: unknown) {
+        return { success: false, error: err instanceof Error ? err.message : String(err) }
+      }
+    }
+  )
 
   // --- Settings ---
 

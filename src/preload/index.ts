@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ElectronAPI, HypothesisStatus, Investigation } from '../shared/ipc-types'
+import type { ElectronAPI, ExportFormat, HypothesisStatus, Investigation } from '../shared/ipc-types'
 
 /**
  * Creates a listener for an IPC channel that forwards arguments to a callback,
@@ -42,6 +42,10 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke('hypothesis:getFindings', { hypothesisId }),
   getFindingHypotheses: (findingId: string) =>
     ipcRenderer.invoke('finding:getHypotheses', { findingId }),
+
+  // Export
+  exportInvestigation: (options: { investigationId: string; investigationName: string; format: ExportFormat; entryIds: string[] }) =>
+    ipcRenderer.invoke('investigation:export', options),
 
   // Summary
   getSummary: (investigationId) => ipcRenderer.invoke('summary:get', { investigationId }),

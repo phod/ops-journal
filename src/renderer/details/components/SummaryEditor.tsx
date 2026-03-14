@@ -10,6 +10,7 @@ import { SummaryImageNode } from './editor/SummaryImageNode'
 export interface SummaryEditorHandle {
   insertEntryRef: (entry: JournalEntry) => void
   insertImage: (imagePath: string) => void
+  isDirty: () => boolean
 }
 
 interface Props {
@@ -18,7 +19,6 @@ interface Props {
   entries: JournalEntry[]
   onSave: (json: string) => void
   onCancel: () => void
-  onBack?: () => void
 }
 
 function extractImagePaths(jsonStr: string | null): string[] {
@@ -40,8 +40,28 @@ function extractImagePaths(jsonStr: string | null): string[] {
   }
 }
 
+function resolveLinkedFindings(entry: JournalEntry, allEntries: JournalEntry[]) {
+  if (entry.type !== 'hypothesis') return []
+  return (entry.linked_finding_ids ?? [])
+    .map((id) => allEntries.find((e) => e.id === id))
+    .filter(Boolean)
+    .map((f) => ({ id: f!.id, body: f!.body }))
+}
+
+function entryRefAttrs(entry: JournalEntry, allEntries: JournalEntry[]) {
+  return {
+    entryId: entry.id,
+    entryType: entry.type,
+    entryBody: entry.body,
+    entryTimestamp: entry.created_at,
+    entryImagePaths: entry.image_paths,
+    entryHypothesisStatus: entry.hypothesis_status ?? null,
+    entryLinkedFindings: resolveLinkedFindings(entry, allEntries)
+  }
+}
+
 export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
-  ({ investigationId, initialJson, entries, onSave, onCancel, onBack }, ref) => {
+  ({ investigationId, initialJson, entries, onSave, onCancel }, ref) => {
     const [saving, setSaving] = useState(false)
     const entriesRef = useRef(entries)
     entriesRef.current = entries
@@ -71,13 +91,9 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
           const pos = view.posAtCoords(coords)
           if (!pos) return false
 
-          const node = view.state.schema.nodes.entryRef?.create({
-            entryId: entry.id,
-            entryType: entry.type,
-            entryBody: entry.body,
-            entryTimestamp: entry.created_at,
-            entryImagePaths: entry.image_paths
-          })
+          const node = view.state.schema.nodes.entryRef?.create(
+            entryRefAttrs(entry, entriesRef.current)
+          )
           if (!node) return false
 
           const tr = view.state.tr.insert(pos.pos, node)
@@ -94,16 +110,7 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
         editor
           .chain()
           .focus()
-          .insertContent({
-            type: 'entryRef',
-            attrs: {
-              entryId: entry.id,
-              entryType: entry.type,
-              entryBody: entry.body,
-              entryTimestamp: entry.created_at,
-              entryImagePaths: entry.image_paths
-            }
-          })
+          .insertContent({ type: 'entryRef', attrs: entryRefAttrs(entry, entriesRef.current) })
           .run()
       },
       insertImage: (imagePath: string) => {
@@ -113,6 +120,12 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
           .focus()
           .insertContent({ type: 'summaryImage', attrs: { src: imagePath } })
           .run()
+      },
+      isDirty: () => {
+        if (!editor) return false
+        const current = JSON.stringify(editor.getJSON())
+        const original = initialJson ?? JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] })
+        return current !== original
       }
     }))
 
@@ -152,18 +165,9 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
     }
 
     return (
-      <div className="flex flex-col gap-3 h-full">
+      <div className="flex flex-col gap-3 flex-1 min-h-0">
         {/* Toolbar */}
         <div className="flex items-center gap-1.5">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="text-xs px-2.5 py-1 rounded text-gray-500 hover:text-gray-300 transition-colors font-mono mr-2"
-              title="Back to details"
-            >
-              ← Details
-            </button>
-          )}
           <button
             onClick={handleUploadImage}
             className="text-xs px-2.5 py-1 rounded border border-gray-700 text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors font-mono"

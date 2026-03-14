@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import type { JournalEntry } from '@shared/ipc-types'
-import { getEntryTypeDefinition, filterEntries } from '@shared/entry-types'
+import type { JournalEntry, HypothesisStatus } from '@shared/ipc-types'
+import { getEntryTypeDefinition, filterEntries, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
 import type { Filter } from '@shared/entry-types'
 import { formatDate } from '@shared/format-date'
 
@@ -29,7 +29,7 @@ export function SummaryEntryPanel({ entries, onInsert, onInsertImage }: Props) {
   const filtered = filterEntries(entries, filter)
 
   return (
-    <div className="flex flex-col h-full gap-2">
+    <div className="flex flex-col flex-1 min-h-0 gap-2">
       <div className="text-xs text-gray-500 font-mono uppercase tracking-wider px-1">
         Entries
       </div>
@@ -59,7 +59,7 @@ export function SummaryEntryPanel({ entries, onInsert, onInsertImage }: Props) {
           </div>
         )}
         {filtered.map((entry) => (
-          <PanelEntry key={entry.id} entry={entry} onInsert={onInsert} onInsertImage={onInsertImage} />
+          <PanelEntry key={entry.id} entry={entry} allEntries={entries} onInsert={onInsert} onInsertImage={onInsertImage} />
         ))}
       </div>
     </div>
@@ -68,15 +68,22 @@ export function SummaryEntryPanel({ entries, onInsert, onInsertImage }: Props) {
 
 function PanelEntry({
   entry,
+  allEntries,
   onInsert,
   onInsertImage
 }: {
   entry: JournalEntry
+  allEntries: JournalEntry[]
   onInsert: (entry: JournalEntry) => void
   onInsertImage?: (imagePath: string) => void
 }) {
   const typeDef = getEntryTypeDefinition(entry.type ?? 'note')
   const isTyped = entry.type !== 'note'
+  const isHypothesis = entry.type === 'hypothesis'
+  const status = (entry.hypothesis_status ?? 'open') as HypothesisStatus
+  const linkedFindings = isHypothesis
+    ? (entry.linked_finding_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+    : []
 
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.effectAllowed = 'copy'
@@ -100,6 +107,11 @@ function PanelEntry({
               {typeDef.label.toUpperCase()}
             </span>
           )}
+          {isHypothesis && (
+            <span className={`flex-shrink-0 px-1 py-0.5 rounded text-xs font-semibold ${HYPOTHESIS_STATUS_CLASS[status]}`}>
+              {HYPOTHESIS_STATUS_LABEL[status]}
+            </span>
+          )}
           <span className="text-gray-600 text-xs truncate">
             {formatDate(entry.created_at, TIMESTAMP_OPTIONS)}
           </span>
@@ -116,6 +128,18 @@ function PanelEntry({
       {entry.body && (
         <div className="text-gray-300 line-clamp-2 leading-relaxed break-words">
           {entry.body}
+        </div>
+      )}
+      {isHypothesis && linkedFindings.length > 0 && (
+        <div className="mt-1.5">
+          <div className="text-gray-600 text-xs font-mono uppercase tracking-wider mb-0.5">Findings</div>
+          <div className="space-y-0.5">
+            {linkedFindings.map((f) => (
+              <div key={f.id} className="px-1.5 py-0.5 rounded text-xs font-mono bg-teal-500/10 border border-teal-500/25 text-teal-300 truncate">
+                {f.body || '(no text)'}
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {entry.image_paths.length > 0 && onInsertImage && (

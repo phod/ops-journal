@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { DetailsEntryList } from '../../details/components/DetailsEntryList'
 import { SummaryView } from '../../details/components/SummaryView'
+import type { SummaryViewHandle } from '../../details/components/SummaryView'
 import { formatDate } from '@shared/format-date'
 import { countEntries, filterEntries, type Filter } from '@shared/entry-types'
 
@@ -15,16 +16,31 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
-  const [view, setView] = useState<'entries' | 'summary'>('entries')
+  const [view, setView] = useState<'entries' | 'summary' | null>(null)
+  const summaryRef = useRef<SummaryViewHandle>(null)
+
+  function navigateTo(target: 'summary' | 'entries', newFilter?: Filter): void {
+    if (view === target && target === 'entries') {
+      if (newFilter) setFilter(newFilter)
+      return
+    }
+    if (view === 'summary' && target !== 'summary') {
+      if (!summaryRef.current?.confirmIfDirty()) return
+    }
+    setView(target)
+    if (newFilter) setFilter(newFilter)
+  }
 
   useEffect(() => {
     setLoading(true)
     Promise.all([
       window.electronAPI.listInvestigations(),
-      window.electronAPI.listEntries(investigationId)
-    ]).then(([allInvestigations, allEntries]) => {
+      window.electronAPI.listEntries(investigationId),
+      window.electronAPI.getSummary(investigationId)
+    ]).then(([allInvestigations, allEntries, summaryJson]) => {
       setInvestigation(allInvestigations.find((i) => i.id === investigationId) ?? null)
       setEntries(allEntries)
+      setView(summaryJson ? 'summary' : 'entries')
     }).finally(() => setLoading(false))
   }, [investigationId])
 
@@ -66,11 +82,11 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
   ]
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={`flex flex-col gap-6 ${view === 'summary' ? 'flex-1 min-h-0' : ''}`}>
       {/* Back + header */}
       <div className="flex items-start gap-4">
         <button
-          onClick={onBack}
+          onClick={() => { if (summaryRef.current?.confirmIfDirty() !== false) onBack() }}
           className="mt-0.5 text-gray-400 hover:text-gray-200 text-sm transition-colors flex-shrink-0"
           title="Back to Investigations"
         >
@@ -94,14 +110,24 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
       </div>
 
       {/* Tabs + content */}
-      <div>
+      <div className={view === 'summary' ? 'flex flex-col flex-1 min-h-0' : undefined}>
         <div className="flex items-center gap-1 mb-3 border-b border-gray-700/50">
-          {view === 'entries' && tabs.map(({ key, label }) => (
+          <button
+            onClick={() => navigateTo('summary')}
+            className={`text-xs px-3 py-1.5 rounded-t font-medium transition-colors ${
+              view === 'summary'
+                ? 'bg-gray-700 text-gray-100 border border-b-0 border-gray-600'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Summary
+          </button>
+          {tabs.map(({ key, label }) => (
             <button
               key={key}
-              onClick={() => setFilter(key)}
+              onClick={() => navigateTo('entries', key)}
               className={`text-xs px-3 py-1.5 rounded-t font-medium transition-colors ${
-                filter === key
+                view === 'entries' && filter === key
                   ? 'bg-gray-700 text-gray-100 border border-b-0 border-gray-600'
                   : 'text-gray-500 hover:text-gray-300'
               }`}
@@ -112,21 +138,11 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
               )}
             </button>
           ))}
-          <div className="ml-auto">
-            <button
-              onClick={() => setView(view === 'summary' ? 'entries' : 'summary')}
-              className={`text-xs px-3 py-1.5 rounded-t font-medium transition-colors ${
-                view === 'summary'
-                  ? 'bg-gray-700 text-gray-100 border border-b-0 border-gray-600'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              Summary
-            </button>
-          </div>
         </div>
         {view === 'summary' ? (
-          <SummaryView investigationId={investigationId} onBack={() => setView('entries')} />
+          <div className="flex-1 min-h-0 flex flex-col">
+            <SummaryView ref={summaryRef} investigationId={investigationId} />
+          </div>
         ) : (
           <>
             <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-3">

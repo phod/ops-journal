@@ -52,7 +52,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col">
+    <div className="h-screen bg-gray-900 text-gray-100 flex flex-col">
       {/* Header */}
       <div className="border-b border-gray-800 px-6 pt-4">
         <div className="flex items-center gap-3 pb-3">
@@ -83,14 +83,17 @@ export default function App() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-6 py-6 flex flex-col gap-8">
-          {detailsId ? (
+      <div className={`flex-1 min-h-0 ${detailsId ? 'flex flex-col' : 'overflow-y-auto'}`}>
+        {detailsId ? (
+          <div className="flex-1 min-h-0 flex flex-col px-6 py-6">
             <InvestigationDetails
               investigationId={detailsId}
               onBack={() => setDetailsId(null)}
             />
-          ) : tab === 'settings' ? (
+          </div>
+        ) : (
+        <div className="max-w-2xl mx-auto px-6 py-6 flex flex-col gap-8">
+          {tab === 'settings' ? (
             <section>
               <HotkeySettings />
             </section>
@@ -128,6 +131,7 @@ export default function App() {
             </>
           )}
         </div>
+        )}
       </div>
     </div>
   )

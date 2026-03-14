@@ -82,7 +82,7 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (completions.length > 0) {
-      if (e.key === 'Tab') {
+      if (e.key === 'Tab' || e.key === 'Enter') {
         e.preventDefault()
         applyCompletion(completions[selectedCompletionIndex])
         return

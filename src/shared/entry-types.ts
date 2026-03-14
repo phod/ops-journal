@@ -1,4 +1,4 @@
-import type { EntryType } from './ipc-types'
+import type { EntryType, HypothesisStatus, JournalEntry } from './ipc-types'
 
 export interface EntryTypeDefinition {
   type: EntryType
@@ -58,4 +58,47 @@ export const SLASH_COMMANDS = ENTRY_TYPES.filter((d) => d.command !== null)
 
 export function getEntryTypeDefinition(type: EntryType): EntryTypeDefinition {
   return ENTRY_TYPES.find((d) => d.type === type) ?? ENTRY_TYPES[0]
+}
+
+export const HYPOTHESIS_STATUS_LABEL: Record<HypothesisStatus, string> = {
+  open: 'Open',
+  true: 'True',
+  false: 'False',
+  abandoned: 'Abandoned'
+}
+
+export const HYPOTHESIS_STATUS_CLASS: Record<HypothesisStatus, string> = {
+  open: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
+  true: 'bg-green-500/20 text-green-300 border border-green-500/30',
+  false: 'bg-red-500/20 text-red-300 border border-red-500/30',
+  abandoned: 'bg-gray-500/20 text-gray-400 border border-gray-600/30'
+}
+
+export const HYPOTHESIS_STATUS_TEXT_CLASS: Record<HypothesisStatus, string> = {
+  open: 'text-yellow-300',
+  true: 'text-green-300',
+  false: 'text-red-300',
+  abandoned: 'text-gray-400'
+}
+
+export type Filter = 'all' | 'images' | 'finding' | 'action' | 'hypothesis'
+
+export function countEntries(entries: JournalEntry[]) {
+  return entries.reduce(
+    (acc, e) => {
+      acc.all++
+      if (e.image_paths.length > 0) acc.images++
+      if (e.type === 'finding') acc.finding++
+      if (e.type === 'action') acc.action++
+      if (e.type === 'hypothesis') acc.hypothesis++
+      return acc
+    },
+    { all: 0, images: 0, finding: 0, action: 0, hypothesis: 0 }
+  )
+}
+
+export function filterEntries(entries: JournalEntry[], filter: Filter): JournalEntry[] {
+  if (filter === 'all') return entries
+  if (filter === 'images') return entries.filter((e) => e.image_paths.length > 0)
+  return entries.filter((e) => e.type === filter)
 }

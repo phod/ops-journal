@@ -3,6 +3,7 @@ import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { DetailsEntryList } from '../../details/components/DetailsEntryList'
 import { SummaryView } from '../../details/components/SummaryView'
 import type { SummaryViewHandle } from '../../details/components/SummaryView'
+import { ExportView } from '../../details/components/ExportView'
 import { formatDate } from '@shared/format-date'
 import { countEntries, filterEntries, type Filter } from '@shared/entry-types'
 
@@ -16,8 +17,15 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
-  const [view, setView] = useState<'entries' | 'summary' | null>(null)
+  const [view, setView] = useState<'entries' | 'summary' | 'export' | null>(null)
+  const [preExportView, setPreExportView] = useState<'entries' | 'summary' | null>(null)
   const summaryRef = useRef<SummaryViewHandle>(null)
+
+  function openExport(): void {
+    if (view === 'summary' && !summaryRef.current?.confirmIfDirty()) return
+    setPreExportView((view === 'summary' || view === 'entries') ? view : 'entries')
+    setView('export')
+  }
 
   function navigateTo(target: 'summary' | 'entries', newFilter?: Filter): void {
     if (view === target && target === 'entries') {
@@ -92,6 +100,15 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
         >
           ← Back
         </button>
+        <div className="ml-auto flex-shrink-0">
+          <button
+            onClick={openExport}
+            className="text-xs px-2.5 py-1 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
+            title="Export investigation"
+          >
+            Export
+          </button>
+        </div>
         <div className="min-w-0">
           <h2 className="text-xl font-semibold text-gray-100 truncate">{investigation.name}</h2>
           <div className="flex items-center gap-2 mt-1.5">
@@ -109,8 +126,18 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
         </div>
       </div>
 
+      {/* Export view (full replacement) */}
+      {view === 'export' && (
+        <ExportView
+          investigationId={investigationId}
+          investigationName={investigation.name}
+          entries={entries}
+          onBack={() => setView(preExportView ?? 'entries')}
+        />
+      )}
+
       {/* Tabs + content */}
-      <div className={view === 'summary' ? 'flex flex-col flex-1 min-h-0' : undefined}>
+      <div className={view === 'summary' ? 'flex flex-col flex-1 min-h-0' : undefined} style={{ display: view === 'export' ? 'none' : undefined }}>
         <div className="flex items-center gap-1 mb-3 border-b border-gray-700/50">
           <button
             onClick={() => navigateTo('summary')}

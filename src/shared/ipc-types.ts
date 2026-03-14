@@ -1,4 +1,5 @@
 export type EntryType = 'note' | 'action' | 'finding' | 'hypothesis'
+export type ExportFormat = 'markdown' | 'pdf' | 'clipboard'
 export type HypothesisStatus = 'open' | 'true' | 'false' | 'abandoned'
 
 export interface Investigation {
@@ -49,6 +50,14 @@ export interface ElectronAPI {
   getSummary: (investigationId: string) => Promise<string | null>
   saveSummary: (investigationId: string, summaryJson: string) => Promise<void>
   saveSummaryImage: (dataUrl: string) => Promise<string>
+
+  // Export
+  exportInvestigation: (options: {
+    investigationId: string
+    investigationName: string
+    format: ExportFormat
+    entryIds: string[]
+  }) => Promise<{ success: boolean; error?: string }>
 
   // Images
   pickImage: () => Promise<string[]>

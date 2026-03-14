@@ -5,6 +5,7 @@ import { countEntries, filterEntries, type Filter } from '@shared/entry-types'
 import { DetailsEntryList } from './components/DetailsEntryList'
 import { SummaryView } from './components/SummaryView'
 import type { SummaryViewHandle } from './components/SummaryView'
+import { ExportView } from './components/ExportView'
 
 export default function App(): JSX.Element {
   const investigationId = new URLSearchParams(window.location.search).get('id')
@@ -13,8 +14,15 @@ export default function App(): JSX.Element {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
-  const [view, setView] = useState<'entries' | 'summary' | null>(null)
+  const [view, setView] = useState<'entries' | 'summary' | 'export' | null>(null)
+  const [preExportView, setPreExportView] = useState<'entries' | 'summary' | null>(null)
   const summaryRef = useRef<SummaryViewHandle>(null)
+
+  function openExport(): void {
+    if (view === 'summary' && !summaryRef.current?.confirmIfDirty()) return
+    setPreExportView((view === 'summary' || view === 'entries') ? view : 'entries')
+    setView('export')
+  }
 
   function navigateTo(target: 'summary' | 'entries', newFilter?: Filter): void {
     if (view === target && target === 'entries') {
@@ -110,13 +118,22 @@ export default function App(): JSX.Element {
             </span>
           </div>
         </div>
-        <button
-          onClick={() => window.close()}
-          className="text-gray-500 hover:text-gray-300 text-sm px-2 py-1 rounded transition-colors flex-shrink-0"
-          title="Close"
-        >
-          ✕
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={openExport}
+            className="text-xs px-2.5 py-1 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
+            title="Export investigation"
+          >
+            Export
+          </button>
+          <button
+            onClick={() => window.close()}
+            className="text-gray-500 hover:text-gray-300 text-sm px-2 py-1 rounded transition-colors"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -149,8 +166,15 @@ export default function App(): JSX.Element {
         ))}
       </div>
 
-      <div className={`flex-1 min-h-0 px-6 py-4 ${view === 'summary' ? 'flex flex-col' : 'overflow-y-auto'}`}>
-        {view === 'summary' ? (
+      <div className={`flex-1 min-h-0 px-6 py-4 ${view === 'summary' || view === 'export' ? 'flex flex-col' : 'overflow-y-auto'}`}>
+        {view === 'export' ? (
+          <ExportView
+            investigationId={investigationId}
+            investigationName={investigation.name}
+            entries={entries}
+            onBack={() => setView(preExportView ?? 'entries')}
+          />
+        ) : view === 'summary' ? (
           <SummaryView ref={summaryRef} investigationId={investigationId} />
         ) : (
           <div className="max-w-2xl">

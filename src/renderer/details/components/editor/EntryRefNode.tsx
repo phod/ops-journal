@@ -26,6 +26,7 @@ function EntryRefNodeView({ node }: NodeViewProps) {
   const linkedFindings: LinkedFinding[] = Array.isArray(entryLinkedFindings) ? entryLinkedFindings : []
   const status = (entryHypothesisStatus ?? 'open') as HypothesisStatus
   const [dataUrls, setDataUrls] = useState<Record<string, string>>({})
+  const [expandedPath, setExpandedPath] = useState<string | null>(null)
 
   useEffect(() => {
     for (const p of imagePaths) {
@@ -76,7 +77,16 @@ function EntryRefNodeView({ node }: NodeViewProps) {
           <div className="flex flex-wrap gap-1.5 mt-2">
             {imagePaths.map((p) => (
               dataUrls[p]
-                ? <img key={p} src={dataUrls[p]} alt="" className="h-16 w-16 object-cover rounded border border-gray-700" />
+                ? <img
+                    key={p}
+                    src={dataUrls[p]}
+                    alt=""
+                    onClick={() => setExpandedPath(expandedPath === p ? null : p)}
+                    className={`rounded border border-gray-700 object-contain cursor-pointer transition-all ${
+                      expandedPath === p ? 'max-h-none w-full' : 'h-16 w-16 object-cover'
+                    }`}
+                    title={expandedPath === p ? 'Click to collapse' : 'Click to expand'}
+                  />
                 : <div key={p} className="h-16 w-16 rounded border border-gray-700 bg-gray-800" />
             ))}
           </div>

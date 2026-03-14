@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
 import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
 import { LinkFindingModal } from './LinkFindingModal'
@@ -89,6 +89,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const typeMenuRef = useRef<HTMLDivElement>(null)
   const statusMenuRef = useRef<HTMLDivElement>(null)
+  const prevEditHeightRef = useRef(0)
 
   useEffect(() => {
     for (const path of entry.image_paths) {
@@ -110,6 +111,35 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
       textareaRef.current?.setSelectionRange(len, len)
     }
   }, [isEditing])
+
+  // Auto-resize edit textarea to fit content, then scroll into view only if height changed.
+  // useLayoutEffect ensures sizing happens before the browser paints, so the user never
+  // sees the textarea at its collapsed/min-height state.
+  useLayoutEffect(() => {
+    if (!isEditing) {
+      prevEditHeightRef.current = 0
+      return
+    }
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    // Reset to auto to measure natural content height, then apply it
+    textarea.style.height = 'auto'
+    const newHeight = textarea.scrollHeight
+    textarea.style.height = `${newHeight}px`
+
+    if (newHeight === prevEditHeightRef.current) return
+    prevEditHeightRef.current = newHeight
+
+    const entryEl = document.getElementById(`entry-${entry.id}`)
+    const container = entryEl?.parentElement
+    if (!entryEl || !container) return
+    const entryRect = entryEl.getBoundingClientRect()
+    const containerRect = container.getBoundingClientRect()
+    if (entryRect.top < containerRect.top || entryRect.bottom > containerRect.bottom) {
+      entryEl.scrollIntoView({ block: 'nearest' })
+    }
+  }, [draft, isEditing])
 
   useEffect(() => {
     if (!showTypeMenu) return
@@ -387,7 +417,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={saving}
-            rows={3}
+            style={{ minHeight: '5rem' }}
             className="no-drag w-full bg-gray-700/80 text-gray-100 font-mono text-sm rounded px-2 py-1.5 border border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
           />
           {entry.image_paths.length > 0 && (
@@ -520,6 +550,26 @@ export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onE
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [entries])
+
+  // Keep scroll pinned to bottom when the container shrinks (e.g. input box expanding),
+  // but only if the user was already at the bottom.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    let wasAtBottom = true
+    const onScroll = () => {
+      wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 10
+    }
+    const observer = new ResizeObserver(() => {
+      if (wasAtBottom) el.scrollTop = el.scrollHeight
+    })
+    el.addEventListener('scroll', onScroll)
+    observer.observe(el)
+    return () => {
+      el.removeEventListener('scroll', onScroll)
+      observer.disconnect()
+    }
+  }, [])
 
   if (entries.length === 0) {
     return (

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import type { Investigation, JournalEntry, EntryType } from '@shared/ipc-types'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 import type { EntryTypeDefinition } from '@shared/entry-types'
@@ -189,6 +189,15 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
     return window.electronAPI.onTriggerUpload(handlePickImage)
   }, [handlePickImage])
 
+  // Auto-resize textarea to fit content.
+  // useLayoutEffect ensures sizing happens before paint so there's no visual flicker.
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    textarea.style.height = 'auto'
+    textarea.style.height = `${textarea.scrollHeight}px`
+  }, [value])
+
   const typeDef = detectedType !== 'note' ? getEntryTypeDefinition(detectedType) : null
 
   return (
@@ -249,7 +258,7 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
           onChange={(e) => handleValueChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a note… (Enter to save, Shift+Enter for newline)"
-          rows={3}
+          style={{ minHeight: '5rem' }}
           className="no-drag w-full bg-gray-800/80 text-gray-100 placeholder-gray-600 font-mono text-sm rounded-lg px-3 py-2.5 border border-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none transition-colors"
         />
         <div className="absolute bottom-2 right-2 flex items-center gap-1.5 select-none pointer-events-none">

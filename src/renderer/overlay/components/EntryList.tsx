@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
-import { getEntryTypeDefinition, ENTRY_TYPES } from '@shared/entry-types'
+import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
 import { LinkFindingModal } from './LinkFindingModal'
 
 interface Props {
@@ -38,19 +38,6 @@ function formatTimestamp(isoString: string): string {
   }
 }
 
-const HYPOTHESIS_STATUS_LABEL: Record<HypothesisStatus, string> = {
-  open: 'Open',
-  true: 'True',
-  false: 'False',
-  abandoned: 'Abandoned'
-}
-
-const HYPOTHESIS_STATUS_CLASS: Record<HypothesisStatus, string> = {
-  open: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
-  true: 'bg-green-500/20 text-green-300 border border-green-500/30',
-  false: 'bg-red-500/20 text-red-300 border border-red-500/30',
-  abandoned: 'bg-gray-500/20 text-gray-400 border border-gray-600/30'
-}
 
 interface EntryRowProps {
   entry: JournalEntry

@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { DetailsEntryList } from '../../details/components/DetailsEntryList'
 import { formatDate } from '@shared/format-date'
-
-type Filter = 'all' | 'images' | 'finding' | 'action' | 'hypothesis'
+import { countEntries, filterEntries, type Filter } from '@shared/entry-types'
 
 interface Props {
   investigationId: string
@@ -39,23 +38,8 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
     return unsubscribe
   }, [investigationId])
 
-  const counts = useMemo(() => entries.reduce(
-    (acc, e) => {
-      acc.all++
-      if (e.image_paths.length > 0) acc.images++
-      if (e.type === 'finding') acc.finding++
-      if (e.type === 'action') acc.action++
-      if (e.type === 'hypothesis') acc.hypothesis++
-      return acc
-    },
-    { all: 0, images: 0, finding: 0, action: 0, hypothesis: 0 }
-  ), [entries])
-
-  const filteredEntries = useMemo(() => entries.filter((e) => {
-    if (filter === 'all') return true
-    if (filter === 'images') return e.image_paths.length > 0
-    return e.type === filter
-  }), [entries, filter])
+  const counts = useMemo(() => countEntries(entries), [entries])
+  const filteredEntries = useMemo(() => filterEntries(entries, filter), [entries, filter])
 
   if (loading) {
     return (

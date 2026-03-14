@@ -1,3 +1,10 @@
+export const TIMESTAMP_OPTIONS_SHORT: Intl.DateTimeFormatOptions = {
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit'
+}
+
 /**
  * Normalizes an ISO date string (appending 'Z' if missing) and formats it
  * for display. Falls back to the raw string on invalid input.

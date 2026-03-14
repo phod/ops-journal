@@ -4,6 +4,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import DropCursor from '@tiptap/extension-dropcursor'
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
+import { resolveLinkedFindings } from '@shared/entry-types'
 import { EntryRefNode } from './editor/EntryRefNode'
 import { SummaryImageNode } from './editor/SummaryImageNode'
 
@@ -21,33 +22,6 @@ interface Props {
   onCancel: () => void
 }
 
-function extractImagePaths(jsonStr: string | null): string[] {
-  if (!jsonStr) return []
-  try {
-    const paths: string[] = []
-    function walk(node: Record<string, unknown>): void {
-      if (node.type === 'summaryImage' && typeof node.attrs === 'object' && node.attrs !== null) {
-        const src = (node.attrs as Record<string, unknown>).src
-        if (typeof src === 'string') paths.push(src)
-      }
-      const content = node.content
-      if (Array.isArray(content)) content.forEach(walk)
-    }
-    walk(JSON.parse(jsonStr))
-    return paths
-  } catch {
-    return []
-  }
-}
-
-function resolveLinkedFindings(entry: JournalEntry, allEntries: JournalEntry[]) {
-  if (entry.type !== 'hypothesis') return []
-  return (entry.linked_finding_ids ?? [])
-    .map((id) => allEntries.find((e) => e.id === id))
-    .filter(Boolean)
-    .map((f) => ({ id: f!.id, body: f!.body }))
-}
-
 function entryRefAttrs(entry: JournalEntry, allEntries: JournalEntry[]) {
   return {
     entryId: entry.id,
@@ -56,7 +30,7 @@ function entryRefAttrs(entry: JournalEntry, allEntries: JournalEntry[]) {
     entryTimestamp: entry.created_at,
     entryImagePaths: entry.image_paths,
     entryHypothesisStatus: entry.hypothesis_status ?? null,
-    entryLinkedFindings: resolveLinkedFindings(entry, allEntries)
+    entryLinkedFindings: resolveLinkedFindings(entry, allEntries).map((f) => ({ id: f.id, body: f.body }))
   }
 }
 
@@ -148,17 +122,6 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
       if (!editor) return
       setSaving(true)
       const json = JSON.stringify(editor.getJSON())
-
-      // Garbage-collect images removed during editing
-      const oldPaths = new Set(extractImagePaths(initialJson))
-      const newPaths = new Set(extractImagePaths(json))
-      for (const p of oldPaths) {
-        if (!newPaths.has(p)) {
-          // Fire-and-forget: no IPC for deleteImage yet, skip silently
-          // (Image files remain but won't be referenced; full GC can be added later)
-        }
-      }
-
       await window.electronAPI.saveSummary(investigationId, json)
       setSaving(false)
       onSave(json)

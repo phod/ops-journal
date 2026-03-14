@@ -102,3 +102,10 @@ export function filterEntries(entries: JournalEntry[], filter: Filter): JournalE
   if (filter === 'images') return entries.filter((e) => e.image_paths.length > 0)
   return entries.filter((e) => e.type === filter)
 }
+
+export function resolveLinkedFindings(entry: JournalEntry, allEntries: JournalEntry[]): JournalEntry[] {
+  if (entry.type !== 'hypothesis') return []
+  return (entry.linked_finding_ids ?? [])
+    .map((id) => allEntries.find((e) => e.id === id))
+    .filter(Boolean) as JournalEntry[]
+}

@@ -1,15 +1,8 @@
 import { useState, useEffect } from 'react'
 import type { JournalEntry, HypothesisStatus } from '@shared/ipc-types'
-import { getEntryTypeDefinition, filterEntries, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
+import { getEntryTypeDefinition, filterEntries, resolveLinkedFindings, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
 import type { Filter } from '@shared/entry-types'
-import { formatDate } from '@shared/format-date'
-
-const TIMESTAMP_OPTIONS: Intl.DateTimeFormatOptions = {
-  month: 'short',
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit'
-}
+import { formatDate, TIMESTAMP_OPTIONS_SHORT } from '@shared/format-date'
 
 interface Props {
   entries: JournalEntry[]
@@ -81,9 +74,7 @@ function PanelEntry({
   const isTyped = entry.type !== 'note'
   const isHypothesis = entry.type === 'hypothesis'
   const status = (entry.hypothesis_status ?? 'open') as HypothesisStatus
-  const linkedFindings = isHypothesis
-    ? (entry.linked_finding_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
-    : []
+  const linkedFindings = resolveLinkedFindings(entry, allEntries)
 
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.effectAllowed = 'copy'
@@ -113,7 +104,7 @@ function PanelEntry({
             </span>
           )}
           <span className="text-gray-600 text-xs truncate">
-            {formatDate(entry.created_at, TIMESTAMP_OPTIONS)}
+            {formatDate(entry.created_at, TIMESTAMP_OPTIONS_SHORT)}
           </span>
         </div>
         <button
@@ -162,12 +153,16 @@ function EntryImageStrip({
   const [dataUrls, setDataUrls] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    for (const p of imagePaths) {
-      window.electronAPI.getEntryImage(p).then((url) => {
-        setDataUrls((prev) => ({ ...prev, [p]: url }))
-      })
+    let cancelled = false
+    Promise.all(imagePaths.map((p) => window.electronAPI.getEntryImage(p).then((url) => [p, url] as const))).then(
+      (pairs) => {
+        if (!cancelled) setDataUrls(Object.fromEntries(pairs))
+      }
+    )
+    return () => {
+      cancelled = true
     }
-  }, [imagePaths])
+  }, [imagePaths.join(',')])
 
   return (
     <div className="flex flex-wrap gap-1.5 mt-1.5">

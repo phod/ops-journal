@@ -1,11 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
-import type { JournalEntry, EntryType } from '@shared/ipc-types'
+import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
 import { getEntryTypeDefinition, ENTRY_TYPES } from '@shared/entry-types'
 
 interface Props {
   entries: JournalEntry[]
+  allEntries?: JournalEntry[]
   onEntryUpdated?: (entry: JournalEntry) => void
+}
+
+const HYPOTHESIS_STATUS_LABEL: Record<HypothesisStatus, string> = {
+  open: 'Open',
+  true: 'True',
+  false: 'False',
+  abandoned: 'Abandoned'
+}
+
+const HYPOTHESIS_STATUS_CLASS: Record<HypothesisStatus, string> = {
+  open: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
+  true: 'bg-green-500/20 text-green-300 border border-green-500/30',
+  false: 'bg-red-500/20 text-red-300 border border-red-500/30',
+  abandoned: 'bg-gray-500/20 text-gray-400 border border-gray-600/30'
 }
 
 const TIMESTAMP_OPTIONS: Intl.DateTimeFormatOptions = {
@@ -17,11 +32,61 @@ const TIMESTAMP_OPTIONS: Intl.DateTimeFormatOptions = {
   second: '2-digit'
 }
 
-function DetailsEntryRow({ entry, onEntryUpdated }: { entry: JournalEntry; onEntryUpdated?: (entry: JournalEntry) => void }): JSX.Element {
+function scrollToEntry(id: string) {
+  document.getElementById(`entry-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
+
+// Expanded inline detail card shown when clicking a finding chip on a hypothesis
+function FindingDetailCard({ finding }: { finding: JournalEntry }) {
+  const [imageDataUrls, setImageDataUrls] = useState<Record<string, string>>({})
+  const [expandedPath, setExpandedPath] = useState<string | null>(null)
+
+  useEffect(() => {
+    for (const path of finding.image_paths) {
+      window.electronAPI.getEntryImage(path).then((url) => {
+        setImageDataUrls((prev) => ({ ...prev, [path]: url }))
+      }).catch(() => {})
+    }
+  }, [finding.image_paths])
+
+  return (
+    <div className="mt-1 p-3 bg-teal-950/40 border border-teal-500/30 rounded-lg">
+      <div className="text-xs text-gray-500 font-mono mb-2">
+        {formatDate(finding.created_at, TIMESTAMP_OPTIONS)}
+      </div>
+      {finding.body && (
+        <div className="text-sm text-gray-200 font-mono whitespace-pre-wrap break-words leading-relaxed">
+          {finding.body}
+        </div>
+      )}
+      {finding.image_paths.length > 0 && (
+        <div className={`flex flex-wrap gap-2 ${finding.body ? 'mt-2' : ''}`}>
+          {finding.image_paths.map((path) => (
+            <img
+              key={path}
+              src={imageDataUrls[path]}
+              alt="Attached"
+              onClick={() => setExpandedPath(expandedPath === path ? null : path)}
+              className={`rounded border border-teal-500/30 object-contain cursor-pointer transition-all ${
+                expandedPath === path ? 'max-h-none w-full' : 'max-h-48'
+              }`}
+              title={expandedPath === path ? 'Click to collapse' : 'Click to expand'}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: JournalEntry; allEntries?: JournalEntry[]; onEntryUpdated?: (entry: JournalEntry) => void }): JSX.Element {
   const [imageDataUrls, setImageDataUrls] = useState<Record<string, string>>({})
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
   const [showTypeMenu, setShowTypeMenu] = useState(false)
+  const [showStatusMenu, setShowStatusMenu] = useState(false)
+  const [expandedFindingIds, setExpandedFindingIds] = useState<Set<string>>(new Set())
   const typeMenuRef = useRef<HTMLDivElement>(null)
+  const statusMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     for (const path of entry.image_paths) {
@@ -47,6 +112,17 @@ function DetailsEntryRow({ entry, onEntryUpdated }: { entry: JournalEntry; onEnt
     return () => document.removeEventListener('mousedown', handler)
   }, [showTypeMenu])
 
+  useEffect(() => {
+    if (!showStatusMenu) return
+    const handler = (e: MouseEvent) => {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
+        setShowStatusMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showStatusMenu])
+
   const changeType = async (newType: EntryType) => {
     setShowTypeMenu(false)
     if (newType === entry.type) return
@@ -58,16 +134,46 @@ function DetailsEntryRow({ entry, onEntryUpdated }: { entry: JournalEntry; onEnt
     }
   }
 
+  const changeHypothesisStatus = async (status: HypothesisStatus) => {
+    setShowStatusMenu(false)
+    try {
+      const updated = await window.electronAPI.updateHypothesisStatus(entry.id, status)
+      onEntryUpdated?.(updated)
+    } catch (err) {
+      console.error('[details] Failed to change hypothesis status:', err)
+    }
+  }
+
+  const toggleFindingExpanded = (findingId: string) => {
+    setExpandedFindingIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(findingId)) next.delete(findingId)
+      else next.add(findingId)
+      return next
+    })
+  }
+
   const typeDef = getEntryTypeDefinition(entry.type ?? 'note')
   const isTyped = entry.type !== 'note'
+  const isHypothesis = entry.type === 'hypothesis'
+  const isFinding = entry.type === 'finding'
+  const status = entry.hypothesis_status ?? 'open'
+
+  const linkedFindings = isHypothesis && allEntries
+    ? (entry.linked_finding_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+    : []
+
+  const linkedHypotheses = isFinding && allEntries
+    ? allEntries.filter((e) => e.type === 'hypothesis' && e.linked_finding_ids?.includes(entry.id))
+    : []
 
   const cardClass = isTyped
     ? `group border-l-4 ${typeDef.leftBorderClass} ${typeDef.cardBgClass} ${typeDef.cardBorderClass} rounded-lg px-4 py-3 border`
     : 'group bg-gray-800/60 rounded-lg px-4 py-3 border border-gray-700/50'
 
   return (
-    <div className={cardClass}>
-      <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono mb-1.5">
+    <div id={`entry-${entry.id}`} className={cardClass}>
+      <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono mb-1.5 flex-wrap">
         {formatDate(entry.created_at, TIMESTAMP_OPTIONS)}
         <div className="relative" ref={typeMenuRef}>
           {isTyped ? (
@@ -109,6 +215,36 @@ function DetailsEntryRow({ entry, onEntryUpdated }: { entry: JournalEntry; onEnt
             </div>
           )}
         </div>
+        {/* Hypothesis status badge */}
+        {isHypothesis && (
+          <div className="relative" ref={statusMenuRef}>
+            <button
+              onClick={() => setShowStatusMenu((v) => !v)}
+              className={`no-drag px-1.5 py-0.5 rounded text-xs font-semibold cursor-pointer ${HYPOTHESIS_STATUS_CLASS[status]}`}
+              title="Change hypothesis status"
+            >
+              {HYPOTHESIS_STATUS_LABEL[status]}
+            </button>
+            {showStatusMenu && (
+              <div className="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-20 min-w-[110px] shadow-lg">
+                {(Object.keys(HYPOTHESIS_STATUS_LABEL) as HypothesisStatus[]).map((s) => (
+                  <button
+                    key={s}
+                    onMouseDown={(e) => { e.preventDefault(); changeHypothesisStatus(s) }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-mono flex items-center gap-2 transition-colors hover:bg-gray-700 ${
+                      status === s ? 'text-gray-100' : 'text-gray-400'
+                    }`}
+                  >
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${HYPOTHESIS_STATUS_CLASS[s]}`}>
+                      {HYPOTHESIS_STATUS_LABEL[s]}
+                    </span>
+                    {status === s && <span className="ml-auto text-gray-500">✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       {entry.body && (
         <div className="text-gray-100 text-sm font-mono whitespace-pre-wrap break-words leading-relaxed">
@@ -131,11 +267,57 @@ function DetailsEntryRow({ entry, onEntryUpdated }: { entry: JournalEntry; onEnt
           ))}
         </div>
       )}
+      {/* Linked findings for hypothesis entries — click to expand full detail */}
+      {isHypothesis && linkedFindings.length > 0 && (
+        <div className="mt-2 space-y-1">
+          <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Findings</div>
+          {linkedFindings.map((f) => {
+            const isExpanded = expandedFindingIds.has(f.id)
+            return (
+              <div key={f.id}>
+                <button
+                  onClick={() => toggleFindingExpanded(f.id)}
+                  className="w-full text-left px-2 py-1.5 rounded text-xs font-mono bg-teal-500/10 border border-teal-500/25 text-teal-300 hover:bg-teal-500/20 transition-colors flex items-center justify-between gap-2"
+                  title={isExpanded ? 'Collapse finding' : 'Expand finding'}
+                >
+                  <span className="truncate">{f.body || '(no text)'}</span>
+                  <span className="flex-shrink-0 text-gray-600">{isExpanded ? '▲' : '▼'}</span>
+                </button>
+                {isExpanded && <FindingDetailCard finding={f} />}
+              </div>
+            )
+          })}
+        </div>
+      )}
+      {/* Linked hypotheses for finding entries — click to scroll to hypothesis */}
+      {isFinding && linkedHypotheses.length > 0 && (
+        <div className="mt-2 space-y-1">
+          <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Hypotheses</div>
+          <div className="flex flex-wrap gap-1.5">
+            {linkedHypotheses.map((h) => {
+              const hStatus = h.hypothesis_status ?? 'open'
+              return (
+                <button
+                  key={h.id}
+                  onClick={() => scrollToEntry(h.id)}
+                  className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 transition-colors flex items-center gap-1.5"
+                  title={h.body}
+                >
+                  <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_CLASS[hStatus].split(' ').find((c) => c.startsWith('text-'))}`}>
+                    {HYPOTHESIS_STATUS_LABEL[hStatus]}
+                  </span>
+                  <span className="truncate max-w-[180px]">{h.body || '(no text)'}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-export function DetailsEntryList({ entries, onEntryUpdated }: Props): JSX.Element {
+export function DetailsEntryList({ entries, allEntries, onEntryUpdated }: Props): JSX.Element {
   if (entries.length === 0) {
     return (
       <div className="flex items-center justify-center py-12 text-gray-500 text-sm font-mono">
@@ -147,7 +329,7 @@ export function DetailsEntryList({ entries, onEntryUpdated }: Props): JSX.Elemen
   return (
     <div className="space-y-2">
       {entries.map((entry) => (
-        <DetailsEntryRow key={entry.id} entry={entry} onEntryUpdated={onEntryUpdated} />
+        <DetailsEntryRow key={entry.id} entry={entry} allEntries={allEntries ?? entries} onEntryUpdated={onEntryUpdated} />
       ))}
     </div>
   )

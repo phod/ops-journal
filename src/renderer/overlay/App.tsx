@@ -3,6 +3,7 @@ import { useOverlayState } from './hooks/useOverlayState'
 import { TabBar } from './components/TabBar'
 import { EntryList } from './components/EntryList'
 import { EntryInput } from './components/EntryInput'
+import { HypothesisPanel } from './components/HypothesisPanel'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [pendingImages, setPendingImages] = useState<string[]>([])
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
+  const [showHypothesisPanel, setShowHypothesisPanel] = useState(false)
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -94,24 +96,32 @@ export default function App() {
     }
 
     return (
-      <>
-        <EntryList
-          entries={entries}
-          editingEntryId={editingEntryId}
-          onEditingEntryIdChange={setEditingEntryId}
-          onEntryUpdated={updateEntry}
-          onEntryDeleted={deleteEntry}
-        />
-        <EntryInput
-          activeInvestigation={currentInvestigation}
-          entries={entries}
-          editingEntryId={editingEntryId}
-          onSetEditingEntryId={setEditingEntryId}
-          onEntryCreated={addOptimisticEntry}
-          pendingImages={pendingImages}
-          onPendingImagesChange={setPendingImages}
-        />
-      </>
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <EntryList
+            entries={entries}
+            editingEntryId={editingEntryId}
+            onEditingEntryIdChange={setEditingEntryId}
+            onEntryUpdated={updateEntry}
+            onEntryDeleted={deleteEntry}
+          />
+          <EntryInput
+            activeInvestigation={currentInvestigation}
+            entries={entries}
+            editingEntryId={editingEntryId}
+            onSetEditingEntryId={setEditingEntryId}
+            onEntryCreated={addOptimisticEntry}
+            pendingImages={pendingImages}
+            onPendingImagesChange={setPendingImages}
+          />
+        </div>
+        {showHypothesisPanel && (
+          <HypothesisPanel
+            entries={entries}
+            onClose={() => setShowHypothesisPanel(false)}
+          />
+        )}
+      </div>
     )
   }
 
@@ -127,13 +137,26 @@ export default function App() {
         <span className="text-xs text-gray-500 font-mono flex-shrink-0">ops-journal</span>
         <div className="flex items-center gap-1">
           {currentInvestigation && (
-            <button
-              onClick={() => window.electronAPI.openDetails(currentInvestigation.id)}
-              className="no-drag text-gray-600 hover:text-gray-400 text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
-              title="Open Investigation Details"
-            >
-              ↗
-            </button>
+            <>
+              <button
+                onClick={() => setShowHypothesisPanel((v) => !v)}
+                className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0 ${
+                  showHypothesisPanel
+                    ? 'text-violet-300 bg-violet-500/20'
+                    : 'text-gray-600 hover:text-gray-400'
+                }`}
+                title="Toggle Hypotheses Panel"
+              >
+                ⬡
+              </button>
+              <button
+                onClick={() => window.electronAPI.openDetails(currentInvestigation.id)}
+                className="no-drag text-gray-600 hover:text-gray-400 text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
+                title="Open Investigation Details"
+              >
+                ↗
+              </button>
+            </>
           )}
           <button
             onClick={() => window.electronAPI.openManager()}

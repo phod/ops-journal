@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ElectronAPI, Investigation } from '../shared/ipc-types'
+import type { ElectronAPI, HypothesisStatus, Investigation } from '../shared/ipc-types'
 
 /**
  * Creates a listener for an IPC channel that forwards arguments to a callback,
@@ -30,6 +30,18 @@ const electronAPI: ElectronAPI = {
   updateEntry: (id, body, keepImagePaths, type) =>
     ipcRenderer.invoke('entry:update', { id, body, keepImagePaths, type }),
   deleteEntry: (id) => ipcRenderer.invoke('entry:delete', { id }),
+
+  // Hypotheses
+  updateHypothesisStatus: (entryId: string, status: HypothesisStatus) =>
+    ipcRenderer.invoke('hypothesis:updateStatus', { entryId, status }),
+  linkHypothesisFinding: (hypothesisId: string, findingId: string) =>
+    ipcRenderer.invoke('hypothesis:linkFinding', { hypothesisId, findingId }),
+  unlinkHypothesisFinding: (hypothesisId: string, findingId: string) =>
+    ipcRenderer.invoke('hypothesis:unlinkFinding', { hypothesisId, findingId }),
+  getHypothesisFindings: (hypothesisId: string) =>
+    ipcRenderer.invoke('hypothesis:getFindings', { hypothesisId }),
+  getFindingHypotheses: (findingId: string) =>
+    ipcRenderer.invoke('finding:getHypotheses', { findingId }),
 
   // Images
   pickImage: () => ipcRenderer.invoke('image:pick') as Promise<string[]>,

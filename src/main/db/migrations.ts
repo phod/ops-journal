@@ -39,5 +39,16 @@ export const migrations: string[] = [
   `DROP INDEX IF EXISTS idx_one_active;`,
 
   // Migration 4 — add type column to journal_entries
-  `ALTER TABLE journal_entries ADD COLUMN type TEXT NOT NULL DEFAULT 'note';`
+  `ALTER TABLE journal_entries ADD COLUMN type TEXT NOT NULL DEFAULT 'note';`,
+
+  // Migration 5 — add hypothesis_status column and hypothesis_findings join table
+  `
+  ALTER TABLE journal_entries ADD COLUMN hypothesis_status TEXT;
+
+  CREATE TABLE hypothesis_findings (
+    hypothesis_entry_id TEXT NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    finding_entry_id TEXT NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    PRIMARY KEY (hypothesis_entry_id, finding_entry_id)
+  );
+  `
 ]

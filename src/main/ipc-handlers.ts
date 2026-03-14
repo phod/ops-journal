@@ -7,7 +7,7 @@ import {
   setActiveInvestigation,
   deactivateInvestigation
 } from './db/investigations'
-import { listEntries, createEntry, updateEntry, deleteEntry, getEntry } from './db/entries'
+import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses } from './db/entries'
 import { getOverlayWindow, showManager, hideOverlay, navigateManagerToDetails } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
 import { getHotkey, getScreenshotHotkey, getUploadHotkey } from './settings'
@@ -82,6 +82,28 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('entry:delete', (_event, { id }: { id: string }) => {
     const entry = deleteEntry(id)
     for (const p of entry?.image_paths ?? []) deleteImage(p)
+  })
+
+  // --- Hypotheses ---
+
+  ipcMain.handle('hypothesis:updateStatus', (_event, { entryId, status }: { entryId: string; status: import('@shared/ipc-types').HypothesisStatus }) => {
+    return updateHypothesisStatus(entryId, status)
+  })
+
+  ipcMain.handle('hypothesis:linkFinding', (_event, { hypothesisId, findingId }: { hypothesisId: string; findingId: string }) => {
+    return linkHypothesisFinding(hypothesisId, findingId)
+  })
+
+  ipcMain.handle('hypothesis:unlinkFinding', (_event, { hypothesisId, findingId }: { hypothesisId: string; findingId: string }) => {
+    return unlinkHypothesisFinding(hypothesisId, findingId)
+  })
+
+  ipcMain.handle('hypothesis:getFindings', (_event, { hypothesisId }: { hypothesisId: string }) => {
+    return getHypothesisFindings(hypothesisId)
+  })
+
+  ipcMain.handle('finding:getHypotheses', (_event, { findingId }: { findingId: string }) => {
+    return getFindingHypotheses(findingId)
   })
 
   // --- Images ---

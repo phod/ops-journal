@@ -111,8 +111,7 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
     }
 
     if (e.key === 'ArrowUp' && completions.length === 0) {
-      const isOnFirstLine = !e.currentTarget.value.substring(0, e.currentTarget.selectionStart).includes('\n')
-      if (isOnFirstLine && entries.length > 0) {
+      if (!e.currentTarget.value && entries.length > 0) {
         e.preventDefault()
         onSetEditingEntryId(entries[entries.length - 1].id)
       }

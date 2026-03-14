@@ -11,6 +11,32 @@ interface Props {
   onEntryDeleted: (id: string) => void
 }
 
+function getCaretOffsetTop(textarea: HTMLTextAreaElement, position: number): number {
+  const div = document.createElement('div')
+  const s = window.getComputedStyle(textarea)
+  div.style.position = 'absolute'
+  div.style.top = '-9999px'
+  div.style.left = '-9999px'
+  div.style.visibility = 'hidden'
+  div.style.overflow = 'hidden'
+  div.style.whiteSpace = 'pre-wrap'
+  div.style.wordWrap = 'break-word'
+  div.style.width = s.width
+  div.style.paddingLeft = s.paddingLeft
+  div.style.paddingRight = s.paddingRight
+  div.style.font = s.font
+  div.style.letterSpacing = s.letterSpacing
+  div.style.lineHeight = s.lineHeight
+  div.textContent = textarea.value.substring(0, position)
+  const span = document.createElement('span')
+  span.textContent = '\u200b'
+  div.appendChild(span)
+  document.body.appendChild(div)
+  const top = span.offsetTop
+  document.body.removeChild(div)
+  return top
+}
+
 function formatTimestamp(isoString: string): string {
   try {
     const normalized = isoString.endsWith('Z') ? isoString : isoString + 'Z'
@@ -169,18 +195,26 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
       e.stopPropagation()
       cancelEdit()
     } else if (e.key === 'ArrowUp' && onNavigateUp) {
-      const isOnFirstLine = !e.currentTarget.value.substring(0, e.currentTarget.selectionStart).includes('\n')
-      if (isOnFirstLine) {
-        e.preventDefault()
-        cancelEdit()
-        onNavigateUp()
+      const isUnmodified = draft.trim() === entry.body.trim() && pendingRemovals.size === 0
+      if (isUnmodified) {
+        const caretTop = getCaretOffsetTop(e.currentTarget, e.currentTarget.selectionStart)
+        const firstTop = getCaretOffsetTop(e.currentTarget, 0)
+        if (caretTop <= firstTop) {
+          e.preventDefault()
+          cancelEdit()
+          onNavigateUp()
+        }
       }
     } else if (e.key === 'ArrowDown') {
-      const isOnLastLine = !e.currentTarget.value.substring(e.currentTarget.selectionStart).includes('\n')
-      if (isOnLastLine) {
-        e.preventDefault()
-        cancelEdit()
-        onNavigateDown()
+      const isUnmodified = draft.trim() === entry.body.trim() && pendingRemovals.size === 0
+      if (isUnmodified) {
+        const caretTop = getCaretOffsetTop(e.currentTarget, e.currentTarget.selectionStart)
+        const endTop = getCaretOffsetTop(e.currentTarget, e.currentTarget.value.length)
+        if (caretTop >= endTop) {
+          e.preventDefault()
+          cancelEdit()
+          onNavigateDown()
+        }
       }
     }
   }

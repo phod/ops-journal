@@ -18,6 +18,7 @@ function ImageNode({ data, selected }: NodeProps) {
   return (
     <div className={`rounded border border-gray-600 overflow-hidden bg-gray-800 ${selected ? 'ring-2 ring-blue-500' : ''}`}>
       <Handle type="target" position={Position.Top} style={{ background: '#4b5563' }} />
+      <Handle type="target" position={Position.Left} id="left-target" style={{ background: '#4b5563' }} />
       {src ? (
         <img
           src={src}
@@ -31,6 +32,7 @@ function ImageNode({ data, selected }: NodeProps) {
         </div>
       )}
       <Handle type="source" position={Position.Bottom} style={{ background: '#4b5563' }} />
+      <Handle type="source" position={Position.Right} id="right-source" style={{ background: '#4b5563' }} />
     </div>
   )
 }

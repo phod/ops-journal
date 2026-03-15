@@ -13,6 +13,16 @@ to understand the codebase itself.
 
 Feel free to fork.
 
+## Attribution
+
+I would like to acknowledge my usage of [React Flow](https://reactflow.dev/) for the Rumour Board.
+
+I have removed the "React Flow" attribution from the render in the Rumour Board for cleanliness, which
+is [permitted](https://reactflow.dev/learn/troubleshooting/remove-attribution) as this is a non-commercial,
+personal project. But am adding this section as a form of compensation for that.
+
+i.e. ["Props to React Flow!"](https://www.youtube.com/watch?v=hwG89HH0VcM&t=211s)
+
 ## Features
 
 - **Global hotkey** (`Cmd+Shift+J`) toggles a frameless always-on-top overlay

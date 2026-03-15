@@ -4,6 +4,7 @@ import { DetailsEntryList } from '../../details/components/DetailsEntryList'
 import { SummaryView } from '../../details/components/SummaryView'
 import type { SummaryViewHandle } from '../../details/components/SummaryView'
 import { ExportView } from '../../details/components/ExportView'
+import { RumourBoardView } from '../../details/components/board/RumourBoardView'
 import { formatDate } from '@shared/format-date'
 import { countEntries, filterEntries, type Filter } from '@shared/entry-types'
 
@@ -17,7 +18,7 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
-  const [view, setView] = useState<'entries' | 'summary' | 'export' | null>(null)
+  const [view, setView] = useState<'entries' | 'summary' | 'export' | 'board' | null>(null)
   const [preExportView, setPreExportView] = useState<'entries' | 'summary' | null>(null)
   const summaryRef = useRef<SummaryViewHandle>(null)
 
@@ -27,7 +28,7 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
     setView('export')
   }
 
-  function navigateTo(target: 'summary' | 'entries', newFilter?: Filter): void {
+  function navigateTo(target: 'summary' | 'entries' | 'board', newFilter?: Filter): void {
     if (view === target && target === 'entries') {
       if (newFilter) setFilter(newFilter)
       return
@@ -172,8 +173,22 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
               )}
             </button>
           ))}
+          <button
+            onClick={() => navigateTo('board')}
+            className={`text-xs px-3 py-1.5 rounded-t font-medium transition-colors ${
+              view === 'board'
+                ? 'bg-gray-700 text-gray-100 border border-b-0 border-gray-600'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Rumour Board
+          </button>
         </div>
-        {view === 'summary' ? (
+        {view === 'board' ? (
+          <div className="flex-1 min-h-0 flex -mx-6 -mb-6" style={{ height: '60vh' }}>
+            <RumourBoardView investigationId={investigationId} entries={entries} />
+          </div>
+        ) : view === 'summary' ? (
           <div className="flex-1 min-h-0 flex flex-col">
             <SummaryView ref={summaryRef} investigationId={investigationId} />
           </div>

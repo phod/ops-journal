@@ -53,5 +53,42 @@ export const migrations: string[] = [
   `,
 
   // Migration 6 — add summary_json to investigations
-  `ALTER TABLE investigations ADD COLUMN summary_json TEXT;`
+  `ALTER TABLE investigations ADD COLUMN summary_json TEXT;`,
+
+  // Migration 7 — rumour boards
+  `
+  CREATE TABLE IF NOT EXISTS rumour_boards (
+    id TEXT PRIMARY KEY,
+    investigation_id TEXT NOT NULL REFERENCES investigations(id) ON DELETE CASCADE,
+    name TEXT NOT NULL DEFAULT 'Untitled Board',
+    viewport_json TEXT NOT NULL DEFAULT '{"x":0,"y":0,"zoom":1}',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS board_nodes (
+    id TEXT PRIMARY KEY,
+    board_id TEXT NOT NULL REFERENCES rumour_boards(id) ON DELETE CASCADE,
+    node_type TEXT NOT NULL,
+    position_x REAL NOT NULL,
+    position_y REAL NOT NULL,
+    width REAL,
+    height REAL,
+    data_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS board_edges (
+    id TEXT PRIMARY KEY,
+    board_id TEXT NOT NULL REFERENCES rumour_boards(id) ON DELETE CASCADE,
+    source_node_id TEXT NOT NULL,
+    target_node_id TEXT NOT NULL,
+    label TEXT,
+    style_json TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_board_nodes_board_id ON board_nodes(board_id);
+  CREATE INDEX IF NOT EXISTS idx_board_edges_board_id ON board_edges(board_id);
+  CREATE INDEX IF NOT EXISTS idx_rumour_boards_investigation_id ON rumour_boards(investigation_id);
+  `
 ]

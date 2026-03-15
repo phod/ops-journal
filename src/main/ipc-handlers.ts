@@ -10,6 +10,7 @@ import {
   saveSummary
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses } from './db/entries'
+import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, hideManager, navigateManagerToDetails } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
 import { getHotkey, getScreenshotHotkey, getUploadHotkey } from './settings'
@@ -197,6 +198,22 @@ export function registerIpcHandlers(): void {
       }
     }
   )
+
+  // --- Boards ---
+
+  ipcMain.handle('board:list', (_event, { investigationId }: { investigationId: string }) => listBoards(investigationId))
+
+  ipcMain.handle('board:create', (_event, { investigationId, name }: { investigationId: string; name?: string }) => createBoard(investigationId, name))
+
+  ipcMain.handle('board:delete', (_event, { boardId }: { boardId: string }) => deleteBoard(boardId))
+
+  ipcMain.handle('board:rename', (_event, { boardId, name }: { boardId: string; name: string }) => renameBoard(boardId, name))
+
+  ipcMain.handle('board:getState', (_event, { boardId }: { boardId: string }) => getBoardState(boardId))
+
+  ipcMain.handle('board:saveState', (_event, { boardId, state }: { boardId: string; state: Parameters<typeof saveBoardState>[1] }) => saveBoardState(boardId, state))
+
+  ipcMain.handle('board:saveImage', (_event, { dataUrl }: { dataUrl: string }) => saveImage(dataUrlToBuffer(dataUrl)))
 
   // --- Settings ---
 

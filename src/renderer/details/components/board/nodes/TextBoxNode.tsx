@@ -22,6 +22,7 @@ function TextBoxNode({ data, selected }: NodeProps) {
       className={`rounded border bg-gray-800/90 border-gray-600 min-w-[160px] ${selected ? 'ring-2 ring-blue-500' : ''}`}
     >
       <Handle type="target" position={Position.Top} style={{ background: '#4b5563' }} />
+      <Handle type="target" position={Position.Left} id="left-target" style={{ background: '#4b5563' }} />
       <textarea
         value={text}
         onChange={handleChange}
@@ -31,6 +32,7 @@ function TextBoxNode({ data, selected }: NodeProps) {
         style={{ minWidth: 160 }}
       />
       <Handle type="source" position={Position.Bottom} style={{ background: '#4b5563' }} />
+      <Handle type="source" position={Position.Right} id="right-source" style={{ background: '#4b5563' }} />
     </div>
   )
 }

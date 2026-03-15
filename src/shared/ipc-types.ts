@@ -1,5 +1,5 @@
 export type EntryType = 'note' | 'action' | 'finding' | 'hypothesis'
-export type ExportFormat = 'markdown' | 'pdf' | 'clipboard'
+export type ExportFormat = 'markdown' | 'pdf' | 'clipboard' | 'rich-clipboard'
 export type HypothesisStatus = 'open' | 'true' | 'false' | 'abandoned'
 
 export interface Investigation {
@@ -57,6 +57,9 @@ export interface ElectronAPI {
     investigationName: string
     format: ExportFormat
     entryIds: string[]
+    summaryJson?: string
+    imageHandling?: 'omit' | 'reference'
+    openAfterExport?: boolean
   }) => Promise<{ success: boolean; error?: string }>
 
   // Images

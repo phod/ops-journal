@@ -11,115 +11,395 @@ function entryTypeLabel(type: string): string {
   return type.charAt(0).toUpperCase() + type.slice(1)
 }
 
-export function exportAsMarkdown(investigationName: string, createdAt: string, entries: JournalEntry[]): string {
-  const lines: string[] = []
-  lines.push(`# ${investigationName}`)
-  lines.push(`Created: ${formatTimestamp(createdAt)}`)
-  lines.push('')
-  lines.push('---')
-  lines.push('')
-  lines.push('## Entries')
-  lines.push('')
-
-  for (const entry of entries) {
-    lines.push(`### [${formatTimestamp(entry.created_at)}] ${entryTypeLabel(entry.type)}`)
-    lines.push('')
-    lines.push(entry.body)
-    lines.push('')
-
-    if (entry.image_paths.length > 0) {
-      for (const imagePath of entry.image_paths) {
-        try {
-          const dataUrl = readImageAsDataUrl(imagePath)
-          lines.push(`![image](${dataUrl})`)
-          lines.push('')
-        } catch {
-          lines.push(`[image unavailable: ${imagePath}]`)
-          lines.push('')
-        }
-      }
-    }
-
-    lines.push('---')
-    lines.push('')
-  }
-
-  return lines.join('\n')
-}
-
-export async function exportAsPdf(
-  investigationName: string,
-  createdAt: string,
-  entries: JournalEntry[],
-  savePath: string
-): Promise<void> {
-  const entryRows = entries
-    .map((entry) => {
-      const images = entry.image_paths
-        .map((p) => {
-          try {
-            const dataUrl = readImageAsDataUrl(p)
-            return `<img src="${dataUrl}" style="max-width:100%;margin-top:8px;border-radius:4px;" />`
-          } catch {
-            return `<em>[image unavailable]</em>`
-          }
-        })
-        .join('')
-
-      const typeColors: Record<string, string> = {
-        finding: '#4ade80',
-        action: '#60a5fa',
-        hypothesis: '#f59e0b',
-        note: '#9ca3af'
-      }
-      const color = typeColors[entry.type] ?? '#9ca3af'
-
-      return `
-        <div style="margin-bottom:24px;padding:16px;background:#1f2937;border-radius:8px;border:1px solid #374151;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-            <span style="font-size:11px;font-weight:600;color:${color};text-transform:uppercase;letter-spacing:0.05em;">${entryTypeLabel(entry.type)}</span>
-            <span style="font-size:11px;color:#6b7280;">${formatTimestamp(entry.created_at)}</span>
-          </div>
-          <div style="font-size:13px;color:#e5e7eb;white-space:pre-wrap;line-height:1.6;">${escapeHtml(entry.body)}</div>
-          ${images}
-        </div>
-      `
-    })
-    .join('')
-
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8" />
-      <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #111827; color: #e5e7eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 40px; }
-        h1 { font-size: 22px; font-weight: 700; color: #f9fafb; margin-bottom: 6px; }
-        .meta { font-size: 12px; color: #6b7280; margin-bottom: 32px; }
-        hr { border: none; border-top: 1px solid #374151; margin-bottom: 28px; }
-      </style>
-    </head>
-    <body>
-      <h1>${escapeHtml(investigationName)}</h1>
-      <div class="meta">Created: ${formatTimestamp(createdAt)}</div>
-      <hr />
-      ${entryRows}
-    </body>
-    </html>
-  `
-
-  const win = new BrowserWindow({ show: false, webPreferences: { offscreen: true } })
-  await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
-  const pdfBuffer = await win.webContents.printToPDF({})
-  win.destroy()
-  writeFileSync(savePath, pdfBuffer)
-}
-
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+}
+
+// ---------------------------------------------------------------------------
+// TipTap JSON → plain text/markdown
+// ---------------------------------------------------------------------------
+
+interface TipTapNode {
+  type: string
+  attrs?: Record<string, unknown>
+  content?: TipTapNode[]
+  marks?: { type: string; attrs?: Record<string, unknown> }[]
+  text?: string
+}
+
+type ImageHandling = 'omit' | 'reference'
+
+function imageToken(imagePath: string, imageHandling: ImageHandling, prefix = ''): string {
+  if (imageHandling === 'omit') return ''
+  const basename = imagePath.split(/[\\/]/).pop() ?? imagePath
+  return `${prefix}[image: ${basename}]\n`
+}
+
+function tiptapNodeToMarkdown(node: TipTapNode, indent = 0, imageHandling: ImageHandling = 'omit'): string {
+  const recurse = (n: TipTapNode) => tiptapNodeToMarkdown(n, indent, imageHandling)
+
+  switch (node.type) {
+    case 'doc':
+      return (node.content ?? []).map(recurse).join('\n')
+
+    case 'paragraph': {
+      const inner = tiptapInlineToMarkdown(node.content ?? [])
+      return inner ? inner + '\n' : '\n'
+    }
+
+    case 'heading': {
+      const level = (node.attrs?.level as number) ?? 1
+      const prefix = '#'.repeat(level)
+      const inner = tiptapInlineToMarkdown(node.content ?? [])
+      return `${prefix} ${inner}\n`
+    }
+
+    case 'bulletList':
+      return (node.content ?? []).map((item) => tiptapListItemToMarkdown(item, indent, '-', imageHandling)).join('')
+
+    case 'orderedList':
+      return (node.content ?? []).map((item, i) => tiptapListItemToMarkdown(item, indent, `${i + 1}.`, imageHandling)).join('')
+
+    case 'blockquote': {
+      const inner = (node.content ?? []).map(recurse).join('')
+      return inner.split('\n').map((l) => (l ? `> ${l}` : '>')).join('\n') + '\n'
+    }
+
+    case 'codeBlock': {
+      const lang = (node.attrs?.language as string) ?? ''
+      const code = (node.content ?? []).map((n) => n.text ?? '').join('')
+      return `\`\`\`${lang}\n${code}\n\`\`\`\n`
+    }
+
+    case 'horizontalRule':
+      return '---\n'
+
+    case 'hardBreak':
+      return '\n'
+
+    case 'entryRef': {
+      const a = node.attrs ?? {}
+      const type = (a.entryType as string) ?? 'note'
+      const body = (a.entryBody as string) ?? ''
+      const ts = a.entryTimestamp as string | undefined
+      const tsStr = ts ? ` · ${formatTimestamp(ts)}` : ''
+      const lines = [`> **[${entryTypeLabel(type)}${tsStr}]**`]
+      if (body) lines.push(`> ${body.replace(/\n/g, '\n> ')}`)
+      const imagePaths = (a.entryImagePaths as string[]) ?? []
+      for (const p of imagePaths) {
+        const token = imageToken(p, imageHandling, '> ')
+        if (token) lines.push(token.trimEnd())
+      }
+      return lines.join('\n') + '\n'
+    }
+
+    case 'summaryImage': {
+      const src = node.attrs?.src as string | undefined
+      if (!src) return ''
+      return imageToken(src, imageHandling)
+    }
+
+    default:
+      return (node.content ?? []).map(recurse).join('')
+  }
+}
+
+function tiptapListItemToMarkdown(item: TipTapNode, indent: number, bullet: string, imageHandling: ImageHandling): string {
+  const pad = '  '.repeat(indent)
+  const children = item.content ?? []
+  const firstPara = children[0]
+  const rest = children.slice(1)
+  const firstText = firstPara ? tiptapInlineToMarkdown(firstPara.content ?? []) : ''
+  const restText = rest.map((n) => tiptapNodeToMarkdown(n, indent + 1, imageHandling)).join('')
+  return `${pad}${bullet} ${firstText}\n${restText}`
+}
+
+function tiptapInlineToMarkdown(nodes: TipTapNode[]): string {
+  return nodes.map((n) => {
+    if (n.type === 'text') {
+      let text = n.text ?? ''
+      const marks = n.marks ?? []
+      for (const mark of marks) {
+        if (mark.type === 'bold') text = `**${text}**`
+        else if (mark.type === 'italic') text = `_${text}_`
+        else if (mark.type === 'code') text = `\`${text}\``
+        else if (mark.type === 'strike') text = `~~${text}~~`
+        else if (mark.type === 'link') text = `[${text}](${(mark.attrs?.href as string) ?? ''})`
+      }
+      return text
+    }
+    if (n.type === 'hardBreak') return '\n'
+    return ''
+  }).join('')
+}
+
+// ---------------------------------------------------------------------------
+// TipTap JSON → HTML (for PDF)
+// ---------------------------------------------------------------------------
+
+function tiptapNodeToHtml(node: TipTapNode): string {
+  switch (node.type) {
+    case 'doc':
+      return (node.content ?? []).map(tiptapNodeToHtml).join('')
+
+    case 'paragraph': {
+      const inner = tiptapInlineToHtml(node.content ?? [])
+      return `<p style="margin:0 0 10px;font-size:18px;line-height:1.7;color:#1f2937;">${inner || '&nbsp;'}</p>`
+    }
+
+    case 'heading': {
+      const level = (node.attrs?.level as number) ?? 1
+      const sizes = ['26px', '22px', '20px', '18px', '16px', '14px']
+      const size = sizes[level - 1] ?? '13px'
+      const inner = tiptapInlineToHtml(node.content ?? [])
+      return `<h${level} style="font-size:${size};font-weight:700;color:#111827;margin:18px 0 8px;">${inner}</h${level}>`
+    }
+
+    case 'bulletList':
+      return `<ul style="margin:0 0 10px;padding-left:22px;color:#1f2937;font-size:18px;">${(node.content ?? []).map(tiptapNodeToHtml).join('')}</ul>`
+
+    case 'orderedList':
+      return `<ol style="margin:0 0 10px;padding-left:22px;color:#1f2937;font-size:18px;">${(node.content ?? []).map(tiptapNodeToHtml).join('')}</ol>`
+
+    case 'listItem':
+      return `<li style="margin-bottom:5px;color:#1f2937;line-height:1.7;">${(node.content ?? []).map(tiptapNodeToHtml).join('')}</li>`
+
+    case 'blockquote':
+      return `<blockquote style="border-left:3px solid #d1d5db;margin:10px 0;padding:4px 14px;color:#6b7280;font-size:18px;">${(node.content ?? []).map(tiptapNodeToHtml).join('')}</blockquote>`
+
+    case 'codeBlock': {
+      const code = (node.content ?? []).map((n) => n.text ?? '').join('')
+      return `<pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;color:#1e293b;margin:10px 0;"><code>${escapeHtml(code)}</code></pre>`
+    }
+
+    case 'horizontalRule':
+      return `<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />`
+
+    case 'hardBreak':
+      return '<br />'
+
+    case 'entryRef': {
+      const a = node.attrs ?? {}
+      const type = (a.entryType as string) ?? 'note'
+      const body = (a.entryBody as string) ?? ''
+      const ts = a.entryTimestamp as string | undefined
+      const c = TYPE_COLORS_LIGHT[type] ?? TYPE_COLORS_LIGHT.note
+      const imagePaths = (a.entryImagePaths as string[]) ?? []
+      const imagesHtml = imagePaths.map((p) => {
+        try {
+          const dataUrl = readImageAsDataUrl(p)
+          return `<div style="page-break-inside:avoid;margin-top:8px;"><img src="${dataUrl}" style="max-width:100%;max-height:85vh;width:auto;height:auto;display:block;border-radius:4px;border:1px solid ${c.border};" /></div>`
+        } catch {
+          return `<em style="color:#9ca3af;">[image unavailable]</em>`
+        }
+      }).join('')
+      return `
+        <div style="margin:10px 0;padding:10px 12px;background:${c.bg};border:1px solid ${c.border};border-left:3px solid ${c.border};border-radius:6px;">
+          <div style="page-break-inside:avoid;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+              <span style="font-size:12px;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(entryTypeLabel(type))}</span>
+              ${ts ? `<span style="font-size:14px;color:#6b7280;">${formatTimestamp(ts)}</span>` : ''}
+            </div>
+            ${body ? `<div style="font-size:18px;color:#1f2937;white-space:pre-wrap;line-height:1.7;">${escapeHtml(body)}</div>` : ''}
+          </div>
+          ${imagesHtml}
+        </div>`
+    }
+
+    case 'summaryImage': {
+      const src = node.attrs?.src as string | undefined
+      if (!src) return ''
+      try {
+        const dataUrl = readImageAsDataUrl(src)
+        return `<div style="page-break-inside:avoid;margin:10px 0;"><img src="${dataUrl}" style="max-width:100%;max-height:85vh;width:auto;height:auto;display:block;border-radius:6px;border:1px solid #e5e7eb;" /></div>`
+      } catch {
+        return `<em style="color:#9ca3af;">[image unavailable]</em>`
+      }
+    }
+
+    default:
+      return (node.content ?? []).map(tiptapNodeToHtml).join('')
+  }
+}
+
+function tiptapInlineToHtml(nodes: TipTapNode[]): string {
+  return nodes.map((n) => {
+    if (n.type === 'text') {
+      let text = escapeHtml(n.text ?? '')
+      const marks = n.marks ?? []
+      for (const mark of marks) {
+        if (mark.type === 'bold') text = `<strong>${text}</strong>`
+        else if (mark.type === 'italic') text = `<em>${text}</em>`
+        else if (mark.type === 'code') text = `<code style="background:#f1f5f9;border:1px solid #e2e8f0;padding:1px 4px;border-radius:3px;font-size:13px;color:#1e293b;">${text}</code>`
+        else if (mark.type === 'strike') text = `<s>${text}</s>`
+        else if (mark.type === 'link') text = `<a href="${escapeHtml((mark.attrs?.href as string) ?? '')}" style="color:#60a5fa;">${text}</a>`
+      }
+      return text
+    }
+    if (n.type === 'hardBreak') return '<br />'
+    return ''
+  }).join('')
+}
+
+export function summaryJsonToMarkdown(summaryJson: string, imageHandling: ImageHandling = 'omit'): string {
+  try {
+    const doc = JSON.parse(summaryJson) as TipTapNode
+    return tiptapNodeToMarkdown(doc, 0, imageHandling).trim()
+  } catch {
+    return ''
+  }
+}
+
+export function summaryJsonToHtml(summaryJson: string): string {
+  try {
+    const doc = JSON.parse(summaryJson) as TipTapNode
+    return tiptapNodeToHtml(doc)
+  } catch {
+    return ''
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Export functions
+// ---------------------------------------------------------------------------
+
+export function exportAsMarkdown(
+  investigationName: string,
+  createdAt: string,
+  entries: JournalEntry[],
+  summaryJson?: string,
+  imageHandling: ImageHandling = 'omit'
+): string {
+  const lines: string[] = []
+  lines.push(`# ${investigationName}`)
+  lines.push(`Created: ${formatTimestamp(createdAt)}`)
+  lines.push('')
+  lines.push('---')
+  lines.push('')
+
+  if (summaryJson) {
+    lines.push('## Summary')
+    lines.push('')
+    lines.push(summaryJsonToMarkdown(summaryJson, imageHandling))
+    lines.push('')
+    lines.push('---')
+    lines.push('')
+  }
+
+  if (entries.length > 0) {
+    lines.push('## Entries')
+    lines.push('')
+
+    for (const entry of entries) {
+      lines.push(`### [${formatTimestamp(entry.created_at)}] ${entryTypeLabel(entry.type)}`)
+      lines.push('')
+      lines.push(entry.body)
+      lines.push('')
+
+      for (const imagePath of entry.image_paths) {
+        const token = imageToken(imagePath, imageHandling)
+        if (token) lines.push(token)
+      }
+
+      lines.push('---')
+      lines.push('')
+    }
+  }
+
+  return lines.join('\n')
+}
+
+const TYPE_COLORS_LIGHT: Record<string, { bg: string; border: string; text: string }> = {
+  finding:    { bg: '#f0fdf4', border: '#86efac', text: '#166534' },
+  action:     { bg: '#eff6ff', border: '#93c5fd', text: '#1d4ed8' },
+  hypothesis: { bg: '#fffbeb', border: '#fcd34d', text: '#92400e' },
+  note:       { bg: '#f9fafb', border: '#d1d5db', text: '#374151' },
+}
+
+export function buildExportHtml(
+  investigationName: string,
+  createdAt: string,
+  entries: JournalEntry[],
+  summaryJson?: string
+): string {
+  const summarySection = summaryJson
+    ? `
+      <div style="margin-bottom:36px;">
+        <h2 style="font-size:18px;font-weight:700;color:#111827;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.05em;">Summary</h2>
+        ${summaryJsonToHtml(summaryJson)}
+      </div>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin-bottom:32px;" />`
+    : ''
+
+  const entryRows = entries.length > 0
+    ? `
+      <h2 style="font-size:18px;font-weight:700;color:#111827;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.05em;">Entries</h2>
+      ${entries.map((entry) => {
+        const c = TYPE_COLORS_LIGHT[entry.type] ?? TYPE_COLORS_LIGHT.note
+        const images = entry.image_paths
+          .map((p) => {
+            try {
+              const dataUrl = readImageAsDataUrl(p)
+              return `<div style="page-break-inside:avoid;margin-top:12px;"><img src="${dataUrl}" style="max-width:100%;max-height:85vh;width:auto;height:auto;display:block;border-radius:4px;border:1px solid #e5e7eb;" /></div>`
+            } catch {
+              return `<em style="color:#9ca3af;">[image unavailable]</em>`
+            }
+          })
+          .join('')
+        return `
+          <div style="margin-bottom:20px;padding:14px 16px;background:${c.bg};border-radius:6px;border:1px solid ${c.border};">
+            <div style="page-break-inside:avoid;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <span style="font-size:12px;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:0.06em;">${entryTypeLabel(entry.type)}</span>
+                <span style="font-size:14px;color:#6b7280;">${formatTimestamp(entry.created_at)}</span>
+              </div>
+              <div style="font-size:18px;color:#1f2937;white-space:pre-wrap;line-height:1.7;">${escapeHtml(entry.body)}</div>
+            </div>
+            ${images}
+          </div>`
+      }).join('')}`
+    : ''
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8" />
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #ffffff; color: #1f2937; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 48px 52px; }
+        h1 { font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 4px; }
+        .meta { font-size: 14px; color: #6b7280; margin-bottom: 36px; }
+        hr { border: none; border-top: 1px solid #e5e7eb; margin-bottom: 32px; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head>
+    <body>
+      <h1>${escapeHtml(investigationName)}</h1>
+      <div class="meta">Created: ${formatTimestamp(createdAt)}</div>
+      <hr />
+      ${summarySection}
+      ${entryRows}
+    </body>
+    </html>
+  `
+}
+
+export async function exportAsPdf(
+  investigationName: string,
+  createdAt: string,
+  entries: JournalEntry[],
+  savePath: string,
+  summaryJson?: string
+): Promise<void> {
+  const html = buildExportHtml(investigationName, createdAt, entries, summaryJson)
+  const win = new BrowserWindow({ show: false, webPreferences: { offscreen: true } })
+  await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+  const pdfBuffer = await win.webContents.printToPDF({})
+  win.destroy()
+  writeFileSync(savePath, pdfBuffer)
 }

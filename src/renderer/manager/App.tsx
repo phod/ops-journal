@@ -36,6 +36,10 @@ export default function App() {
     return window.electronAPI.onShowDetails(setDetailsId)
   }, [])
 
+  useEffect(() => {
+    return window.electronAPI.onShowHome(() => setDetailsId(null))
+  }, [])
+
   async function handleSetActive(id: string): Promise<void> {
     await window.electronAPI.setActiveInvestigation(id)
     await fetchInvestigations()

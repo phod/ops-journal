@@ -115,13 +115,22 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
             </span>
           </div>
         </div>
-        <button
-          onClick={openExport}
-          className="mt-0.5 text-xs px-2.5 py-1 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors justify-self-end"
-          title="Export investigation"
-        >
-          Export
-        </button>
+        <div className="flex gap-2 mt-0.5 justify-self-end">
+          <button
+            onClick={() => window.electronAPI.showOverlay()}
+            className="text-xs px-2.5 py-1 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
+            title="Open overlay"
+          >
+            Open overlay
+          </button>
+          <button
+            onClick={openExport}
+            className="text-xs px-2.5 py-1 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
+            title="Export investigation"
+          >
+            Export
+          </button>
+        </div>
       </div>}
 
       {/* Export view (full replacement) */}

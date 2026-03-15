@@ -122,6 +122,7 @@ export function getManagerWindow(): BrowserWindow | null {
 }
 
 export function navigateManagerToDetails(id: string): void {
+  hideOverlay()
   showManager()
   const win = managerWindow
   if (win && !win.isDestroyed()) {
@@ -163,8 +164,19 @@ export function showManager(): void {
     app.setActivationPolicy('regular')
     app.dock?.show()
   }
+  win.webContents.send('navigate:home')
   win.show()
   win.focus()
+}
+
+export function hideManager(): void {
+  const win = managerWindow
+  if (!win) return
+  win.hide()
+  if (process.platform === 'darwin') {
+    app.setActivationPolicy('accessory')
+    app.dock?.hide()
+  }
 }
 
 function positionOverlay(win: BrowserWindow): void {

@@ -70,8 +70,10 @@ const electronAPI: ElectronAPI = {
   // Window management
   openManager: () => ipcRenderer.invoke('window:openManager'),
   hideOverlay: () => ipcRenderer.invoke('overlay:hide'),
+  showOverlay: () => ipcRenderer.invoke('overlay:show'),
   openDetails: (id) => ipcRenderer.invoke('window:openDetails', { id }),
   onShowDetails: (callback) => onIpcEvent<[string]>('navigate:details', callback),
+  onShowHome: (callback) => onIpcEvent<[]>('navigate:home', callback),
 
   // Push events
   onInvestigationChanged: (callback) =>

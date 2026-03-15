@@ -78,8 +78,10 @@ export interface ElectronAPI {
   // Window management
   openManager: () => Promise<void>
   hideOverlay: () => Promise<void>
+  showOverlay: () => Promise<void>
   openDetails: (id: string) => Promise<void>
   onShowDetails: (callback: (id: string) => void) => () => void
+  onShowHome: (callback: () => void) => () => void
 
   // Push events
   onInvestigationChanged: (callback: (investigations: Investigation[]) => void) => () => void

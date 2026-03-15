@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -52,6 +52,7 @@ export function BoardCanvas({
   allEntries
 }: Props) {
   const reactFlowRef = useRef<HTMLDivElement>(null)
+  const [minimapOpen, setMinimapOpen] = useState(true)
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -93,6 +94,20 @@ export function BoardCanvas({
 
   return (
     <div ref={reactFlowRef} className="flex-1 h-full" onDragOver={onDragOver} onDrop={onDrop}>
+      <style>{`
+        .react-flow__controls-button {
+          background: #1f2937;
+          border-bottom: 1px solid #374151;
+          fill: #9ca3af;
+        }
+        .react-flow__controls-button:hover {
+          background: #374151;
+          fill: #d1d5db;
+        }
+        .react-flow__controls-button svg {
+          fill: inherit;
+        }
+      `}</style>
       <ReactFlow
         nodes={nodesWithHandlers}
         edges={edges}
@@ -107,15 +122,26 @@ export function BoardCanvas({
         className="bg-gray-900"
       >
         <Background color="#374151" gap={20} size={1} />
-        <Controls className="bg-gray-800 border-gray-600" />
-        <MiniMap
-          nodeColor={(n) => {
-            if (n.type === 'entry') return '#4b5563'
-            if (n.type === 'textbox') return '#374151'
-            return '#1f2937'
-          }}
-          className="bg-gray-800 border-gray-700"
-        />
+        <Controls style={{ border: '1px solid #374151', borderRadius: '6px', overflow: 'hidden' }} />
+        {minimapOpen && (
+          <MiniMap
+            nodeColor={(n) => {
+              if (n.type === 'entry') return '#4b5563'
+              if (n.type === 'textbox') return '#374151'
+              return '#1f2937'
+            }}
+            style={{ border: '1px solid #4b5563', borderRadius: '6px', backgroundColor: '#111827' }}
+          />
+        )}
+        <div className="react-flow__panel react-flow__panel-bottom-right" style={{ marginBottom: minimapOpen ? '148px' : '8px', marginRight: '8px' }}>
+          <button
+            onClick={() => setMinimapOpen((v) => !v)}
+            className="text-xs px-2 py-1 rounded bg-gray-800 border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors"
+            title={minimapOpen ? 'Hide minimap' : 'Show minimap'}
+          >
+            {minimapOpen ? 'Hide map' : 'Map'}
+          </button>
+        </div>
       </ReactFlow>
     </div>
   )

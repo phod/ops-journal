@@ -119,13 +119,15 @@ export default function App(): JSX.Element {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={openExport}
-            className="text-xs px-2.5 py-1 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
-            title="Export investigation"
-          >
-            Export
-          </button>
+          {view !== 'export' && (
+            <button
+              onClick={openExport}
+              className="text-xs px-2.5 py-1 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
+              title="Export investigation"
+            >
+              Export
+            </button>
+          )}
           <button
             onClick={() => window.close()}
             className="text-gray-500 hover:text-gray-300 text-sm px-2 py-1 rounded transition-colors"
@@ -166,7 +168,7 @@ export default function App(): JSX.Element {
         ))}
       </div>
 
-      <div className={`flex-1 min-h-0 px-6 py-4 ${view === 'summary' || view === 'export' ? 'flex flex-col' : 'overflow-y-auto'}`}>
+      <div className={`flex-1 min-h-0 px-6 py-4 ${view === 'summary' ? 'flex flex-col' : 'overflow-y-auto'}`}>
         {view === 'export' ? (
           <ExportView
             investigationId={investigationId}

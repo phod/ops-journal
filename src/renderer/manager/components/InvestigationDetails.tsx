@@ -91,27 +91,18 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
 
   return (
     <div className={`flex flex-col gap-6 ${view === 'summary' ? 'flex-1 min-h-0' : ''}`}>
-      {/* Back + header */}
-      <div className="flex items-start gap-4">
+      {/* Back + header — hidden when in export view */}
+      {view !== 'export' && <div className="grid grid-cols-[1fr_auto_1fr] items-start">
         <button
           onClick={() => { if (summaryRef.current?.confirmIfDirty() !== false) onBack() }}
-          className="mt-0.5 text-gray-400 hover:text-gray-200 text-sm transition-colors flex-shrink-0"
+          className="mt-0.5 text-gray-400 hover:text-gray-200 text-sm transition-colors justify-self-start"
           title="Back to Investigations"
         >
           ← Back
         </button>
-        <div className="ml-auto flex-shrink-0">
-          <button
-            onClick={openExport}
-            className="text-xs px-2.5 py-1 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
-            title="Export investigation"
-          >
-            Export
-          </button>
-        </div>
-        <div className="min-w-0">
-          <h2 className="text-xl font-semibold text-gray-100 truncate">{investigation.name}</h2>
-          <div className="flex items-center gap-2 mt-1.5">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-100">{investigation.name}</h2>
+          <div className="flex items-center justify-center gap-2 mt-1.5">
             <span className={`text-xs px-2 py-0.5 rounded font-medium ${
               isActive
                 ? 'bg-green-900/60 text-green-300 border border-green-700/50'
@@ -124,7 +115,14 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
             </span>
           </div>
         </div>
-      </div>
+        <button
+          onClick={openExport}
+          className="mt-0.5 text-xs px-2.5 py-1 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors justify-self-end"
+          title="Export investigation"
+        >
+          Export
+        </button>
+      </div>}
 
       {/* Export view (full replacement) */}
       {view === 'export' && (

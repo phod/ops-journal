@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog, clipboard } from 'electron'
+import { ipcMain, BrowserWindow, dialog, clipboard, shell } from 'electron'
 import {
   getActiveInvestigations,
   listInvestigations,
@@ -16,7 +16,7 @@ import { getHotkey, getScreenshotHotkey, getUploadHotkey } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
 import type { Investigation } from '@shared/ipc-types'
-import { exportAsMarkdown, exportAsPdf } from './export'
+import { exportAsMarkdown, exportAsPdf, buildExportHtml } from './export'
 
 function broadcastInvestigationChanged(investigations: Investigation[]): void {
   const windows = BrowserWindow.getAllWindows()
@@ -146,8 +146,11 @@ export function registerIpcHandlers(): void {
         investigationId,
         investigationName,
         format,
-        entryIds
-      }: { investigationId: string; investigationName: string; format: 'markdown' | 'pdf' | 'clipboard'; entryIds: string[] }
+        entryIds,
+        summaryJson,
+        imageHandling = 'omit',
+        openAfterExport = false
+      }: { investigationId: string; investigationName: string; format: 'markdown' | 'pdf' | 'clipboard' | 'rich-clipboard'; entryIds: string[]; summaryJson?: string; imageHandling?: 'omit' | 'reference'; openAfterExport?: boolean }
     ) => {
       try {
         const allEntries = listEntries(investigationId)
@@ -157,8 +160,15 @@ export function registerIpcHandlers(): void {
         const createdAt = investigation?.created_at ?? new Date().toISOString()
 
         if (format === 'clipboard') {
-          const md = exportAsMarkdown(investigationName, createdAt, entries)
+          const md = exportAsMarkdown(investigationName, createdAt, entries, summaryJson, imageHandling)
           clipboard.writeText(md)
+          return { success: true }
+        }
+
+        if (format === 'rich-clipboard') {
+          const md = exportAsMarkdown(investigationName, createdAt, entries, summaryJson, 'omit')
+          const html = buildExportHtml(investigationName, createdAt, entries, summaryJson)
+          clipboard.write({ text: md, html })
           return { success: true }
         }
 
@@ -172,12 +182,14 @@ export function registerIpcHandlers(): void {
         if (dialogResult.canceled || !dialogResult.filePath) return { success: false, error: 'Cancelled' }
 
         if (format === 'pdf') {
-          await exportAsPdf(investigationName, createdAt, entries, dialogResult.filePath)
+          await exportAsPdf(investigationName, createdAt, entries, dialogResult.filePath, summaryJson)
         } else {
-          const md = exportAsMarkdown(investigationName, createdAt, entries)
+          const md = exportAsMarkdown(investigationName, createdAt, entries, summaryJson, imageHandling)
           const { writeFileSync } = await import('fs')
           writeFileSync(dialogResult.filePath, md, 'utf-8')
         }
+
+        if (openAfterExport) shell.openPath(dialogResult.filePath)
 
         return { success: true }
       } catch (err: unknown) {

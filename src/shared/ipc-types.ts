@@ -1,3 +1,6 @@
+import type { RumourBoard, BoardState, BoardViewport, BoardNode, BoardEdge } from './board-types'
+export type { RumourBoard, BoardState, BoardViewport, BoardNode, BoardEdge }
+
 export type EntryType = 'note' | 'action' | 'finding' | 'hypothesis'
 export type ExportFormat = 'markdown' | 'pdf' | 'clipboard' | 'rich-clipboard'
 export type HypothesisStatus = 'open' | 'true' | 'false' | 'abandoned'
@@ -91,6 +94,15 @@ export interface ElectronAPI {
   // Screenshot window helpers (used by screenshot renderer)
   onScreenshotData: (callback: (dataUrl: string) => void) => () => void
   sendScreenshotSelection: (rect: { x: number; y: number; width: number; height: number } | null) => void
+
+  // Boards
+  listBoards: (investigationId: string) => Promise<RumourBoard[]>
+  createBoard: (investigationId: string, name?: string) => Promise<RumourBoard>
+  deleteBoard: (boardId: string) => Promise<void>
+  renameBoard: (boardId: string, name: string) => Promise<RumourBoard>
+  getBoardState: (boardId: string) => Promise<BoardState>
+  saveBoardState: (boardId: string, state: { nodes: BoardNode[]; edges: BoardEdge[]; viewport: BoardViewport }) => Promise<void>
+  saveBoardImage: (dataUrl: string) => Promise<string>
 }
 
 declare global {

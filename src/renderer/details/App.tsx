@@ -6,6 +6,7 @@ import { DetailsEntryList } from './components/DetailsEntryList'
 import { SummaryView } from './components/SummaryView'
 import type { SummaryViewHandle } from './components/SummaryView'
 import { ExportView } from './components/ExportView'
+import { RumourBoardView } from './components/board/RumourBoardView'
 
 export default function App(): JSX.Element {
   const investigationId = new URLSearchParams(window.location.search).get('id')
@@ -14,7 +15,7 @@ export default function App(): JSX.Element {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
-  const [view, setView] = useState<'entries' | 'summary' | 'export' | null>(null)
+  const [view, setView] = useState<'entries' | 'summary' | 'export' | 'board' | null>(null)
   const [preExportView, setPreExportView] = useState<'entries' | 'summary' | null>(null)
   const summaryRef = useRef<SummaryViewHandle>(null)
 
@@ -24,7 +25,7 @@ export default function App(): JSX.Element {
     setView('export')
   }
 
-  function navigateTo(target: 'summary' | 'entries', newFilter?: Filter): void {
+  function navigateTo(target: 'summary' | 'entries' | 'board', newFilter?: Filter): void {
     if (view === target && target === 'entries') {
       if (newFilter) setFilter(newFilter)
       return
@@ -166,27 +167,43 @@ export default function App(): JSX.Element {
             )}
           </button>
         ))}
+        <button
+          onClick={() => navigateTo('board')}
+          className={`text-xs px-3 py-1.5 rounded-t font-medium transition-colors ${
+            view === 'board'
+              ? 'bg-gray-700 text-gray-100 border border-b-0 border-gray-600'
+              : 'text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          Rumour Board
+        </button>
       </div>
 
-      <div className={`flex-1 min-h-0 px-6 py-4 ${view === 'summary' ? 'flex flex-col' : 'overflow-y-auto'}`}>
-        {view === 'export' ? (
-          <ExportView
-            investigationId={investigationId}
-            investigationName={investigation.name}
-            entries={entries}
-            onBack={() => setView(preExportView ?? 'entries')}
-          />
-        ) : view === 'summary' ? (
-          <SummaryView ref={summaryRef} investigationId={investigationId} />
-        ) : (
-          <div className="max-w-2xl">
-            <div className="text-xs text-gray-500 font-mono mb-3 uppercase tracking-wider">
-              {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+      {view === 'board' ? (
+        <div className="flex-1 min-h-0 flex">
+          <RumourBoardView investigationId={investigationId} entries={entries} />
+        </div>
+      ) : (
+        <div className={`flex-1 min-h-0 px-6 py-4 ${view === 'summary' ? 'flex flex-col' : 'overflow-y-auto'}`}>
+          {view === 'export' ? (
+            <ExportView
+              investigationId={investigationId}
+              investigationName={investigation.name}
+              entries={entries}
+              onBack={() => setView(preExportView ?? 'entries')}
+            />
+          ) : view === 'summary' ? (
+            <SummaryView ref={summaryRef} investigationId={investigationId} />
+          ) : (
+            <div className="max-w-2xl">
+              <div className="text-xs text-gray-500 font-mono mb-3 uppercase tracking-wider">
+                {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+              </div>
+              <DetailsEntryList entries={filteredEntries} allEntries={entries} onEntryUpdated={(updated) => setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))} />
             </div>
-            <DetailsEntryList entries={filteredEntries} allEntries={entries} onEntryUpdated={(updated) => setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))} />
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

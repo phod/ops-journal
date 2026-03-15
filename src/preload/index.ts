@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ElectronAPI, ExportFormat, HypothesisStatus, Investigation } from '../shared/ipc-types'
+import type { ElectronAPI, ExportFormat, HypothesisStatus, Investigation, BoardNode, BoardEdge, BoardViewport } from '../shared/ipc-types'
 
 /**
  * Creates a listener for an IPC channel that forwards arguments to a callback,
@@ -84,7 +84,16 @@ const electronAPI: ElectronAPI = {
 
   // Screenshot window helpers
   onScreenshotData: (callback) => onIpcEvent<[string]>('screenshot:data', callback),
-  sendScreenshotSelection: (rect) => ipcRenderer.send('screenshot:selection', rect)
+  sendScreenshotSelection: (rect) => ipcRenderer.send('screenshot:selection', rect),
+
+  // Boards
+  listBoards: (investigationId) => ipcRenderer.invoke('board:list', { investigationId }),
+  createBoard: (investigationId, name) => ipcRenderer.invoke('board:create', { investigationId, name }),
+  deleteBoard: (boardId) => ipcRenderer.invoke('board:delete', { boardId }),
+  renameBoard: (boardId, name) => ipcRenderer.invoke('board:rename', { boardId, name }),
+  getBoardState: (boardId) => ipcRenderer.invoke('board:getState', { boardId }),
+  saveBoardState: (boardId, state: { nodes: BoardNode[]; edges: BoardEdge[]; viewport: BoardViewport }) => ipcRenderer.invoke('board:saveState', { boardId, state }),
+  saveBoardImage: (dataUrl) => ipcRenderer.invoke('board:saveImage', { dataUrl })
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

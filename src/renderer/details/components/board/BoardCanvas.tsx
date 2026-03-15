@@ -52,7 +52,7 @@ export function BoardCanvas({
   allEntries
 }: Props) {
   const reactFlowRef = useRef<HTMLDivElement>(null)
-  const [minimapOpen, setMinimapOpen] = useState(true)
+  const [minimapOpen, setMinimapOpen] = useState(false)
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -119,6 +119,7 @@ export function BoardCanvas({
         defaultViewport={viewport}
         fitViewOptions={{ padding: 0.2 }}
         deleteKeyCode="Delete"
+        proOptions={{ hideAttribution: true }}
         className="bg-gray-900"
       >
         <Background color="#374151" gap={20} size={1} />
@@ -139,7 +140,7 @@ export function BoardCanvas({
             className="text-xs px-2 py-1 rounded bg-gray-800 border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors"
             title={minimapOpen ? 'Hide minimap' : 'Show minimap'}
           >
-            {minimapOpen ? 'Hide map' : 'Map'}
+            {minimapOpen ? 'Hide map' : 'Show map'}
           </button>
         </div>
       </ReactFlow>

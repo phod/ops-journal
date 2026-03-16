@@ -1,12 +1,13 @@
 import { memo, useEffect, useState } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
+import { NodeDeleteButton } from './NodeDeleteButton'
 
 export interface ImageNodeData {
   imagePath: string
 }
 
-function ImageNode({ data, selected }: NodeProps) {
+function ImageNode({ id, data, selected }: NodeProps) {
   const { imagePath } = data as ImageNodeData
   const [src, setSrc] = useState<string | null>(null)
 
@@ -16,7 +17,8 @@ function ImageNode({ data, selected }: NodeProps) {
   }, [imagePath])
 
   return (
-    <div className={`rounded border border-gray-600 overflow-hidden bg-gray-800 ${selected ? 'ring-2 ring-blue-500' : ''}`}>
+    <div className={`relative rounded border border-gray-600 overflow-hidden bg-gray-800 ${selected ? 'ring-2 ring-blue-500' : ''}`}>
+      {selected && <NodeDeleteButton nodeId={id} />}
       <Handle type="target" position={Position.Top} style={{ background: '#4b5563' }} />
       <Handle type="target" position={Position.Left} id="left-target" style={{ background: '#4b5563' }} />
       {src ? (

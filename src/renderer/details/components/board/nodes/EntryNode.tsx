@@ -3,18 +3,20 @@ import { Handle, Position } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
 import { getEntryTypeDefinition } from '@shared/entry-types'
 import type { JournalEntry } from '@shared/ipc-types'
+import { NodeDeleteButton } from './NodeDeleteButton'
 
 export interface EntryNodeData {
   entry: JournalEntry | null
   entryId: string
 }
 
-function EntryNode({ data, selected }: NodeProps) {
+function EntryNode({ id, data, selected }: NodeProps) {
   const { entry } = data as EntryNodeData
 
   if (!entry) {
     return (
-      <div className={`rounded border px-3 py-2 min-w-[180px] max-w-[280px] bg-gray-800 border-gray-600 ${selected ? 'ring-2 ring-blue-500' : ''}`}>
+      <div className={`relative rounded border px-3 py-2 min-w-[180px] max-w-[280px] bg-gray-800 border-gray-600 ${selected ? 'ring-2 ring-blue-500' : ''}`}>
+        {selected && <NodeDeleteButton nodeId={id} />}
         <Handle type="target" position={Position.Top} />
         <Handle type="target" position={Position.Left} id="left-target" />
         <span className="text-xs text-gray-500 italic">[deleted entry]</span>
@@ -30,8 +32,9 @@ function EntryNode({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`rounded border px-3 py-2 min-w-[180px] max-w-[280px] ${def.cardBgClass || 'bg-gray-800/80'} ${def.cardBorderClass || 'border-gray-600'} ${selected ? 'ring-2 ring-blue-500' : ''}`}
+      className={`relative rounded border px-3 py-2 min-w-[180px] max-w-[280px] ${def.cardBgClass || 'bg-gray-800/80'} ${def.cardBorderClass || 'border-gray-600'} ${selected ? 'ring-2 ring-blue-500' : ''}`}
     >
+      {selected && <NodeDeleteButton nodeId={id} />}
       <Handle type="target" position={Position.Top} style={{ background: '#4b5563' }} />
       <Handle type="target" position={Position.Left} id="left-target" style={{ background: '#4b5563' }} />
       <div className="flex items-center gap-1.5 mb-1.5">

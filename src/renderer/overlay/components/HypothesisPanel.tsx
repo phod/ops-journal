@@ -28,7 +28,7 @@ export function HypothesisPanel({ entries, onClose }: Props) {
   }
 
   return (
-    <div className="w-44 border-l-2 border-violet-500/40 bg-violet-950/30 flex flex-col flex-shrink-0">
+    <div className="w-full border-l-2 border-violet-500/40 bg-violet-950/30 flex flex-col flex-shrink-0">
       <div className="flex items-center justify-between px-2 py-2 border-b border-violet-500/20">
         <span className="text-xs font-bold text-violet-300 uppercase tracking-wider">Hypotheses</span>
         <button

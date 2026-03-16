@@ -100,6 +100,7 @@ export interface ElectronAPI {
 
   // Push events
   onInvestigationChanged: (callback: (investigations: Investigation[]) => void) => () => void
+  onEntriesChanged: (callback: (investigationId: string, entries: JournalEntry[]) => void) => () => void
   onTriggerScreenshot: (callback: (dataUrl: string) => void) => () => void
   onTriggerUpload: (callback: () => void) => () => void
 

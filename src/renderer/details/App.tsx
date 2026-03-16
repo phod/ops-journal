@@ -71,6 +71,17 @@ export default function App(): JSX.Element {
     return unsubscribe
   }, [investigationId])
 
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onEntriesChanged(
+      (changedInvestigationId, updatedEntries) => {
+        if (changedInvestigationId === investigationId) {
+          setEntries(updatedEntries)
+        }
+      }
+    )
+    return unsubscribe
+  }, [investigationId])
+
   const counts = useMemo(() => countEntries(entries), [entries])
   const filteredEntries = useMemo(() => filterEntries(entries, filter), [entries, filter])
 

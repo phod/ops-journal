@@ -28,11 +28,14 @@ export function RumourBoardView({ investigationId, entries }: Props) {
     toBoardViewport: boardState.toBoardViewport
   })
 
+  // Reset board selection when investigation changes so we don't keep
+  // a stale board ID from a different investigation.
   useEffect(() => {
+    setSelectedBoardId(null)
     setLoadingBoards(true)
     window.electronAPI.listBoards(investigationId).then((b) => {
       setBoards(b)
-      if (b.length > 0 && !selectedBoardId) {
+      if (b.length > 0) {
         setSelectedBoardId(b[0].id)
       }
     }).finally(() => setLoadingBoards(false))

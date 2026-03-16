@@ -4,6 +4,7 @@ import { TabBar } from './components/TabBar'
 import { EntryList } from './components/EntryList'
 import { EntryInput } from './components/EntryInput'
 import { HypothesisPanel } from './components/HypothesisPanel'
+import { RumourBoardView } from '../details/components/board/RumourBoardView'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 
 export default function App() {
@@ -22,6 +23,8 @@ export default function App() {
   const [pendingImages, setPendingImages] = useState<string[]>([])
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [showHypothesisPanel, setShowHypothesisPanel] = useState(false)
+  const [showRumourBoard, setShowRumourBoard] = useState(false)
+  const [showEntryStream, setShowEntryStream] = useState(true)
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -95,26 +98,41 @@ export default function App() {
       )
     }
 
+    const entryStream = (
+      <div className={`flex flex-col overflow-hidden ${showRumourBoard ? 'w-72 flex-shrink-0 border-l border-gray-700/50' : 'flex-1'}`}>
+        <EntryList
+          entries={entries}
+          editingEntryId={editingEntryId}
+          onEditingEntryIdChange={setEditingEntryId}
+          onEntryUpdated={updateEntry}
+          onEntryDeleted={deleteEntry}
+        />
+        <EntryInput
+          activeInvestigation={currentInvestigation}
+          entries={entries}
+          editingEntryId={editingEntryId}
+          onSetEditingEntryId={setEditingEntryId}
+          onEntryCreated={addOptimisticEntry}
+          pendingImages={pendingImages}
+          onPendingImagesChange={setPendingImages}
+        />
+      </div>
+    )
+
+    if (showRumourBoard) {
+      return (
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <RumourBoardView investigationId={currentInvestigation.id} entries={entries} />
+          </div>
+          {showEntryStream && entryStream}
+        </div>
+      )
+    }
+
     return (
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <EntryList
-            entries={entries}
-            editingEntryId={editingEntryId}
-            onEditingEntryIdChange={setEditingEntryId}
-            onEntryUpdated={updateEntry}
-            onEntryDeleted={deleteEntry}
-          />
-          <EntryInput
-            activeInvestigation={currentInvestigation}
-            entries={entries}
-            editingEntryId={editingEntryId}
-            onSetEditingEntryId={setEditingEntryId}
-            onEntryCreated={addOptimisticEntry}
-            pendingImages={pendingImages}
-            onPendingImagesChange={setPendingImages}
-          />
-        </div>
+        {entryStream}
         {showHypothesisPanel && (
           <HypothesisPanel
             entries={entries}
@@ -139,7 +157,41 @@ export default function App() {
           {currentInvestigation && (
             <>
               <button
-                onClick={() => setShowHypothesisPanel((v) => !v)}
+                onClick={() => {
+                  const opening = !showRumourBoard
+                  setShowRumourBoard(opening)
+                  if (opening) {
+                    setShowEntryStream(true)
+                    setShowHypothesisPanel(false)
+                  }
+                }}
+                className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0 font-bold ${
+                  showRumourBoard
+                    ? 'text-amber-300 bg-amber-500/25'
+                    : 'text-gray-600 hover:text-gray-400'
+                }`}
+                title="Toggle Rumour Board"
+              >
+                ⊞
+              </button>
+              {showRumourBoard && (
+                <button
+                  onClick={() => setShowEntryStream((v) => !v)}
+                  className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0 ${
+                    showEntryStream
+                      ? 'text-amber-300 bg-amber-500/25'
+                      : 'text-gray-600 hover:text-gray-400'
+                  }`}
+                  title={showEntryStream ? 'Hide Entry Stream' : 'Show Entry Stream'}
+                >
+                  {showEntryStream ? '⫿' : '⫿'}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowHypothesisPanel((v) => !v)
+                  if (!showHypothesisPanel) setShowRumourBoard(false)
+                }}
                 className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0 ${
                   showHypothesisPanel
                     ? 'text-violet-300 bg-violet-500/20'

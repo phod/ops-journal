@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { JournalEntry, HypothesisStatus } from '@shared/ipc-types'
-import { getEntryTypeDefinition, filterEntries, resolveLinkedFindings, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
+import { getEntryTypeDefinition, filterEntries, resolveLinkedFindings, resolveChildHypotheses, resolveParentHypotheses, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import type { Filter } from '@shared/entry-types'
 import { formatDate, TIMESTAMP_OPTIONS_SHORT } from '@shared/format-date'
 
@@ -75,6 +75,8 @@ function PanelEntry({
   const isHypothesis = entry.type === 'hypothesis'
   const status = (entry.hypothesis_status ?? 'open') as HypothesisStatus
   const linkedFindings = resolveLinkedFindings(entry, allEntries)
+  const childHypotheses = resolveChildHypotheses(entry, allEntries)
+  const parentHypotheses = resolveParentHypotheses(entry, allEntries)
 
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.effectAllowed = 'copy'
@@ -121,6 +123,22 @@ function PanelEntry({
           {entry.body}
         </div>
       )}
+      {isHypothesis && parentHypotheses.length > 0 && (
+        <div className="mt-1.5">
+          <div className="text-gray-600 text-xs font-mono uppercase tracking-wider mb-0.5">Parent</div>
+          <div className="flex flex-wrap gap-1">
+            {parentHypotheses.map((p) => {
+              const pStatus = (p.hypothesis_status ?? 'open') as HypothesisStatus
+              return (
+                <div key={p.id} className="px-1.5 py-0.5 rounded text-xs font-mono bg-violet-500/10 border border-violet-500/20 text-violet-400 truncate flex items-center gap-1">
+                  <span className={`font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[pStatus]}`}>{HYPOTHESIS_STATUS_LABEL[pStatus]}</span>
+                  <span className="truncate">{p.body || '(no text)'}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
       {isHypothesis && linkedFindings.length > 0 && (
         <div className="mt-1.5">
           <div className="text-gray-600 text-xs font-mono uppercase tracking-wider mb-0.5">Findings</div>
@@ -130,6 +148,22 @@ function PanelEntry({
                 {f.body || '(no text)'}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {isHypothesis && childHypotheses.length > 0 && (
+        <div className="mt-1.5">
+          <div className="text-gray-600 text-xs font-mono uppercase tracking-wider mb-0.5">Child Hypotheses</div>
+          <div className="flex flex-wrap gap-1">
+            {childHypotheses.map((ch) => {
+              const chStatus = (ch.hypothesis_status ?? 'open') as HypothesisStatus
+              return (
+                <div key={ch.id} className="px-1.5 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 truncate flex items-center gap-1">
+                  <span className={`font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[chStatus]}`}>{HYPOTHESIS_STATUS_LABEL[chStatus]}</span>
+                  <span className="truncate">{ch.body || '(no text)'}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

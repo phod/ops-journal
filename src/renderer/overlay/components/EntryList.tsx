@@ -283,7 +283,17 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   const isTyped = entry.type !== 'note'
   const isHypothesis = entry.type === 'hypothesis'
   const isFinding = entry.type === 'finding'
+  const isAction = entry.type === 'action'
   const status = entry.hypothesis_status ?? 'open'
+
+  const toggleCompleted = async () => {
+    try {
+      const updated = await window.electronAPI.toggleActionCompleted(entry.id)
+      onUpdated(updated)
+    } catch (err) {
+      console.error('[overlay] Failed to toggle action completed:', err)
+    }
+  }
 
   const linkedFindings = isHypothesis
     ? (entry.linked_finding_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
@@ -374,6 +384,29 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                 </div>
               )}
             </div>
+          )}
+          {/* Action completion checkbox */}
+          {isAction && (
+            <button
+              onClick={toggleCompleted}
+              className={`no-drag flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold cursor-pointer transition-colors ${
+                entry.action_completed
+                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                  : 'bg-orange-500/10 text-orange-400/60 hover:bg-orange-500/20 hover:text-orange-400'
+              }`}
+              title={entry.action_completed ? 'Mark incomplete' : 'Mark complete'}
+            >
+              {entry.action_completed ? (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              ) : (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                </svg>
+              )}
+              {entry.action_completed ? 'DONE' : 'TODO'}
+            </button>
           )}
           {/* Link Finding button for hypotheses */}
           {isHypothesis && !isEditing && (
@@ -480,7 +513,11 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
           {entry.body && (
             <div
               onDoubleClick={onEditStart}
-              className="text-gray-100 text-sm font-mono whitespace-pre-wrap break-words leading-relaxed cursor-text"
+              className={`text-sm font-mono whitespace-pre-wrap break-words leading-relaxed cursor-text ${
+                isAction && entry.action_completed
+                  ? 'line-through text-gray-500'
+                  : 'text-gray-100'
+              }`}
             >
               {entry.body}
             </div>

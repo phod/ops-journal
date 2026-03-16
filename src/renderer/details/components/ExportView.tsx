@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ExportFormat, JournalEntry } from '@shared/ipc-types'
+import type { ExportFormat, JournalEntry, RumourBoard } from '@shared/ipc-types'
 
 interface ExportViewProps {
   investigationId: string
@@ -62,10 +62,15 @@ export function ExportView({ investigationId, investigationName, entries, onBack
   const [summaryExpanded, setSummaryExpanded] = useState(false)
   const [imageHandling, setImageHandling] = useState<'omit' | 'reference'>('omit')
   const [openAfterExport, setOpenAfterExport] = useState(false)
+  const [boards, setBoards] = useState<RumourBoard[]>([])
+  const [selectedBoardIds, setSelectedBoardIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     window.electronAPI.getSummary(investigationId).then((json) => {
       setSummaryJson(json)
+    })
+    window.electronAPI.listBoards(investigationId).then((boards) => {
+      setBoards(boards)
     })
   }, [investigationId])
 
@@ -113,7 +118,8 @@ export function ExportView({ investigationId, investigationName, entries, onBack
         entryIds: entries.filter((e) => selectedIds.has(e.id)).map((e) => e.id),
         summaryJson: includeSummary && summaryJson ? summaryJson : undefined,
         imageHandling: format !== 'pdf' && format !== 'rich-clipboard' ? imageHandling : undefined,
-        openAfterExport: format === 'markdown' || format === 'pdf' ? openAfterExport : undefined
+        openAfterExport: format === 'markdown' || format === 'pdf' ? openAfterExport : undefined,
+        boardIds: format === 'pdf' && selectedBoardIds.size > 0 ? [...selectedBoardIds] : undefined
       })
       setResult(res)
     } finally {
@@ -228,6 +234,64 @@ export function ExportView({ investigationId, investigationName, entries, onBack
           </div>
         )}
 
+        {/* Rumour Boards — only for PDF */}
+        {format === 'pdf' && boards.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+                Rumour Boards ({selectedBoardIds.size} / {boards.length} selected)
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedBoardIds(new Set(boards.map((b) => b.id)))}
+                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  All
+                </button>
+                <span className="text-gray-700">·</span>
+                <button
+                  onClick={() => setSelectedBoardIds(new Set())}
+                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  None
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {boards.map((board) => {
+                const selected = selectedBoardIds.has(board.id)
+                return (
+                  <label
+                    key={board.id}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded border cursor-pointer transition-colors ${
+                      selected
+                        ? 'border-gray-600 bg-gray-800/40'
+                        : 'border-gray-700/30 bg-gray-800/10 opacity-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => {
+                        setSelectedBoardIds((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(board.id)) next.delete(board.id)
+                          else next.add(board.id)
+                          return next
+                        })
+                      }}
+                      className="flex-shrink-0 accent-blue-500"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs text-gray-400">{board.name}</div>
+                    </div>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Bulk actions */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -316,6 +380,7 @@ export function ExportView({ investigationId, investigationName, entries, onBack
           <div className="text-xs text-gray-600">
             {selectedIds.size === 0 ? 'No entries selected' : `${selectedIds.size} of ${entries.length} entries selected`}
             {summaryJson && includeSummary && ' · summary included'}
+            {format === 'pdf' && selectedBoardIds.size > 0 && ` · ${selectedBoardIds.size} board${selectedBoardIds.size > 1 ? 's' : ''}`}
           </div>
         )}
         <div className="flex items-center gap-3">
@@ -332,7 +397,7 @@ export function ExportView({ investigationId, investigationName, entries, onBack
           )}
           <button
             onClick={handleExport}
-            disabled={exporting || (selectedIds.size === 0 && !(summaryJson && includeSummary))}
+            disabled={exporting || (selectedIds.size === 0 && !(summaryJson && includeSummary) && selectedBoardIds.size === 0)}
             className="text-xs px-4 py-1.5 rounded font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {exporting ? 'Exporting…' : 'Export'}

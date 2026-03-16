@@ -310,6 +310,7 @@ describe('EntryInput', () => {
       const user = userEvent.setup()
       render(<Wrapper onEntryCreated={onEntryCreated} />)
       await user.type(screen.getByRole('textbox'), '/action restarted service')
+      await user.keyboard('{Escape}')
       await user.keyboard('{Enter}')
       expect(window.electronAPI.createEntry).toHaveBeenCalledWith(
         'inv-1', 'restarted service', undefined, 'action'
@@ -320,6 +321,7 @@ describe('EntryInput', () => {
       const user = userEvent.setup()
       render(<Wrapper onEntryCreated={onEntryCreated} />)
       await user.type(screen.getByRole('textbox'), '/finding root cause identified')
+      await user.keyboard('{Escape}')
       await user.keyboard('{Enter}')
       expect(window.electronAPI.createEntry).toHaveBeenCalledWith(
         'inv-1', 'root cause identified', undefined, 'finding'
@@ -330,7 +332,8 @@ describe('EntryInput', () => {
       const user = userEvent.setup()
       render(<Wrapper onEntryCreated={onEntryCreated} />)
       await user.type(screen.getByRole('textbox'), '/action ')
-      // After the trailing space, completions are gone and the badge is visible
+      // Dismiss autocomplete so only the badge remains
+      await user.keyboard('{Escape}')
       expect(screen.getByText('ACTION')).toBeInTheDocument()
     })
 

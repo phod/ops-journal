@@ -197,7 +197,7 @@ describe('EntryList', () => {
       await user.keyboard('{Enter}')
 
       await waitFor(() =>
-        expect(window.electronAPI.updateEntry).toHaveBeenCalledWith('entry-1', 'New text', undefined)
+        expect(window.electronAPI.updateEntry).toHaveBeenCalledWith('entry-1', 'New text', undefined, undefined)
       )
       expect(onEntryUpdated).toHaveBeenCalledWith(updated)
     })
@@ -297,7 +297,7 @@ describe('EntryList', () => {
       await user.click(screen.getByRole('button', { name: /save/i }))
 
       await waitFor(() =>
-        expect(window.electronAPI.updateEntry).toHaveBeenCalledWith('entry-1', 'Same text', [])
+        expect(window.electronAPI.updateEntry).toHaveBeenCalledWith('entry-1', 'Same text', [], undefined)
       )
     })
 

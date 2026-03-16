@@ -127,7 +127,13 @@ export function BoardCanvas({
         {minimapOpen && (
           <MiniMap
             nodeColor={(n) => {
-              if (n.type === 'entry') return '#4b5563'
+              if (n.type === 'entry') {
+                const entry = (n.data as { entry?: { type?: string } | null }).entry
+                if (entry?.type === 'finding') return '#2dd4bf'    // teal-400
+                if (entry?.type === 'hypothesis') return '#8b5cf6' // violet-500
+                if (entry?.type === 'action') return '#fb923c'     // orange-400
+                return '#4b5563'
+              }
               if (n.type === 'textbox') return '#374151'
               return '#1f2937'
             }}

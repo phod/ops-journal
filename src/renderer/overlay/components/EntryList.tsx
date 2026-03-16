@@ -299,6 +299,15 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     ? (entry.linked_finding_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
     : []
 
+  const unlinkFinding = async (findingId: string) => {
+    try {
+      const updated = await window.electronAPI.unlinkHypothesisFinding(entry.id, findingId)
+      onUpdated(updated)
+    } catch (err) {
+      console.error('[overlay] Failed to unlink finding:', err)
+    }
+  }
+
   const linkedHypotheses = isFinding
     ? allEntries.filter((e) => e.type === 'hypothesis' && e.linked_finding_ids?.includes(entry.id))
     : []
@@ -413,9 +422,9 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
             <button
               onClick={() => setShowLinkModal(true)}
               className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-teal-400 px-1 text-xs"
-              title="Link findings"
+              title={linkedFindings.length > 0 ? 'Manage linked findings' : 'Link findings'}
             >
-              + finding
+              {linkedFindings.length > 0 ? 'edit findings' : '+ finding'}
             </button>
           )}
         </div>
@@ -538,18 +547,29 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               ))}
             </div>
           )}
-          {/* Linked findings chips for hypothesis entries — click to scroll */}
+          {/* Linked findings chips for hypothesis entries — click to scroll, × to unlink */}
           {isHypothesis && linkedFindings.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {linkedFindings.map((f) => (
-                <button
+                <div
                   key={f.id}
-                  onClick={() => scrollToEntry(f.id)}
-                  className="no-drag px-1.5 py-0.5 rounded text-xs font-mono bg-teal-500/15 border border-teal-500/30 text-teal-300 hover:bg-teal-500/30 transition-colors truncate max-w-[160px]"
-                  title={`Go to finding: ${f.body}`}
+                  className="group/chip no-drag flex items-center rounded text-xs font-mono bg-teal-500/15 border border-teal-500/30 text-teal-300 hover:bg-teal-500/20 transition-colors max-w-[180px]"
                 >
-                  {f.body || '(no text)'}
-                </button>
+                  <button
+                    onClick={() => scrollToEntry(f.id)}
+                    className="no-drag px-1.5 py-0.5 truncate"
+                    title={`Go to finding: ${f.body}`}
+                  >
+                    {f.body || '(no text)'}
+                  </button>
+                  <button
+                    onClick={() => unlinkFinding(f.id)}
+                    className="no-drag px-1 py-0.5 pb-1 opacity-0 group-hover/chip:opacity-100 text-teal-500 hover:text-red-400 transition-all shrink-0"
+                    title="Unlink finding"
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
             </div>
           )}

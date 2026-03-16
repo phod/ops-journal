@@ -46,6 +46,16 @@ export function useBoardAutoSave({
     setDirty(false)
   }
 
+  // Flush pending save when board ID changes (e.g. investigation switch)
+  const prevBoardIdRef = useRef(boardId)
+  useEffect(() => {
+    if (prevBoardIdRef.current && prevBoardIdRef.current !== boardId) {
+      if (timerRef.current) clearTimeout(timerRef.current)
+      save.current()
+    }
+    prevBoardIdRef.current = boardId
+  }, [boardId])
+
   // Debounced save on dirty
   useEffect(() => {
     if (!isDirty || !boardId) return

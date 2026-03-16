@@ -122,7 +122,6 @@ export function getManagerWindow(): BrowserWindow | null {
 }
 
 export function navigateManagerToDetails(id: string): void {
-  hideOverlay()
   showManager()
   const win = managerWindow
   if (win && !win.isDestroyed()) {

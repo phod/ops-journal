@@ -91,6 +91,8 @@ const electronAPI: ElectronAPI = {
   // Push events
   onInvestigationChanged: (callback) =>
     onIpcEvent<[Investigation[]]>('investigation:changed', callback),
+  onEntriesChanged: (callback) =>
+    onIpcEvent<[string, import('../shared/ipc-types').JournalEntry[]]>('entries:changed', callback),
   onTriggerScreenshot: (callback) =>
     onIpcEvent<[string]>('overlay:screenshotCaptured', callback),
   onTriggerUpload: (callback) => onIpcEvent<[]>('overlay:triggerUpload', callback),

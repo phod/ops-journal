@@ -110,6 +110,21 @@ export function useOverlayState(): OverlayState {
     return unsubscribe
   }, [fetchEntries])
 
+  // Subscribe to entry changes from other windows
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onEntriesChanged(
+      (investigationId, updatedEntries) => {
+        setCurrentInvestigationId((currentId) => {
+          if (currentId === investigationId) {
+            setEntries(updatedEntries)
+          }
+          return currentId
+        })
+      }
+    )
+    return unsubscribe
+  }, [])
+
   // Listen for Escape key to hide overlay
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

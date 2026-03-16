@@ -28,6 +28,16 @@ function broadcastInvestigationChanged(investigations: Investigation[]): void {
   }
 }
 
+function broadcastEntriesChanged(investigationId: string): void {
+  const entries = listEntries(investigationId)
+  const windows = BrowserWindow.getAllWindows()
+  for (const win of windows) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('entries:changed', investigationId, entries)
+    }
+  }
+}
+
 function dataUrlToBuffer(dataUrl: string): Buffer {
   const base64 = dataUrl.replace(/^data:[^;]+;base64,/, '')
   return Buffer.from(base64, 'base64')
@@ -66,7 +76,9 @@ export function registerIpcHandlers(): void {
     'entry:create',
     (_event, { investigationId, body, imageDataUrls, type }: { investigationId: string; body: string; imageDataUrls?: string[]; type?: import('@shared/ipc-types').EntryType }) => {
       const imagePaths = (imageDataUrls ?? []).map((dataUrl) => saveImage(dataUrlToBuffer(dataUrl)))
-      return createEntry(investigationId, body, imagePaths, type)
+      const entry = createEntry(investigationId, body, imagePaths, type)
+      broadcastEntriesChanged(investigationId)
+      return entry
     }
   )
 
@@ -80,32 +92,45 @@ export function registerIpcHandlers(): void {
       }
     }
 
-    return updateEntry(id, body, keepImagePaths, type)
+    const updated = updateEntry(id, body, keepImagePaths, type)
+    broadcastEntriesChanged(updated.investigation_id)
+    return updated
   })
 
   ipcMain.handle('entry:delete', (_event, { id }: { id: string }) => {
     const entry = deleteEntry(id)
-    for (const p of entry?.image_paths ?? []) deleteImage(p)
+    if (entry) {
+      for (const p of entry.image_paths) deleteImage(p)
+      broadcastEntriesChanged(entry.investigation_id)
+    }
   })
 
   // --- Actions ---
 
   ipcMain.handle('action:toggleCompleted', (_event, { entryId }: { entryId: string }) => {
-    return toggleActionCompleted(entryId)
+    const entry = toggleActionCompleted(entryId)
+    if (entry) broadcastEntriesChanged(entry.investigation_id)
+    return entry
   })
 
   // --- Hypotheses ---
 
   ipcMain.handle('hypothesis:updateStatus', (_event, { entryId, status }: { entryId: string; status: import('@shared/ipc-types').HypothesisStatus }) => {
-    return updateHypothesisStatus(entryId, status)
+    const entry = updateHypothesisStatus(entryId, status)
+    broadcastEntriesChanged(entry.investigation_id)
+    return entry
   })
 
   ipcMain.handle('hypothesis:linkFinding', (_event, { hypothesisId, findingId }: { hypothesisId: string; findingId: string }) => {
-    return linkHypothesisFinding(hypothesisId, findingId)
+    const entry = linkHypothesisFinding(hypothesisId, findingId)
+    broadcastEntriesChanged(entry.investigation_id)
+    return entry
   })
 
   ipcMain.handle('hypothesis:unlinkFinding', (_event, { hypothesisId, findingId }: { hypothesisId: string; findingId: string }) => {
-    return unlinkHypothesisFinding(hypothesisId, findingId)
+    const entry = unlinkHypothesisFinding(hypothesisId, findingId)
+    broadcastEntriesChanged(entry.investigation_id)
+    return entry
   })
 
   ipcMain.handle('hypothesis:getFindings', (_event, { hypothesisId }: { hypothesisId: string }) => {
@@ -117,11 +142,15 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('hypothesis:linkChild', (_event, { parentId, childId }: { parentId: string; childId: string }) => {
-    return linkHypothesisChild(parentId, childId)
+    const entry = linkHypothesisChild(parentId, childId)
+    broadcastEntriesChanged(entry.investigation_id)
+    return entry
   })
 
   ipcMain.handle('hypothesis:unlinkChild', (_event, { parentId, childId }: { parentId: string; childId: string }) => {
-    return unlinkHypothesisChild(parentId, childId)
+    const entry = unlinkHypothesisChild(parentId, childId)
+    broadcastEntriesChanged(entry.investigation_id)
+    return entry
   })
 
   ipcMain.handle('hypothesis:getNestingDepth', (_event, { hypothesisId }: { hypothesisId: string }) => {

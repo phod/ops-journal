@@ -9,7 +9,7 @@ vi.mock('../index', () => ({
 }))
 
 import { createInvestigation } from '../investigations'
-import { createEntry, listEntries, updateEntry, deleteEntry, getEntry, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses } from '../entries'
+import { createEntry, listEntries, updateEntry, deleteEntry, getEntry, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from '../entries'
 
 let investigationId: string
 
@@ -235,6 +235,74 @@ describe('hypothesis operations', () => {
     testDb.prepare('DELETE FROM journal_entries WHERE id = ?').run(hypothesis.id)
     const hypotheses = getFindingHypotheses(finding.id)
     expect(hypotheses).toHaveLength(0)
+  })
+})
+
+describe('hypothesis-child linking', () => {
+  it('linkHypothesisChild links a child and returns updated parent', () => {
+    const parent = createEntry(investigationId, 'Parent', [], 'hypothesis')
+    const child = createEntry(investigationId, 'Child', [], 'hypothesis')
+    const updated = linkHypothesisChild(parent.id, child.id)
+    expect(updated.linked_child_hypothesis_ids).toContain(child.id)
+  })
+
+  it('unlinkHypothesisChild removes the link', () => {
+    const parent = createEntry(investigationId, 'Parent', [], 'hypothesis')
+    const child = createEntry(investigationId, 'Child', [], 'hypothesis')
+    linkHypothesisChild(parent.id, child.id)
+    const updated = unlinkHypothesisChild(parent.id, child.id)
+    expect(updated.linked_child_hypothesis_ids).not.toContain(child.id)
+  })
+
+  it('child shows parent_hypothesis_ids', () => {
+    const parent = createEntry(investigationId, 'Parent', [], 'hypothesis')
+    const child = createEntry(investigationId, 'Child', [], 'hypothesis')
+    linkHypothesisChild(parent.id, child.id)
+    const childEntry = getEntry(child.id)!
+    expect(childEntry.parent_hypothesis_ids).toContain(parent.id)
+  })
+
+  it('linked_child_hypothesis_ids persists in listEntries', () => {
+    const parent = createEntry(investigationId, 'Parent', [], 'hypothesis')
+    const child = createEntry(investigationId, 'Child', [], 'hypothesis')
+    linkHypothesisChild(parent.id, child.id)
+    const entries = listEntries(investigationId)
+    const p = entries.find((e) => e.id === parent.id)!
+    expect(p.linked_child_hypothesis_ids).toContain(child.id)
+  })
+
+  it('prevents self-linking', () => {
+    const h = createEntry(investigationId, 'Self', [], 'hypothesis')
+    expect(() => linkHypothesisChild(h.id, h.id)).toThrow('Cannot link a hypothesis to itself')
+  })
+
+  it('prevents circular chains', () => {
+    const a = createEntry(investigationId, 'A', [], 'hypothesis')
+    const b = createEntry(investigationId, 'B', [], 'hypothesis')
+    const c = createEntry(investigationId, 'C', [], 'hypothesis')
+    linkHypothesisChild(a.id, b.id)
+    linkHypothesisChild(b.id, c.id)
+    expect(() => linkHypothesisChild(c.id, a.id)).toThrow('Cannot create circular hypothesis chain')
+  })
+
+  it('getHypothesisNestingDepth returns correct depth', () => {
+    const a = createEntry(investigationId, 'A', [], 'hypothesis')
+    const b = createEntry(investigationId, 'B', [], 'hypothesis')
+    const c = createEntry(investigationId, 'C', [], 'hypothesis')
+    linkHypothesisChild(a.id, b.id)
+    linkHypothesisChild(b.id, c.id)
+    expect(getHypothesisNestingDepth(a.id)).toBe(0)
+    expect(getHypothesisNestingDepth(b.id)).toBe(1)
+    expect(getHypothesisNestingDepth(c.id)).toBe(2)
+  })
+
+  it('cascade-deletes hypothesis_children when parent entry is deleted', () => {
+    const parent = createEntry(investigationId, 'Parent', [], 'hypothesis')
+    const child = createEntry(investigationId, 'Child', [], 'hypothesis')
+    linkHypothesisChild(parent.id, child.id)
+    testDb.prepare('DELETE FROM journal_entries WHERE id = ?').run(parent.id)
+    const childEntry = getEntry(child.id)!
+    expect(childEntry.parent_hypothesis_ids ?? []).toHaveLength(0)
   })
 })
 

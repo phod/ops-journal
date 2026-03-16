@@ -15,6 +15,7 @@ export interface Investigation {
 }
 
 export const MAX_IMAGES_PER_ENTRY = 9
+export const MAX_HYPOTHESIS_NESTING_DEPTH = 10
 
 export interface JournalEntry {
   id: string
@@ -25,6 +26,8 @@ export interface JournalEntry {
   type: EntryType
   hypothesis_status?: HypothesisStatus
   linked_finding_ids?: string[]
+  linked_child_hypothesis_ids?: string[]
+  parent_hypothesis_ids?: string[]
   action_completed?: boolean
 }
 
@@ -52,6 +55,9 @@ export interface ElectronAPI {
   unlinkHypothesisFinding: (hypothesisId: string, findingId: string) => Promise<JournalEntry>
   getHypothesisFindings: (hypothesisId: string) => Promise<JournalEntry[]>
   getFindingHypotheses: (findingId: string) => Promise<JournalEntry[]>
+  linkHypothesisChild: (parentId: string, childId: string) => Promise<JournalEntry>
+  unlinkHypothesisChild: (parentId: string, childId: string) => Promise<JournalEntry>
+  getHypothesisNestingDepth: (hypothesisId: string) => Promise<number>
 
   // Summary
   getSummary: (investigationId: string) => Promise<string | null>

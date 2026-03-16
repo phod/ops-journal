@@ -299,12 +299,29 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     ? (entry.linked_finding_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
     : []
 
+  const linkedChildHypotheses = isHypothesis
+    ? (entry.linked_child_hypothesis_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+    : []
+
+  const parentHypotheses = isHypothesis
+    ? allEntries.filter((e) => e.type === 'hypothesis' && e.linked_child_hypothesis_ids?.includes(entry.id))
+    : []
+
   const unlinkFinding = async (findingId: string) => {
     try {
       const updated = await window.electronAPI.unlinkHypothesisFinding(entry.id, findingId)
       onUpdated(updated)
     } catch (err) {
       console.error('[overlay] Failed to unlink finding:', err)
+    }
+  }
+
+  const unlinkChildHypothesis = async (childId: string) => {
+    try {
+      const updated = await window.electronAPI.unlinkHypothesisChild(entry.id, childId)
+      onUpdated(updated)
+    } catch (err) {
+      console.error('[overlay] Failed to unlink child hypothesis:', err)
     }
   }
 
@@ -417,14 +434,14 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               {entry.action_completed ? 'DONE' : 'TODO'}
             </button>
           )}
-          {/* Link Finding button for hypotheses */}
+          {/* Link button for hypotheses */}
           {isHypothesis && !isEditing && (
             <button
               onClick={() => setShowLinkModal(true)}
               className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-teal-400 px-1 text-xs"
-              title={linkedFindings.length > 0 ? 'Manage linked findings' : 'Link findings'}
+              title="Manage linked findings and child hypotheses"
             >
-              {linkedFindings.length > 0 ? 'edit findings' : '+ finding'}
+              {(linkedFindings.length + linkedChildHypotheses.length) > 0 ? 'edit links' : '+ link'}
             </button>
           )}
         </div>
@@ -573,6 +590,48 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               ))}
             </div>
           )}
+          {/* Linked child hypothesis chips — click to scroll, × to unlink */}
+          {isHypothesis && linkedChildHypotheses.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {linkedChildHypotheses.map((ch) => (
+                <div
+                  key={ch.id}
+                  className="group/chip no-drag flex items-center rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/20 transition-colors max-w-[180px]"
+                >
+                  <button
+                    onClick={() => scrollToEntry(ch.id)}
+                    className="no-drag px-1.5 py-0.5 truncate"
+                    title={`Go to child hypothesis: ${ch.body}`}
+                  >
+                    {ch.body || '(no text)'}
+                  </button>
+                  <button
+                    onClick={() => unlinkChildHypothesis(ch.id)}
+                    className="no-drag px-1 py-0.5 pb-1 opacity-0 group-hover/chip:opacity-100 text-violet-500 hover:text-red-400 transition-all shrink-0"
+                    title="Unlink child hypothesis"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Parent hypothesis chips — click to scroll */}
+          {isHypothesis && parentHypotheses.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1 items-center">
+              <span className="text-xs text-gray-600 font-mono">parent:</span>
+              {parentHypotheses.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => scrollToEntry(p.id)}
+                  className="no-drag px-1.5 py-0.5 rounded text-xs font-mono bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 transition-colors truncate max-w-[160px]"
+                  title={`Go to parent hypothesis: ${p.body}`}
+                >
+                  {p.body || '(no text)'}
+                </button>
+              ))}
+            </div>
+          )}
           {/* Linked hypothesis chips for finding entries — click to scroll */}
           {isFinding && linkedHypotheses.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
@@ -591,11 +650,12 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
         </>
       )}
 
-      {/* Link Finding Modal */}
+      {/* Link Modal */}
       {showLinkModal && (
         <LinkFindingModal
           hypothesis={entry}
           findings={allEntries.filter((e) => e.type === 'finding')}
+          hypotheses={allEntries.filter((e) => e.type === 'hypothesis')}
           onClose={() => setShowLinkModal(false)}
           onHypothesisUpdated={(updated) => onUpdated(updated)}
         />

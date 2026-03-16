@@ -11,7 +11,7 @@ import {
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
-import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails } from './windows'
+import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
 import { getHotkey, getScreenshotHotkey, getUploadHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
@@ -281,6 +281,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('window:openManager', () => showManager())
   ipcMain.handle('overlay:hide', () => hideOverlay())
   ipcMain.handle('overlay:show', () => showOverlay())
+  ipcMain.handle('overlay:expandForBoard', () => expandOverlayForBoard())
+  ipcMain.handle('overlay:restoreFromBoard', () => restoreOverlayFromBoard())
   ipcMain.handle('window:openDetails', (_event, { id }: { id: string }) => navigateManagerToDetails(id))
 
   console.log('[ipc] All handlers registered')

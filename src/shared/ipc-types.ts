@@ -94,6 +94,8 @@ export interface ElectronAPI {
   openManager: () => Promise<void>
   hideOverlay: () => Promise<void>
   showOverlay: () => Promise<void>
+  expandOverlayForBoard: () => Promise<void>
+  restoreOverlayFromBoard: () => Promise<void>
   openDetails: (id: string) => Promise<void>
   onShowDetails: (callback: (id: string) => void) => () => void
   onShowHome: (callback: () => void) => () => void

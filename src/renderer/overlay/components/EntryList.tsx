@@ -1,6 +1,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
+import type { EntryTypeDefinition } from '@shared/entry-types'
 import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
+import { parseSlashCommand, getCompletions } from '@shared/slash-commands'
 import { LinkFindingModal } from './LinkFindingModal'
 
 interface Props {
@@ -86,6 +88,9 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   const [showTypeMenu, setShowTypeMenu] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [showLinkModal, setShowLinkModal] = useState(false)
+  const [completions, setCompletions] = useState<EntryTypeDefinition[]>([])
+  const [selectedCompletionIndex, setSelectedCompletionIndex] = useState(0)
+  const [detectedType, setDetectedType] = useState<EntryType | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const typeMenuRef = useRef<HTMLDivElement>(null)
   const statusMenuRef = useRef<HTMLDivElement>(null)
@@ -106,6 +111,8 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     if (isEditing) {
       setDraft(entry.body)
       setPendingRemovals(new Set())
+      setCompletions([])
+      setDetectedType(null)
       textareaRef.current?.focus()
       const len = textareaRef.current?.value.length ?? 0
       textareaRef.current?.setSelectionRange(len, len)
@@ -187,7 +194,34 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   const cancelEdit = () => {
     setDraft(entry.body)
     setPendingRemovals(new Set())
+    setCompletions([])
+    setDetectedType(null)
     onEditEnd()
+  }
+
+  const handleDraftChange = (newValue: string) => {
+    setDraft(newValue)
+    // Extract the leading slash prefix (before any space) for completions
+    const trimmed = newValue.trimStart()
+    const prefixMatch = trimmed.match(/^(\/\S*)/)
+    const prefix = prefixMatch ? prefixMatch[1] : ''
+    const newCompletions = getCompletions(prefix)
+    setCompletions(newCompletions)
+    setSelectedCompletionIndex(0)
+    const parsed = parseSlashCommand(newValue.trim())
+    setDetectedType(parsed.type !== 'note' ? parsed.type : null)
+  }
+
+  const applyCompletion = (def: EntryTypeDefinition) => {
+    const cmd = def.command! + ' '
+    // Replace the leading slash prefix, keep the rest of the text
+    const trimmed = draft.trimStart()
+    const prefixMatch = trimmed.match(/^\/\S*\s?/)
+    const rest = prefixMatch ? trimmed.slice(prefixMatch[0].length) : trimmed
+    setDraft(cmd + rest)
+    setDetectedType(def.type)
+    setCompletions([])
+    textareaRef.current?.focus()
   }
 
   const saveEdit = async () => {
@@ -202,7 +236,13 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
       }
       return
     }
-    if (trimmed === entry.body && pendingRemovals.size === 0) {
+
+    // Check for slash command at the start of the edited text
+    const { type: parsedType, body: parsedBody } = parseSlashCommand(trimmed)
+    const newBody = parsedType !== 'note' ? parsedBody : trimmed
+    const newType = parsedType !== 'note' ? parsedType : undefined
+
+    if (newBody === entry.body && pendingRemovals.size === 0 && !newType) {
       cancelEdit()
       return
     }
@@ -211,7 +251,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
       const keepImagePaths = pendingRemovals.size > 0
         ? entry.image_paths.filter((p) => !pendingRemovals.has(p))
         : undefined
-      const updated = await window.electronAPI.updateEntry(entry.id, trimmed, keepImagePaths)
+      const updated = await window.electronAPI.updateEntry(entry.id, newBody, keepImagePaths, newType)
       onUpdated(updated)
       onEditEnd()
       setPendingRemovals(new Set())
@@ -223,6 +263,29 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (completions.length > 0) {
+      if (e.key === 'Tab' || e.key === 'Enter') {
+        e.preventDefault()
+        applyCompletion(completions[selectedCompletionIndex])
+        return
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedCompletionIndex((i) => (i + 1) % completions.length)
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedCompletionIndex((i) => (i - 1 + completions.length) % completions.length)
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setCompletions([])
+        return
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       saveEdit()
@@ -475,15 +538,43 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
 
       {isEditing ? (
         <div>
-          <textarea
-            ref={textareaRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={saving}
-            style={{ minHeight: '5rem' }}
-            className="no-drag w-full bg-gray-700/80 text-gray-100 font-mono text-sm rounded px-2 py-1.5 border border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
-          />
+          <div className="relative">
+            {/* Autocomplete dropdown */}
+            {completions.length > 0 && (
+              <div className="absolute bottom-full mb-1 left-0 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-10 min-w-[160px]">
+                {completions.map((def, i) => (
+                  <button
+                    key={def.type}
+                    onMouseDown={(e) => { e.preventDefault(); applyCompletion(def) }}
+                    className={`w-full text-left px-3 py-1.5 text-sm font-mono flex items-center gap-2 transition-colors ${
+                      i === selectedCompletionIndex ? 'bg-gray-700 text-gray-100' : 'text-gray-300 hover:bg-gray-700/60'
+                    }`}
+                  >
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${def.tagBgClass} ${def.tagTextClass}`}>
+                      {def.label.toUpperCase()}
+                    </span>
+                    <span className="text-gray-500">{def.command}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <textarea
+              ref={textareaRef}
+              value={draft}
+              onChange={(e) => handleDraftChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={saving}
+              style={{ minHeight: '5rem' }}
+              className="no-drag w-full bg-gray-700/80 text-gray-100 font-mono text-sm rounded px-2 py-1.5 border border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
+            />
+            {detectedType && (
+              <div className="absolute bottom-2 right-2 pointer-events-none">
+                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${getEntryTypeDefinition(detectedType).tagBgClass} ${getEntryTypeDefinition(detectedType).tagTextClass}`}>
+                  {getEntryTypeDefinition(detectedType).label.toUpperCase()}
+                </span>
+              </div>
+            )}
+          </div>
           {entry.image_paths.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-2">
               {entry.image_paths.map((path) => {

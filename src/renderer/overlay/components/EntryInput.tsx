@@ -66,7 +66,10 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
 
   const handleValueChange = (newValue: string) => {
     setValue(newValue)
-    const newCompletions = getCompletions(newValue.trimStart())
+    const trimmed = newValue.trimStart()
+    const prefixMatch = trimmed.match(/^(\/\S*)/)
+    const prefix = prefixMatch ? prefixMatch[1] : ''
+    const newCompletions = getCompletions(prefix)
     setCompletions(newCompletions)
     setSelectedCompletionIndex(0)
     setDetectedType(parseSlashCommand(newValue.trim()).type)
@@ -74,7 +77,10 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
 
   const applyCompletion = (def: EntryTypeDefinition) => {
     const cmd = def.command! + ' '
-    setValue(cmd)
+    const trimmed = value.trimStart()
+    const prefixMatch = trimmed.match(/^\/\S*\s?/)
+    const rest = prefixMatch ? trimmed.slice(prefixMatch[0].length) : trimmed
+    setValue(cmd + rest)
     setDetectedType(def.type)
     setCompletions([])
     textareaRef.current?.focus()

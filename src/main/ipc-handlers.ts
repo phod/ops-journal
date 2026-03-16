@@ -197,8 +197,9 @@ export function registerIpcHandlers(): void {
         entryIds,
         summaryJson,
         imageHandling = 'omit',
-        openAfterExport = false
-      }: { investigationId: string; investigationName: string; format: 'markdown' | 'pdf' | 'clipboard' | 'rich-clipboard'; entryIds: string[]; summaryJson?: string; imageHandling?: 'omit' | 'reference'; openAfterExport?: boolean }
+        openAfterExport = false,
+        boardIds
+      }: { investigationId: string; investigationName: string; format: 'markdown' | 'pdf' | 'clipboard' | 'rich-clipboard'; entryIds: string[]; summaryJson?: string; imageHandling?: 'omit' | 'reference'; openAfterExport?: boolean; boardIds?: string[] }
     ) => {
       try {
         const allEntries = listEntries(investigationId)
@@ -230,7 +231,10 @@ export function registerIpcHandlers(): void {
         if (dialogResult.canceled || !dialogResult.filePath) return { success: false, error: 'Cancelled' }
 
         if (format === 'pdf') {
-          await exportAsPdf(investigationName, createdAt, entries, dialogResult.filePath, summaryJson)
+          const boardStates = boardIds && boardIds.length > 0
+            ? boardIds.map((id) => getBoardState(id))
+            : undefined
+          await exportAsPdf(investigationName, createdAt, entries, dialogResult.filePath, summaryJson, boardStates)
         } else {
           const md = exportAsMarkdown(investigationName, createdAt, entries, summaryJson, imageHandling)
           const { writeFileSync } = await import('fs')

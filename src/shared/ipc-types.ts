@@ -73,6 +73,7 @@ export interface ElectronAPI {
     summaryJson?: string
     imageHandling?: 'omit' | 'reference'
     openAfterExport?: boolean
+    boardIds?: string[]
   }) => Promise<{ success: boolean; error?: string }>
 
   // Images

@@ -2,6 +2,7 @@ import { BrowserWindow } from 'electron'
 import { writeFileSync } from 'fs'
 import { readImageAsDataUrl } from './images'
 import type { JournalEntry } from '@shared/ipc-types'
+import type { BoardState, BoardNode, BoardEdge } from '@shared/board-types'
 
 function formatTimestamp(iso: string): string {
   return new Date(iso).toLocaleString()
@@ -470,11 +471,143 @@ function parentHypothesesHtml(entry: JournalEntry, allEntries: JournalEntry[]): 
     </div>`
 }
 
+// ---------------------------------------------------------------------------
+// Board → HTML (for PDF)
+// ---------------------------------------------------------------------------
+
+const BOARD_NODE_COLORS: Record<string, { bg: string; border: string; text: string; badge: string; badgeText: string }> = {
+  note:       { bg: '#f9fafb', border: '#d1d5db', text: '#374151', badge: '#6b7280', badgeText: '#ffffff' },
+  action:     { bg: '#fff7ed', border: '#fb923c', text: '#9a3412', badge: '#fb923c', badgeText: '#431407' },
+  finding:    { bg: '#f0fdfa', border: '#2dd4bf', text: '#134e4a', badge: '#2dd4bf', badgeText: '#042f2e' },
+  hypothesis: { bg: '#f5f3ff', border: '#a78bfa', text: '#5b21b6', badge: '#8b5cf6', badgeText: '#faf5ff' },
+}
+
+function boardNodeHtml(node: BoardNode, allEntries: JournalEntry[], offsetX: number, offsetY: number): string {
+  const x = node.position_x - offsetX
+  const y = node.position_y - offsetY
+  const w = node.width ?? 220
+  const h = node.height ?? 70
+  const data = JSON.parse(node.data_json)
+
+  if (node.node_type === 'entry') {
+    const entry = allEntries.find((e) => e.id === data.entryId)
+    if (!entry) {
+      return `<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;min-height:${h}px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:12px;color:#9ca3af;font-style:italic;">[deleted entry]</div>`
+    }
+    const c = BOARD_NODE_COLORS[entry.type] ?? BOARD_NODE_COLORS.note
+    const truncated = entry.body.length > 150 ? entry.body.slice(0, 150) + '…' : entry.body
+    const label = entryTypeLabel(entry.type)
+    return `<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;min-height:${h}px;background:${c.bg};border:1px solid ${c.border};border-radius:6px;padding:8px 10px;overflow:hidden;">
+      <span style="display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;background:${c.badge};color:${c.badgeText};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">${escapeHtml(label)}</span>
+      <div style="font-size:12px;color:${c.text};white-space:pre-wrap;line-height:1.5;word-break:break-word;">${escapeHtml(truncated)}</div>
+    </div>`
+  }
+
+  if (node.node_type === 'textbox') {
+    const text = (data.text as string) || ''
+    return `<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;min-height:${h}px;background:#ffffff;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;">
+      <div style="font-size:12px;color:#374151;white-space:pre-wrap;line-height:1.5;word-break:break-word;">${escapeHtml(text) || '<span style="color:#9ca3af;font-style:italic;">Empty</span>'}</div>
+    </div>`
+  }
+
+  if (node.node_type === 'image') {
+    const imagePath = data.imagePath as string
+    try {
+      const dataUrl = readImageAsDataUrl(imagePath)
+      return `<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;min-height:${h}px;background:#ffffff;border:1px solid #d1d5db;border-radius:6px;overflow:hidden;">
+        <img src="${dataUrl}" style="display:block;width:100%;height:auto;object-fit:contain;" />
+      </div>`
+    } catch {
+      return `<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;min-height:${h}px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:12px;color:#9ca3af;font-style:italic;">[image unavailable]</div>`
+    }
+  }
+
+  return ''
+}
+
+function boardEdgeSvg(edge: BoardEdge, nodes: BoardNode[], offsetX: number, offsetY: number): string {
+  const src = nodes.find((n) => n.id === edge.source_node_id)
+  const tgt = nodes.find((n) => n.id === edge.target_node_id)
+  if (!src || !tgt) return ''
+
+  const sw = src.width ?? 220
+  const sh = src.height ?? 70
+  const tw = tgt.width ?? 220
+  const th = tgt.height ?? 70
+
+  const x1 = src.position_x - offsetX + sw / 2
+  const y1 = src.position_y - offsetY + sh / 2
+  const x2 = tgt.position_x - offsetX + tw / 2
+  const y2 = tgt.position_y - offsetY + th / 2
+
+  let labelHtml = ''
+  if (edge.label) {
+    const mx = (x1 + x2) / 2
+    const my = (y1 + y2) / 2
+    labelHtml = `<text x="${mx}" y="${my - 6}" text-anchor="middle" font-size="10" fill="#6b7280" font-family="-apple-system,BlinkMacSystemFont,sans-serif">${escapeHtml(edge.label)}</text>`
+  }
+
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrowhead)" />${labelHtml}`
+}
+
+function buildBoardSectionHtml(boardStates: BoardState[], allEntries: JournalEntry[]): string {
+  if (boardStates.length === 0) return ''
+
+  const sections = boardStates.map((state) => {
+    const { board, nodes, edges } = state
+    if (nodes.length === 0) return ''
+
+    // Calculate bounding box
+    const padding = 40
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const n of nodes) {
+      const w = n.width ?? 220
+      const h = n.height ?? 70
+      if (n.position_x < minX) minX = n.position_x
+      if (n.position_y < minY) minY = n.position_y
+      if (n.position_x + w > maxX) maxX = n.position_x + w
+      if (n.position_y + h > maxY) maxY = n.position_y + h
+    }
+
+    const canvasW = maxX - minX + padding * 2
+    const canvasH = maxY - minY + padding * 2
+    const offsetX = minX - padding
+    const offsetY = minY - padding
+
+    const nodesHtml = nodes.map((n) => boardNodeHtml(n, allEntries, offsetX, offsetY)).join('')
+    const edgesSvg = edges.map((e) => boardEdgeSvg(e, nodes, offsetX, offsetY)).join('')
+
+    return `
+      <div style="margin-bottom:24px;">
+        <h3 style="font-size:16px;font-weight:600;color:#374151;margin:0 0 12px;">${escapeHtml(board.name)}</h3>
+        <div style="position:relative;width:${canvasW}px;height:${canvasH}px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+          <svg width="${canvasW}" height="${canvasH}" style="position:absolute;top:0;left:0;pointer-events:none;">
+            <defs>
+              <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="#9ca3af" />
+              </marker>
+            </defs>
+            ${edgesSvg}
+          </svg>
+          ${nodesHtml}
+        </div>
+      </div>`
+  }).filter(Boolean)
+
+  if (sections.length === 0) return ''
+
+  return `
+    <div style="page-break-before:always;"></div>
+    <h2 style="font-size:18px;font-weight:700;color:#111827;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.05em;">Rumour Boards</h2>
+    ${sections.join('')}`
+}
+
 export function buildExportHtml(
   investigationName: string,
   createdAt: string,
   entries: JournalEntry[],
-  summaryJson?: string
+  summaryJson?: string,
+  boardStates?: BoardState[]
 ): string {
   const summarySection = summaryJson
     ? `
@@ -540,6 +673,7 @@ export function buildExportHtml(
       <hr />
       ${summarySection}
       ${entryRows}
+      ${boardStates ? buildBoardSectionHtml(boardStates, entries) : ''}
     </body>
     </html>
   `
@@ -550,9 +684,10 @@ export async function exportAsPdf(
   createdAt: string,
   entries: JournalEntry[],
   savePath: string,
-  summaryJson?: string
+  summaryJson?: string,
+  boardStates?: BoardState[]
 ): Promise<void> {
-  const html = buildExportHtml(investigationName, createdAt, entries, summaryJson)
+  const html = buildExportHtml(investigationName, createdAt, entries, summaryJson, boardStates)
   const win = new BrowserWindow({ show: false, webPreferences: { offscreen: true } })
   await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
   const pdfBuffer = await win.webContents.printToPDF({})

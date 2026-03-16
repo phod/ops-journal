@@ -11,7 +11,7 @@ import {
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
-import { getOverlayWindow, showManager, hideOverlay, showOverlay, hideManager, navigateManagerToDetails } from './windows'
+import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
 import { getHotkey, getScreenshotHotkey, getUploadHotkey } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
@@ -228,9 +228,9 @@ export function registerIpcHandlers(): void {
 
   // --- Window management ---
 
-  ipcMain.handle('window:openManager', () => { hideOverlay(); showManager() })
+  ipcMain.handle('window:openManager', () => showManager())
   ipcMain.handle('overlay:hide', () => hideOverlay())
-  ipcMain.handle('overlay:show', () => { hideManager(); showOverlay() })
+  ipcMain.handle('overlay:show', () => showOverlay())
   ipcMain.handle('window:openDetails', (_event, { id }: { id: string }) => navigateManagerToDetails(id))
 
   console.log('[ipc] All handlers registered')

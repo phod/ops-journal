@@ -185,3 +185,28 @@ function positionOverlay(win: BrowserWindow): void {
   const y = 80 // Near the top of the screen
   win.setPosition(x, y)
 }
+
+let preBoardBounds: OverlayBounds | null = null
+
+export function expandOverlayForBoard(): void {
+  const win = overlayWindow
+  if (!win) return
+  // Save current bounds so we can restore on close
+  const [x, y] = win.getPosition()
+  const [currentWidth, height] = win.getSize()
+  preBoardBounds = { x, y, width: currentWidth, height }
+
+  const { workAreaSize } = screen.getPrimaryDisplay()
+  const targetWidth = Math.min(Math.round(workAreaSize.width * 0.85), 1600)
+  if (currentWidth < targetWidth) {
+    const newX = Math.round((workAreaSize.width - targetWidth) / 2)
+    win.setBounds({ x: newX, y, width: targetWidth, height })
+  }
+}
+
+export function restoreOverlayFromBoard(): void {
+  const win = overlayWindow
+  if (!win || !preBoardBounds) return
+  win.setBounds(preBoardBounds)
+  preBoardBounds = null
+}

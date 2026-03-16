@@ -214,7 +214,12 @@ export default function App() {
                 onClick={() => {
                   const opening = !showRumourBoard
                   setShowRumourBoard(opening)
-                  if (opening) setShowEntryStream(true)
+                  if (opening) {
+                    setShowEntryStream(true)
+                    window.electronAPI.expandOverlayForBoard()
+                  } else {
+                    window.electronAPI.restoreOverlayFromBoard()
+                  }
                 }}
                 className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0 font-bold ${
                   showRumourBoard

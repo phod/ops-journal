@@ -35,6 +35,7 @@ interface Props {
   onDropEntry: (entryId: string, position: { x: number; y: number }) => void
   onAddTextBox: (position: { x: number; y: number }) => void
   onUpdateTextBox: (nodeId: string, text: string) => void
+  onExplodeHypothesis: (nodeId: string) => void
   allEntries: JournalEntry[]
 }
 
@@ -49,6 +50,7 @@ export function BoardCanvas({
   onDropEntry,
   onAddTextBox,
   onUpdateTextBox,
+  onExplodeHypothesis,
   allEntries
 }: Props) {
   const reactFlowRef = useRef<HTMLDivElement>(null)
@@ -78,7 +80,7 @@ export function BoardCanvas({
     [viewport, onDropEntry]
   )
 
-  // Wrap nodes so textbox onChange is wired up
+  // Wrap nodes so callbacks are wired up
   const nodesWithHandlers: Node[] = nodes.map((node) => {
     if (node.type === 'textbox') {
       return {
@@ -86,6 +88,15 @@ export function BoardCanvas({
         data: {
           ...node.data,
           onChange: (text: string) => onUpdateTextBox(node.id, text)
+        }
+      }
+    }
+    if (node.type === 'entry') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onExplode: () => onExplodeHypothesis(node.id)
         }
       }
     }

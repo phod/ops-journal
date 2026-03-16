@@ -126,6 +126,12 @@ export default function App() {
             <RumourBoardView investigationId={currentInvestigation.id} entries={entries} />
           </div>
           {showEntryStream && entryStream}
+          {showHypothesisPanel && (
+            <HypothesisPanel
+              entries={entries}
+              onClose={() => setShowHypothesisPanel(false)}
+            />
+          )}
         </div>
       )
     }
@@ -160,10 +166,7 @@ export default function App() {
                 onClick={() => {
                   const opening = !showRumourBoard
                   setShowRumourBoard(opening)
-                  if (opening) {
-                    setShowEntryStream(true)
-                    setShowHypothesisPanel(false)
-                  }
+                  if (opening) setShowEntryStream(true)
                 }}
                 className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0 font-bold ${
                   showRumourBoard
@@ -188,10 +191,7 @@ export default function App() {
                 </button>
               )}
               <button
-                onClick={() => {
-                  setShowHypothesisPanel((v) => !v)
-                  if (!showHypothesisPanel) setShowRumourBoard(false)
-                }}
+                onClick={() => setShowHypothesisPanel((v) => !v)}
                 className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0 ${
                   showHypothesisPanel
                     ? 'text-violet-300 bg-violet-500/20'

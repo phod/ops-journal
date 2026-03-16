@@ -31,6 +31,10 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke('entry:update', { id, body, keepImagePaths, type }),
   deleteEntry: (id) => ipcRenderer.invoke('entry:delete', { id }),
 
+  // Actions
+  toggleActionCompleted: (entryId: string) =>
+    ipcRenderer.invoke('action:toggleCompleted', { entryId }),
+
   // Hypotheses
   updateHypothesisStatus: (entryId: string, status: HypothesisStatus) =>
     ipcRenderer.invoke('hypothesis:updateStatus', { entryId, status }),

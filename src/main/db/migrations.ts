@@ -90,5 +90,8 @@ export const migrations: string[] = [
   CREATE INDEX IF NOT EXISTS idx_board_nodes_board_id ON board_nodes(board_id);
   CREATE INDEX IF NOT EXISTS idx_board_edges_board_id ON board_edges(board_id);
   CREATE INDEX IF NOT EXISTS idx_rumour_boards_investigation_id ON rumour_boards(investigation_id);
-  `
+  `,
+
+  // Migration 8 — action completion tracking
+  `ALTER TABLE journal_entries ADD COLUMN action_completed INTEGER NOT NULL DEFAULT 0;`,
 ]

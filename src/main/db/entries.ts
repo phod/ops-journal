@@ -3,7 +3,7 @@ import { getDb } from './index'
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
 
 const ENTRY_COLUMNS = `
-  je.id, je.investigation_id, je.body, je.created_at, je.type, je.hypothesis_status,
+  je.id, je.investigation_id, je.body, je.created_at, je.type, je.hypothesis_status, je.action_completed,
   json_group_array(ei.image_path) FILTER (WHERE ei.image_path IS NOT NULL) as image_paths_json,
   (SELECT json_group_array(hf.finding_entry_id) FROM hypothesis_findings hf WHERE hf.hypothesis_entry_id = je.id) as linked_finding_ids_json
 `
@@ -37,6 +37,9 @@ function rowToEntry(row: Record<string, unknown>): JournalEntry {
   }
   if (row.hypothesis_status != null) {
     entry.hypothesis_status = row.hypothesis_status as HypothesisStatus
+  }
+  if (type === 'action') {
+    entry.action_completed = (row.action_completed as number) === 1
   }
   if (type === 'hypothesis') {
     entry.linked_finding_ids = JSON.parse((row.linked_finding_ids_json as string) || '[]')
@@ -104,6 +107,12 @@ export function deleteEntry(id: string): JournalEntry | undefined {
   const entry = getEntry(id)
   db.prepare('DELETE FROM journal_entries WHERE id = ?').run(id)
   return entry
+}
+
+export function toggleActionCompleted(id: string): JournalEntry {
+  const db = getDb()
+  db.prepare('UPDATE journal_entries SET action_completed = CASE WHEN action_completed = 1 THEN 0 ELSE 1 END WHERE id = ?').run(id)
+  return getEntry(id)!
 }
 
 export function updateHypothesisStatus(id: string, status: HypothesisStatus): JournalEntry {

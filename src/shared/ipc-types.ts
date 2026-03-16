@@ -25,6 +25,7 @@ export interface JournalEntry {
   type: EntryType
   hypothesis_status?: HypothesisStatus
   linked_finding_ids?: string[]
+  action_completed?: boolean
 }
 
 export interface ElectronAPI {
@@ -41,6 +42,9 @@ export interface ElectronAPI {
   createEntry: (investigationId: string, body: string, imageDataUrls?: string[], type?: EntryType) => Promise<JournalEntry>
   updateEntry: (id: string, body: string, keepImagePaths?: string[] | null, type?: EntryType) => Promise<JournalEntry>
   deleteEntry: (id: string) => Promise<void>
+
+  // Actions
+  toggleActionCompleted: (entryId: string) => Promise<JournalEntry>
 
   // Hypotheses
   updateHypothesisStatus: (entryId: string, status: HypothesisStatus) => Promise<JournalEntry>

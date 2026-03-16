@@ -187,8 +187,13 @@ function tiptapNodeToHtml(node: TipTapNode): string {
       const type = (a.entryType as string) ?? 'note'
       const body = (a.entryBody as string) ?? ''
       const ts = a.entryTimestamp as string | undefined
+      const hypothesisStatus = (a.entryHypothesisStatus as string) ?? null
       const c = TYPE_COLORS_LIGHT[type] ?? TYPE_COLORS_LIGHT.note
+      const isHypothesis = type === 'hypothesis'
       const imagePaths = (a.entryImagePaths as string[]) ?? []
+      const linkedFindings = (a.entryLinkedFindings as { id: string; body: string }[]) ?? []
+      const childHypotheses = (a.entryChildHypotheses as { id: string; body: string; status: string }[]) ?? []
+      const parentHypotheses = (a.entryParentHypotheses as { id: string; body: string; status: string }[]) ?? []
       const imagesHtml = imagePaths.map((p) => {
         try {
           const dataUrl = readImageAsDataUrl(p)
@@ -197,16 +202,55 @@ function tiptapNodeToHtml(node: TipTapNode): string {
           return `<em style="color:#9ca3af;">[image unavailable]</em>`
         }
       }).join('')
+      const fc = TYPE_COLORS_LIGHT.finding
+      const findingsHtml = isHypothesis && linkedFindings.length > 0
+        ? `<div style="margin-top:10px;">
+            <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Findings</div>
+            ${linkedFindings.map((f) => `<div style="padding:6px 10px;margin-bottom:4px;border-radius:4px;background:${fc.bg};border:1px solid ${fc.border};font-size:14px;color:${fc.text};">${escapeHtml(f.body || '(no text)')}</div>`).join('')}
+          </div>`
+        : ''
+      const childrenHtml = isHypothesis && childHypotheses.length > 0
+        ? `<div style="margin-top:10px;">
+            <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Child Hypotheses</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              ${childHypotheses.map((ch) => {
+                const sc = HYPOTHESIS_STATUS_COLORS[ch.status] ?? HYPOTHESIS_STATUS_COLORS.open
+                return `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;background:#f5f3ff;border:1px solid #c4b5fd;font-size:13px;color:#5b21b6;">
+                  <span style="font-weight:700;color:${sc.text};">${escapeHtml(ch.status.charAt(0).toUpperCase() + ch.status.slice(1))}</span>
+                  ${escapeHtml(ch.body || '(no text)')}
+                </span>`
+              }).join('')}
+            </div>
+          </div>`
+        : ''
+      const parentsHtml = isHypothesis && parentHypotheses.length > 0
+        ? `<div style="margin-top:10px;">
+            <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Parent Hypothesis</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              ${parentHypotheses.map((p) => {
+                const sc = HYPOTHESIS_STATUS_COLORS[p.status] ?? HYPOTHESIS_STATUS_COLORS.open
+                return `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;background:#ede9fe;border:1px solid #c4b5fd;font-size:13px;color:#5b21b6;">
+                  <span style="font-weight:700;color:${sc.text};">${escapeHtml(p.status.charAt(0).toUpperCase() + p.status.slice(1))}</span>
+                  ${escapeHtml(p.body || '(no text)')}
+                </span>`
+              }).join('')}
+            </div>
+          </div>`
+        : ''
       return `
         <div style="margin:10px 0;padding:10px 12px;background:${c.bg};border:1px solid ${c.border};border-left:3px solid ${c.border};border-radius:6px;">
           <div style="page-break-inside:avoid;">
             <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
               <span style="font-size:12px;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(entryTypeLabel(type))}</span>
+              ${isHypothesis && hypothesisStatus ? hypothesisStatusBadgeHtml(hypothesisStatus) : ''}
               ${ts ? `<span style="font-size:14px;color:#6b7280;">${formatTimestamp(ts)}</span>` : ''}
             </div>
             ${body ? `<div style="font-size:18px;color:#1f2937;white-space:pre-wrap;line-height:1.7;">${escapeHtml(body)}</div>` : ''}
           </div>
           ${imagesHtml}
+          ${parentsHtml}
+          ${findingsHtml}
+          ${childrenHtml}
         </div>`
     }
 
@@ -295,7 +339,9 @@ export function exportAsMarkdown(
     lines.push('')
 
     for (const entry of entries) {
-      lines.push(`### [${formatTimestamp(entry.created_at)}] ${entryTypeLabel(entry.type)}`)
+      const isHypothesis = entry.type === 'hypothesis'
+      const statusStr = isHypothesis ? ` [${(entry.hypothesis_status ?? 'open').toUpperCase()}]` : ''
+      lines.push(`### [${formatTimestamp(entry.created_at)}] ${entryTypeLabel(entry.type)}${statusStr}`)
       lines.push('')
       lines.push(entry.body)
       lines.push('')
@@ -303,6 +349,41 @@ export function exportAsMarkdown(
       for (const imagePath of entry.image_paths) {
         const token = imageToken(imagePath, imageHandling)
         if (token) lines.push(token)
+      }
+
+      // Parent hypotheses
+      if (isHypothesis) {
+        const parents = entries.filter((e) => e.type === 'hypothesis' && e.linked_child_hypothesis_ids?.includes(entry.id))
+        if (parents.length > 0) {
+          lines.push(`**Parent:** ${parents.map((p) => `${p.body} [${(p.hypothesis_status ?? 'open').toUpperCase()}]`).join(', ')}`)
+          lines.push('')
+        }
+      }
+
+      // Linked findings
+      if (isHypothesis) {
+        const findingIds = entry.linked_finding_ids ?? []
+        const findings = findingIds.map((id) => entries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+        if (findings.length > 0) {
+          lines.push('**Findings:**')
+          for (const f of findings) {
+            lines.push(`- ${f.body || '(no text)'}`)
+          }
+          lines.push('')
+        }
+      }
+
+      // Child hypotheses
+      if (isHypothesis) {
+        const childIds = entry.linked_child_hypothesis_ids ?? []
+        const children = childIds.map((id) => entries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+        if (children.length > 0) {
+          lines.push('**Child Hypotheses:**')
+          for (const ch of children) {
+            lines.push(`- ${ch.body || '(no text)'} [${(ch.hypothesis_status ?? 'open').toUpperCase()}]`)
+          }
+          lines.push('')
+        }
       }
 
       lines.push('---')
@@ -318,6 +399,75 @@ const TYPE_COLORS_LIGHT: Record<string, { bg: string; border: string; text: stri
   action:     { bg: '#eff6ff', border: '#93c5fd', text: '#1d4ed8' },
   hypothesis: { bg: '#fffbeb', border: '#fcd34d', text: '#92400e' },
   note:       { bg: '#f9fafb', border: '#d1d5db', text: '#374151' },
+}
+
+const HYPOTHESIS_STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  open:      { bg: '#fef9c3', border: '#facc15', text: '#854d0e' },
+  true:      { bg: '#dcfce7', border: '#86efac', text: '#166534' },
+  false:     { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
+  abandoned: { bg: '#f3f4f6', border: '#d1d5db', text: '#6b7280' },
+}
+
+function hypothesisStatusBadgeHtml(status: string): string {
+  const sc = HYPOTHESIS_STATUS_COLORS[status] ?? HYPOTHESIS_STATUS_COLORS.open
+  const label = status.charAt(0).toUpperCase() + status.slice(1)
+  return `<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:${sc.bg};border:1px solid ${sc.border};color:${sc.text};text-transform:capitalize;">${escapeHtml(label)}</span>`
+}
+
+function linkedFindingsHtml(entry: JournalEntry, allEntries: JournalEntry[]): string {
+  if (entry.type !== 'hypothesis') return ''
+  const findingIds = entry.linked_finding_ids ?? []
+  if (findingIds.length === 0) return ''
+  const findings = findingIds.map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+  if (findings.length === 0) return ''
+  const fc = TYPE_COLORS_LIGHT.finding
+  return `
+    <div style="margin-top:10px;">
+      <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Findings</div>
+      ${findings.map((f) => `<div style="padding:6px 10px;margin-bottom:4px;border-radius:4px;background:${fc.bg};border:1px solid ${fc.border};font-size:14px;color:${fc.text};">${escapeHtml(f.body || '(no text)')}</div>`).join('')}
+    </div>`
+}
+
+function linkedChildHypothesesHtml(entry: JournalEntry, allEntries: JournalEntry[]): string {
+  if (entry.type !== 'hypothesis') return ''
+  const childIds = entry.linked_child_hypothesis_ids ?? []
+  if (childIds.length === 0) return ''
+  const children = childIds.map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+  if (children.length === 0) return ''
+  return `
+    <div style="margin-top:10px;">
+      <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Child Hypotheses</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${children.map((ch) => {
+          const s = ch.hypothesis_status ?? 'open'
+          const sc = HYPOTHESIS_STATUS_COLORS[s] ?? HYPOTHESIS_STATUS_COLORS.open
+          return `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;background:#f5f3ff;border:1px solid #c4b5fd;font-size:13px;color:#5b21b6;">
+            <span style="font-weight:700;color:${sc.text};">${escapeHtml(s.charAt(0).toUpperCase() + s.slice(1))}</span>
+            ${escapeHtml(ch.body || '(no text)')}
+          </span>`
+        }).join('')}
+      </div>
+    </div>`
+}
+
+function parentHypothesesHtml(entry: JournalEntry, allEntries: JournalEntry[]): string {
+  if (entry.type !== 'hypothesis') return ''
+  const parents = allEntries.filter((e) => e.type === 'hypothesis' && e.linked_child_hypothesis_ids?.includes(entry.id))
+  if (parents.length === 0) return ''
+  return `
+    <div style="margin-top:10px;">
+      <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Parent Hypothesis</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${parents.map((p) => {
+          const s = p.hypothesis_status ?? 'open'
+          const sc = HYPOTHESIS_STATUS_COLORS[s] ?? HYPOTHESIS_STATUS_COLORS.open
+          return `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;background:#ede9fe;border:1px solid #c4b5fd;font-size:13px;color:#5b21b6;">
+            <span style="font-weight:700;color:${sc.text};">${escapeHtml(s.charAt(0).toUpperCase() + s.slice(1))}</span>
+            ${escapeHtml(p.body || '(no text)')}
+          </span>`
+        }).join('')}
+      </div>
+    </div>`
 }
 
 export function buildExportHtml(
@@ -340,6 +490,8 @@ export function buildExportHtml(
       <h2 style="font-size:18px;font-weight:700;color:#111827;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.05em;">Entries</h2>
       ${entries.map((entry) => {
         const c = TYPE_COLORS_LIGHT[entry.type] ?? TYPE_COLORS_LIGHT.note
+        const isHypothesis = entry.type === 'hypothesis'
+        const status = entry.hypothesis_status ?? 'open'
         const images = entry.image_paths
           .map((p) => {
             try {
@@ -355,11 +507,15 @@ export function buildExportHtml(
             <div style="page-break-inside:avoid;">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                 <span style="font-size:12px;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:0.06em;">${entryTypeLabel(entry.type)}</span>
+                ${isHypothesis ? hypothesisStatusBadgeHtml(status) : ''}
                 <span style="font-size:14px;color:#6b7280;">${formatTimestamp(entry.created_at)}</span>
               </div>
               <div style="font-size:18px;color:#1f2937;white-space:pre-wrap;line-height:1.7;">${escapeHtml(entry.body)}</div>
             </div>
             ${images}
+            ${parentHypothesesHtml(entry, entries)}
+            ${linkedFindingsHtml(entry, entries)}
+            ${linkedChildHypothesesHtml(entry, entries)}
           </div>`
       }).join('')}`
     : ''

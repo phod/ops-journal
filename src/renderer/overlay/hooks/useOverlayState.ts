@@ -36,6 +36,7 @@ export function useOverlayState(): OverlayState {
     (id: string) => {
       setCurrentInvestigationId(id)
       fetchEntries(id)
+      window.electronAPI.setLastViewedInvestigationId(id)
     },
     [fetchEntries]
   )
@@ -63,9 +64,13 @@ export function useOverlayState(): OverlayState {
         setActiveInvestigations(investigations)
 
         if (investigations.length > 0) {
-          const firstId = investigations[0].id
-          setCurrentInvestigationId(firstId)
-          await fetchEntries(firstId)
+          const lastViewedId = await window.electronAPI.getLastViewedInvestigationId()
+          const resumeId =
+            lastViewedId && investigations.some((i) => i.id === lastViewedId)
+              ? lastViewedId
+              : investigations[0].id
+          setCurrentInvestigationId(resumeId)
+          await fetchEntries(resumeId)
         } else {
           setEntries([])
         }

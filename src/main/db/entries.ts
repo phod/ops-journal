@@ -1,11 +1,14 @@
 import { v4 as uuidv4 } from 'uuid'
 import { getDb } from './index'
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
+import { MAX_HYPOTHESIS_NESTING_DEPTH } from '@shared/ipc-types'
 
 const ENTRY_COLUMNS = `
   je.id, je.investigation_id, je.body, je.created_at, je.type, je.hypothesis_status, je.action_completed,
   json_group_array(ei.image_path) FILTER (WHERE ei.image_path IS NOT NULL) as image_paths_json,
-  (SELECT json_group_array(hf.finding_entry_id) FROM hypothesis_findings hf WHERE hf.hypothesis_entry_id = je.id) as linked_finding_ids_json
+  (SELECT json_group_array(hf.finding_entry_id) FROM hypothesis_findings hf WHERE hf.hypothesis_entry_id = je.id) as linked_finding_ids_json,
+  (SELECT json_group_array(hc.child_hypothesis_id) FROM hypothesis_children hc WHERE hc.parent_hypothesis_id = je.id) as linked_child_hypothesis_ids_json,
+  (SELECT json_group_array(hc.parent_hypothesis_id) FROM hypothesis_children hc WHERE hc.child_hypothesis_id = je.id) as parent_hypothesis_ids_json
 `
 
 const SELECT_ENTRY = `
@@ -43,6 +46,11 @@ function rowToEntry(row: Record<string, unknown>): JournalEntry {
   }
   if (type === 'hypothesis') {
     entry.linked_finding_ids = JSON.parse((row.linked_finding_ids_json as string) || '[]')
+    entry.linked_child_hypothesis_ids = JSON.parse((row.linked_child_hypothesis_ids_json as string) || '[]')
+    const parentIds = JSON.parse((row.parent_hypothesis_ids_json as string) || '[]')
+    if (parentIds.length > 0) {
+      entry.parent_hypothesis_ids = parentIds
+    }
   }
   return entry
 }
@@ -155,4 +163,75 @@ export function getFindingHypotheses(findingId: string): JournalEntry[] {
     GROUP BY je.id
   `).all(findingId) as Record<string, unknown>[]
   return rows.map(rowToEntry)
+}
+
+/**
+ * Compute how many levels of ancestors a hypothesis has (0 = root).
+ */
+function depthToRoot(db: ReturnType<typeof getDb>, hypothesisId: string): number {
+  let depth = 0
+  let currentId = hypothesisId
+  const visited = new Set<string>()
+  while (true) {
+    visited.add(currentId)
+    const row = db.prepare('SELECT parent_hypothesis_id FROM hypothesis_children WHERE child_hypothesis_id = ? LIMIT 1').get(currentId) as { parent_hypothesis_id: string } | undefined
+    if (!row || visited.has(row.parent_hypothesis_id)) break
+    depth++
+    currentId = row.parent_hypothesis_id
+  }
+  return depth
+}
+
+/**
+ * Compute the max depth from a hypothesis down to its deepest descendant (0 = leaf).
+ */
+function depthToLeaf(db: ReturnType<typeof getDb>, hypothesisId: string): number {
+  const children = db.prepare('SELECT child_hypothesis_id FROM hypothesis_children WHERE parent_hypothesis_id = ?').all(hypothesisId) as { child_hypothesis_id: string }[]
+  if (children.length === 0) return 0
+  let max = 0
+  for (const child of children) {
+    max = Math.max(max, 1 + depthToLeaf(db, child.child_hypothesis_id))
+  }
+  return max
+}
+
+/**
+ * Check if `ancestorId` is an ancestor of `hypothesisId` (or is the same id).
+ */
+function isAncestor(db: ReturnType<typeof getDb>, hypothesisId: string, ancestorId: string): boolean {
+  if (hypothesisId === ancestorId) return true
+  const visited = new Set<string>()
+  let currentId = hypothesisId
+  while (true) {
+    visited.add(currentId)
+    const row = db.prepare('SELECT parent_hypothesis_id FROM hypothesis_children WHERE child_hypothesis_id = ? LIMIT 1').get(currentId) as { parent_hypothesis_id: string } | undefined
+    if (!row || visited.has(row.parent_hypothesis_id)) break
+    if (row.parent_hypothesis_id === ancestorId) return true
+    currentId = row.parent_hypothesis_id
+  }
+  return false
+}
+
+export function linkHypothesisChild(parentId: string, childId: string): JournalEntry {
+  const db = getDb()
+  // Prevent self-linking
+  if (parentId === childId) throw new Error('Cannot link a hypothesis to itself')
+  // Prevent cycles: child must not be an ancestor of parent
+  if (isAncestor(db, parentId, childId)) throw new Error('Cannot create circular hypothesis chain')
+  // Check depth limit: depth from root to parent + 1 + depth from child to leaf <= MAX
+  const totalDepth = depthToRoot(db, parentId) + 1 + depthToLeaf(db, childId)
+  if (totalDepth >= MAX_HYPOTHESIS_NESTING_DEPTH) throw new Error(`Nesting depth would exceed maximum of ${MAX_HYPOTHESIS_NESTING_DEPTH}`)
+  db.prepare('INSERT OR IGNORE INTO hypothesis_children (parent_hypothesis_id, child_hypothesis_id) VALUES (?, ?)').run(parentId, childId)
+  return getEntry(parentId)!
+}
+
+export function unlinkHypothesisChild(parentId: string, childId: string): JournalEntry {
+  const db = getDb()
+  db.prepare('DELETE FROM hypothesis_children WHERE parent_hypothesis_id = ? AND child_hypothesis_id = ?').run(parentId, childId)
+  return getEntry(parentId)!
+}
+
+export function getHypothesisNestingDepth(hypothesisId: string): number {
+  const db = getDb()
+  return depthToRoot(db, hypothesisId)
 }

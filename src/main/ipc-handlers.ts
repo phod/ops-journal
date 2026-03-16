@@ -9,7 +9,7 @@ import {
   getSummary,
   saveSummary
 } from './db/investigations'
-import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses } from './db/entries'
+import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
@@ -114,6 +114,18 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('finding:getHypotheses', (_event, { findingId }: { findingId: string }) => {
     return getFindingHypotheses(findingId)
+  })
+
+  ipcMain.handle('hypothesis:linkChild', (_event, { parentId, childId }: { parentId: string; childId: string }) => {
+    return linkHypothesisChild(parentId, childId)
+  })
+
+  ipcMain.handle('hypothesis:unlinkChild', (_event, { parentId, childId }: { parentId: string; childId: string }) => {
+    return unlinkHypothesisChild(parentId, childId)
+  })
+
+  ipcMain.handle('hypothesis:getNestingDepth', (_event, { hypothesisId }: { hypothesisId: string }) => {
+    return getHypothesisNestingDepth(hypothesisId)
   })
 
   // --- Summary ---

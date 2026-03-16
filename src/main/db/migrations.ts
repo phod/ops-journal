@@ -94,4 +94,13 @@ export const migrations: string[] = [
 
   // Migration 8 — action completion tracking
   `ALTER TABLE journal_entries ADD COLUMN action_completed INTEGER NOT NULL DEFAULT 0;`,
+
+  // Migration 9 — hypothesis-to-hypothesis (parent→child) linking
+  `
+  CREATE TABLE hypothesis_children (
+    parent_hypothesis_id TEXT NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    child_hypothesis_id TEXT NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    PRIMARY KEY (parent_hypothesis_id, child_hypothesis_id)
+  );
+  `,
 ]

@@ -47,7 +47,8 @@ export function HypothesisPanel({ entries, onClose }: Props) {
         <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1.5">
           {hypotheses.map((h) => {
             const status = h.hypothesis_status ?? 'open'
-            const linkedCount = h.linked_finding_ids?.length ?? 0
+            const findingCount = h.linked_finding_ids?.length ?? 0
+            const childCount = h.linked_child_hypothesis_ids?.length ?? 0
             return (
               <button
                 key={h.id}
@@ -58,8 +59,11 @@ export function HypothesisPanel({ entries, onClose }: Props) {
                   <span className={`text-xs font-semibold ${STATUS_CLASS[status]}`}>
                     {STATUS_LABEL[status]}
                   </span>
-                  {linkedCount > 0 && (
-                    <span className="text-xs text-gray-600">· {linkedCount}f</span>
+                  {findingCount > 0 && (
+                    <span className="text-xs text-gray-600">· {findingCount}f</span>
+                  )}
+                  {childCount > 0 && (
+                    <span className="text-xs text-gray-600">· {childCount}h</span>
                   )}
                 </div>
                 <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">

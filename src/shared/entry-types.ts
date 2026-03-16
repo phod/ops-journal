@@ -109,3 +109,17 @@ export function resolveLinkedFindings(entry: JournalEntry, allEntries: JournalEn
     .map((id) => allEntries.find((e) => e.id === id))
     .filter(Boolean) as JournalEntry[]
 }
+
+export function resolveChildHypotheses(entry: JournalEntry, allEntries: JournalEntry[]): JournalEntry[] {
+  if (entry.type !== 'hypothesis') return []
+  return (entry.linked_child_hypothesis_ids ?? [])
+    .map((id) => allEntries.find((e) => e.id === id))
+    .filter(Boolean) as JournalEntry[]
+}
+
+export function resolveParentHypotheses(entry: JournalEntry, allEntries: JournalEntry[]): JournalEntry[] {
+  if (entry.type !== 'hypothesis') return []
+  return (entry.parent_hypothesis_ids ?? [])
+    .map((id) => allEntries.find((e) => e.id === id))
+    .filter(Boolean) as JournalEntry[]
+}

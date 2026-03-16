@@ -160,6 +160,14 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
     ? (entry.linked_finding_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
     : []
 
+  const linkedChildHypotheses = isHypothesis && allEntries
+    ? (entry.linked_child_hypothesis_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+    : []
+
+  const parentHypotheses = isHypothesis && allEntries
+    ? allEntries.filter((e) => e.type === 'hypothesis' && e.linked_child_hypothesis_ids?.includes(entry.id))
+    : []
+
   const linkedHypotheses = isFinding && allEntries
     ? allEntries.filter((e) => e.type === 'hypothesis' && e.linked_finding_ids?.includes(entry.id))
     : []
@@ -289,6 +297,30 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
           ))}
         </div>
       )}
+      {/* Parent hypothesis for child hypotheses */}
+      {isHypothesis && parentHypotheses.length > 0 && (
+        <div className="mt-2 space-y-1">
+          <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Parent Hypothesis</div>
+          <div className="flex flex-wrap gap-1.5">
+            {parentHypotheses.map((p) => {
+              const pStatus = (p.hypothesis_status ?? 'open') as HypothesisStatus
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => scrollToEntry(p.id)}
+                  className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 transition-colors flex items-center gap-1.5"
+                  title={p.body}
+                >
+                  <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[pStatus]}`}>
+                    {HYPOTHESIS_STATUS_LABEL[pStatus]}
+                  </span>
+                  <span className="truncate max-w-[180px]">{p.body || '(no text)'}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
       {/* Linked findings for hypothesis entries — click to expand full detail */}
       {isHypothesis && linkedFindings.length > 0 && (
         <div className="mt-2 space-y-1">
@@ -311,13 +343,37 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
           })}
         </div>
       )}
+      {/* Child hypotheses for hypothesis entries — click to scroll */}
+      {isHypothesis && linkedChildHypotheses.length > 0 && (
+        <div className="mt-2 space-y-1">
+          <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Child Hypotheses</div>
+          <div className="flex flex-wrap gap-1.5">
+            {linkedChildHypotheses.map((ch) => {
+              const chStatus = (ch.hypothesis_status ?? 'open') as HypothesisStatus
+              return (
+                <button
+                  key={ch.id}
+                  onClick={() => scrollToEntry(ch.id)}
+                  className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 transition-colors flex items-center gap-1.5"
+                  title={ch.body}
+                >
+                  <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[chStatus]}`}>
+                    {HYPOTHESIS_STATUS_LABEL[chStatus]}
+                  </span>
+                  <span className="truncate max-w-[180px]">{ch.body || '(no text)'}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
       {/* Linked hypotheses for finding entries — click to scroll to hypothesis */}
       {isFinding && linkedHypotheses.length > 0 && (
         <div className="mt-2 space-y-1">
           <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Hypotheses</div>
           <div className="flex flex-wrap gap-1.5">
             {linkedHypotheses.map((h) => {
-              const hStatus = h.hypothesis_status ?? 'open'
+              const hStatus = (h.hypothesis_status ?? 'open') as HypothesisStatus
               return (
                 <button
                   key={h.id}

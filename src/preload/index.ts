@@ -46,6 +46,12 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke('hypothesis:getFindings', { hypothesisId }),
   getFindingHypotheses: (findingId: string) =>
     ipcRenderer.invoke('finding:getHypotheses', { findingId }),
+  linkHypothesisChild: (parentId: string, childId: string) =>
+    ipcRenderer.invoke('hypothesis:linkChild', { parentId, childId }),
+  unlinkHypothesisChild: (parentId: string, childId: string) =>
+    ipcRenderer.invoke('hypothesis:unlinkChild', { parentId, childId }),
+  getHypothesisNestingDepth: (hypothesisId: string) =>
+    ipcRenderer.invoke('hypothesis:getNestingDepth', { hypothesisId }),
 
   // Export
   exportInvestigation: (options: { investigationId: string; investigationName: string; format: ExportFormat; entryIds: string[] }) =>

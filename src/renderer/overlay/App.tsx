@@ -3,15 +3,15 @@ import { useOverlayState } from './hooks/useOverlayState'
 import { TabBar } from './components/TabBar'
 import { EntryList } from './components/EntryList'
 import { EntryInput } from './components/EntryInput'
-import { HypothesisPanel } from './components/HypothesisPanel'
+import { EntityPanel } from './components/EntityPanel'
 import { ResizeHandle } from './components/ResizeHandle'
 import { RumourBoardView } from '../details/components/board/RumourBoardView'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 
 const MIN_ENTRY_STREAM_WIDTH = 200
 const DEFAULT_ENTRY_STREAM_WIDTH = 288
-const MIN_HYPOTHESIS_WIDTH = 120
-const DEFAULT_HYPOTHESIS_WIDTH = 176
+const MIN_ENTITY_PANEL_WIDTH = 120
+const DEFAULT_ENTITY_PANEL_WIDTH = 176
 
 export default function App() {
   const {
@@ -28,18 +28,18 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [pendingImages, setPendingImages] = useState<string[]>([])
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
-  const [showHypothesisPanel, setShowHypothesisPanel] = useState(false)
+  const [showEntityPanel, setShowEntityPanel] = useState(false)
   const [showRumourBoard, setShowRumourBoard] = useState(false)
   const [showEntryStream, setShowEntryStream] = useState(true)
   const [entryStreamWidth, setEntryStreamWidth] = useState(DEFAULT_ENTRY_STREAM_WIDTH)
-  const [hypothesisWidth, setHypothesisWidth] = useState(DEFAULT_HYPOTHESIS_WIDTH)
+  const [entityPanelWidth, setEntityPanelWidth] = useState(DEFAULT_ENTITY_PANEL_WIDTH)
 
   const handleEntryStreamResize = useCallback((delta: number) => {
     setEntryStreamWidth((w) => Math.max(MIN_ENTRY_STREAM_WIDTH, w - delta))
   }, [])
 
-  const handleHypothesisResize = useCallback((delta: number) => {
-    setHypothesisWidth((w) => Math.max(MIN_HYPOTHESIS_WIDTH, w - delta))
+  const handleEntityPanelResize = useCallback((delta: number) => {
+    setEntityPanelWidth((w) => Math.max(MIN_ENTITY_PANEL_WIDTH, w - delta))
   }, [])
 
   const hasFiles = (e: React.DragEvent) => e.dataTransfer.types.includes('Files')
@@ -143,13 +143,13 @@ export default function App() {
       </div>
     )
 
-    const hypothesisPanel = showHypothesisPanel && (
+    const entityPanel = showEntityPanel && (
       <>
-        <ResizeHandle onResize={handleHypothesisResize} />
-        <div className="flex-shrink-0 overflow-hidden" style={{ width: hypothesisWidth }}>
-          <HypothesisPanel
+        <ResizeHandle onResize={handleEntityPanelResize} />
+        <div className="flex-shrink-0 overflow-hidden" style={{ width: entityPanelWidth }}>
+          <EntityPanel
             entries={entries}
-            onClose={() => setShowHypothesisPanel(false)}
+            onClose={() => setShowEntityPanel(false)}
           />
         </div>
       </>
@@ -167,7 +167,7 @@ export default function App() {
               {entryStream}
             </>
           )}
-          {hypothesisPanel}
+          {entityPanel}
         </div>
       )
     }
@@ -192,7 +192,7 @@ export default function App() {
             onPendingImagesChange={setPendingImages}
           />
         </div>
-        {hypothesisPanel}
+        {entityPanel}
       </div>
     )
   }
@@ -244,15 +244,15 @@ export default function App() {
                 </button>
               )}
               <button
-                onClick={() => setShowHypothesisPanel((v) => !v)}
+                onClick={() => setShowEntityPanel((v) => !v)}
                 className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0 ${
-                  showHypothesisPanel
-                    ? 'text-violet-300 bg-violet-500/20'
+                  showEntityPanel
+                    ? 'text-indigo-300 bg-indigo-500/20'
                     : 'text-gray-600 hover:text-gray-400'
                 }`}
-                title="Toggle Hypotheses Panel"
+                title="Toggle Entity Panel"
               >
-                ⬡
+                ☰
               </button>
               <button
                 onClick={() => window.electronAPI.openDetails(currentInvestigation.id)}

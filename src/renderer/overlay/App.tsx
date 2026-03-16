@@ -1,11 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useOverlayState } from './hooks/useOverlayState'
 import { TabBar } from './components/TabBar'
 import { EntryList } from './components/EntryList'
 import { EntryInput } from './components/EntryInput'
 import { HypothesisPanel } from './components/HypothesisPanel'
+import { ResizeHandle } from './components/ResizeHandle'
 import { RumourBoardView } from '../details/components/board/RumourBoardView'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
+
+const MIN_ENTRY_STREAM_WIDTH = 200
+const DEFAULT_ENTRY_STREAM_WIDTH = 288
+const MIN_HYPOTHESIS_WIDTH = 120
+const DEFAULT_HYPOTHESIS_WIDTH = 176
 
 export default function App() {
   const {
@@ -25,20 +31,35 @@ export default function App() {
   const [showHypothesisPanel, setShowHypothesisPanel] = useState(false)
   const [showRumourBoard, setShowRumourBoard] = useState(false)
   const [showEntryStream, setShowEntryStream] = useState(true)
+  const [entryStreamWidth, setEntryStreamWidth] = useState(DEFAULT_ENTRY_STREAM_WIDTH)
+  const [hypothesisWidth, setHypothesisWidth] = useState(DEFAULT_HYPOTHESIS_WIDTH)
+
+  const handleEntryStreamResize = useCallback((delta: number) => {
+    setEntryStreamWidth((w) => Math.max(MIN_ENTRY_STREAM_WIDTH, w - delta))
+  }, [])
+
+  const handleHypothesisResize = useCallback((delta: number) => {
+    setHypothesisWidth((w) => Math.max(MIN_HYPOTHESIS_WIDTH, w - delta))
+  }, [])
+
+  const hasFiles = (e: React.DragEvent) => e.dataTransfer.types.includes('Files')
 
   const handleDragOver = (e: React.DragEvent) => {
+    if (!hasFiles(e)) return
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(true)
   }
 
   const handleDragLeave = (e: React.DragEvent) => {
+    if (!hasFiles(e)) return
     e.preventDefault()
     e.stopPropagation()
     if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false)
   }
 
   const handleDrop = (e: React.DragEvent) => {
+    if (!hasFiles(e)) return
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(false)
@@ -99,7 +120,10 @@ export default function App() {
     }
 
     const entryStream = (
-      <div className={`flex flex-col overflow-hidden ${showRumourBoard ? 'w-72 flex-shrink-0 border-l border-gray-700/50' : 'flex-1'}`}>
+      <div
+        className="flex flex-col overflow-hidden flex-shrink-0"
+        style={showRumourBoard ? { width: entryStreamWidth } : undefined}
+      >
         <EntryList
           entries={entries}
           editingEntryId={editingEntryId}
@@ -119,32 +143,56 @@ export default function App() {
       </div>
     )
 
+    const hypothesisPanel = showHypothesisPanel && (
+      <>
+        <ResizeHandle onResize={handleHypothesisResize} />
+        <div className="flex-shrink-0 overflow-hidden" style={{ width: hypothesisWidth }}>
+          <HypothesisPanel
+            entries={entries}
+            onClose={() => setShowHypothesisPanel(false)}
+          />
+        </div>
+      </>
+    )
+
     if (showRumourBoard) {
       return (
         <div className="flex flex-1 overflow-hidden">
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
             <RumourBoardView investigationId={currentInvestigation.id} entries={entries} />
           </div>
-          {showEntryStream && entryStream}
-          {showHypothesisPanel && (
-            <HypothesisPanel
-              entries={entries}
-              onClose={() => setShowHypothesisPanel(false)}
-            />
+          {showEntryStream && (
+            <>
+              <ResizeHandle onResize={handleEntryStreamResize} />
+              {entryStream}
+            </>
           )}
+          {hypothesisPanel}
         </div>
       )
     }
 
     return (
       <div className="flex flex-1 overflow-hidden">
-        {entryStream}
-        {showHypothesisPanel && (
-          <HypothesisPanel
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <EntryList
             entries={entries}
-            onClose={() => setShowHypothesisPanel(false)}
+            editingEntryId={editingEntryId}
+            onEditingEntryIdChange={setEditingEntryId}
+            onEntryUpdated={updateEntry}
+            onEntryDeleted={deleteEntry}
           />
-        )}
+          <EntryInput
+            activeInvestigation={currentInvestigation}
+            entries={entries}
+            editingEntryId={editingEntryId}
+            onSetEditingEntryId={setEditingEntryId}
+            onEntryCreated={addOptimisticEntry}
+            pendingImages={pendingImages}
+            onPendingImagesChange={setPendingImages}
+          />
+        </div>
+        {hypothesisPanel}
       </div>
     )
   }

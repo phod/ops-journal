@@ -1,13 +1,14 @@
 import { memo, useCallback } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
+import { NodeDeleteButton } from './NodeDeleteButton'
 
 export interface TextBoxNodeData {
   text: string
   onChange?: (text: string) => void
 }
 
-function TextBoxNode({ data, selected }: NodeProps) {
+function TextBoxNode({ id, data, selected }: NodeProps) {
   const { text, onChange } = data as TextBoxNodeData
 
   const handleChange = useCallback(
@@ -19,8 +20,9 @@ function TextBoxNode({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`rounded border bg-gray-800/90 border-gray-600 min-w-[160px] ${selected ? 'ring-2 ring-blue-500' : ''}`}
+      className={`relative rounded border bg-gray-800/90 border-gray-600 min-w-[160px] ${selected ? 'ring-2 ring-blue-500' : ''}`}
     >
+      {selected && <NodeDeleteButton nodeId={id} />}
       <Handle type="target" position={Position.Top} style={{ background: '#4b5563' }} />
       <Handle type="target" position={Position.Left} id="left-target" style={{ background: '#4b5563' }} />
       <textarea

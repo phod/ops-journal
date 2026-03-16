@@ -118,7 +118,7 @@ export function BoardCanvas({
         onMoveEnd={(_, vp) => onViewportChange(vp)}
         defaultViewport={viewport}
         fitViewOptions={{ padding: 0.2 }}
-        deleteKeyCode="Delete"
+        deleteKeyCode={['Backspace', 'Delete']}
         proOptions={{ hideAttribution: true }}
         className="bg-gray-900"
       >

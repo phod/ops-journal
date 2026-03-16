@@ -8,10 +8,17 @@ import { NodeDeleteButton } from './NodeDeleteButton'
 export interface EntryNodeData {
   entry: JournalEntry | null
   entryId: string
+  onExplode?: () => void
 }
 
 function EntryNode({ id, data, selected }: NodeProps) {
-  const { entry } = data as EntryNodeData
+  const { entry, onExplode } = data as EntryNodeData
+  const isHypothesis = entry?.type === 'hypothesis'
+  const hasRelations = isHypothesis && (
+    (entry.linked_finding_ids?.length ?? 0) > 0 ||
+    (entry.linked_child_hypothesis_ids?.length ?? 0) > 0 ||
+    (entry.parent_hypothesis_ids?.length ?? 0) > 0
+  )
 
   if (!entry) {
     return (
@@ -46,6 +53,14 @@ function EntryNode({ id, data, selected }: NodeProps) {
         )}
       </div>
       <p className="text-xs text-gray-200 leading-relaxed whitespace-pre-wrap break-words">{truncated}</p>
+      {selected && hasRelations && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onExplode?.() }}
+          className="mt-2 w-full text-xs px-2 py-1 rounded bg-violet-500/30 border border-violet-400/50 text-violet-200 hover:bg-violet-500/50 hover:text-violet-100 transition-colors font-medium"
+        >
+          Explode
+        </button>
+      )}
       <Handle type="source" position={Position.Bottom} style={{ background: '#4b5563' }} />
       <Handle type="source" position={Position.Right} id="right-source" style={{ background: '#4b5563' }} />
     </div>

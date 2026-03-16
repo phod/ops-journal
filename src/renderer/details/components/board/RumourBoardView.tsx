@@ -121,6 +121,7 @@ export function RumourBoardView({ investigationId, entries }: Props) {
             onDropEntry={handleDropEntry}
             onAddTextBox={handleAddTextBox}
             onUpdateTextBox={boardState.updateTextBoxNode}
+            onExplodeHypothesis={boardState.explodeHypothesisNode}
             allEntries={entries}
           />
         ) : (

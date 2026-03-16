@@ -4,7 +4,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import DropCursor from '@tiptap/extension-dropcursor'
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
-import { resolveLinkedFindings } from '@shared/entry-types'
+import { resolveLinkedFindings, resolveChildHypotheses, resolveParentHypotheses } from '@shared/entry-types'
 import { EntryRefNode } from './editor/EntryRefNode'
 import { SummaryImageNode } from './editor/SummaryImageNode'
 
@@ -30,7 +30,9 @@ function entryRefAttrs(entry: JournalEntry, allEntries: JournalEntry[]) {
     entryTimestamp: entry.created_at,
     entryImagePaths: entry.image_paths,
     entryHypothesisStatus: entry.hypothesis_status ?? null,
-    entryLinkedFindings: resolveLinkedFindings(entry, allEntries).map((f) => ({ id: f.id, body: f.body }))
+    entryLinkedFindings: resolveLinkedFindings(entry, allEntries).map((f) => ({ id: f.id, body: f.body })),
+    entryChildHypotheses: resolveChildHypotheses(entry, allEntries).map((h) => ({ id: h.id, body: h.body, status: h.hypothesis_status ?? 'open' })),
+    entryParentHypotheses: resolveParentHypotheses(entry, allEntries).map((h) => ({ id: h.id, body: h.body, status: h.hypothesis_status ?? 'open' }))
   }
 }
 

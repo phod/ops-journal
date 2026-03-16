@@ -1,7 +1,7 @@
 import { Node, mergeAttributes, ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react'
 import type { NodeViewProps } from '@tiptap/react'
 import { useEffect, useState } from 'react'
-import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
+import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import type { HypothesisStatus } from '@shared/ipc-types'
 import { formatDate, TIMESTAMP_OPTIONS_SHORT } from '@shared/format-date'
 
@@ -10,13 +10,21 @@ interface LinkedFinding {
   body: string
 }
 
+interface LinkedHypothesis {
+  id: string
+  body: string
+  status: string
+}
+
 function EntryRefNodeView({ node }: NodeViewProps) {
-  const { entryType, entryBody, entryTimestamp, entryImagePaths, entryHypothesisStatus, entryLinkedFindings } = node.attrs
+  const { entryType, entryBody, entryTimestamp, entryImagePaths, entryHypothesisStatus, entryLinkedFindings, entryChildHypotheses, entryParentHypotheses } = node.attrs
   const typeDef = getEntryTypeDefinition(entryType ?? 'note')
   const isTyped = entryType !== 'note'
   const isHypothesis = entryType === 'hypothesis'
   const imagePaths: string[] = Array.isArray(entryImagePaths) ? entryImagePaths : []
   const linkedFindings: LinkedFinding[] = Array.isArray(entryLinkedFindings) ? entryLinkedFindings : []
+  const childHypotheses: LinkedHypothesis[] = Array.isArray(entryChildHypotheses) ? entryChildHypotheses : []
+  const parentHypotheses: LinkedHypothesis[] = Array.isArray(entryParentHypotheses) ? entryParentHypotheses : []
   const status = (entryHypothesisStatus ?? 'open') as HypothesisStatus
   const [dataUrls, setDataUrls] = useState<Record<string, string>>({})
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
@@ -89,6 +97,26 @@ function EntryRefNodeView({ node }: NodeViewProps) {
           </div>
         )}
 
+        {/* Parent hypotheses */}
+        {isHypothesis && parentHypotheses.length > 0 && (
+          <div className="mt-2">
+            <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Parent Hypothesis</div>
+            <div className="flex flex-wrap gap-1.5">
+              {parentHypotheses.map((p) => (
+                <div
+                  key={p.id}
+                  className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center gap-1.5"
+                >
+                  <span className={`font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[(p.status ?? 'open') as HypothesisStatus]}`}>
+                    {HYPOTHESIS_STATUS_LABEL[(p.status ?? 'open') as HypothesisStatus]}
+                  </span>
+                  <span>{p.body || <span className="italic text-gray-500">(no text)</span>}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Linked findings for hypothesis entries */}
         {isHypothesis && linkedFindings.length > 0 && (
           <div className="mt-2">
@@ -100,6 +128,26 @@ function EntryRefNodeView({ node }: NodeViewProps) {
                   className="px-2 py-1 rounded text-xs font-mono bg-teal-500/10 border border-teal-500/25 text-teal-300"
                 >
                   {f.body || <span className="italic text-gray-500">(no text)</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Child hypotheses */}
+        {isHypothesis && childHypotheses.length > 0 && (
+          <div className="mt-2">
+            <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Child Hypotheses</div>
+            <div className="flex flex-wrap gap-1.5">
+              {childHypotheses.map((ch) => (
+                <div
+                  key={ch.id}
+                  className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 flex items-center gap-1.5"
+                >
+                  <span className={`font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[(ch.status ?? 'open') as HypothesisStatus]}`}>
+                    {HYPOTHESIS_STATUS_LABEL[(ch.status ?? 'open') as HypothesisStatus]}
+                  </span>
+                  <span>{ch.body || <span className="italic text-gray-500">(no text)</span>}</span>
                 </div>
               ))}
             </div>
@@ -123,7 +171,9 @@ export const EntryRefNode = Node.create({
       entryTimestamp: { default: '' },
       entryImagePaths: { default: [] },
       entryHypothesisStatus: { default: null },
-      entryLinkedFindings: { default: [] }
+      entryLinkedFindings: { default: [] },
+      entryChildHypotheses: { default: [] },
+      entryParentHypotheses: { default: [] }
     }
   },
 

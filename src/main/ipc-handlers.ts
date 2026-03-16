@@ -13,7 +13,7 @@ import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleAct
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
-import { getHotkey, getScreenshotHotkey, getUploadHotkey } from './settings'
+import { getHotkey, getScreenshotHotkey, getUploadHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
 import type { Investigation } from '@shared/ipc-types'
@@ -231,6 +231,9 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('settings:getUploadHotkey', () => getUploadHotkey())
   ipcMain.handle('settings:setUploadHotkey', (_event, { accelerator }: { accelerator: string }) => reregisterUploadHotkey(accelerator))
+
+  ipcMain.handle('settings:getLastViewedInvestigationId', () => getLastViewedInvestigationId())
+  ipcMain.handle('settings:setLastViewedInvestigationId', (_event, { id }: { id: string | null }) => setLastViewedInvestigationId(id))
 
   // --- Window management ---
 

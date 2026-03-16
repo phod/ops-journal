@@ -10,12 +10,14 @@ interface Settings {
   hotkey: string
   screenshotHotkey: string
   uploadHotkey: string
+  lastViewedInvestigationId: string | null
 }
 
 const DEFAULTS: Settings = {
   hotkey: DEFAULT_HOTKEY,
   screenshotHotkey: DEFAULT_SCREENSHOT_HOTKEY,
-  uploadHotkey: DEFAULT_UPLOAD_HOTKEY
+  uploadHotkey: DEFAULT_UPLOAD_HOTKEY,
+  lastViewedInvestigationId: null
 }
 
 function settingsPath(): string {
@@ -57,4 +59,12 @@ export function getUploadHotkey(): string {
 
 export function setUploadHotkey(hotkey: string): void {
   save({ ...load(), uploadHotkey: hotkey })
+}
+
+export function getLastViewedInvestigationId(): string | null {
+  return load().lastViewedInvestigationId
+}
+
+export function setLastViewedInvestigationId(id: string | null): void {
+  save({ ...load(), lastViewedInvestigationId: id })
 }

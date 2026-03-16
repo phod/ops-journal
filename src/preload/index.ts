@@ -70,6 +70,9 @@ const electronAPI: ElectronAPI = {
   getUploadHotkey: () => ipcRenderer.invoke('settings:getUploadHotkey'),
   setUploadHotkey: (accelerator) =>
     ipcRenderer.invoke('settings:setUploadHotkey', { accelerator }),
+  getLastViewedInvestigationId: () => ipcRenderer.invoke('settings:getLastViewedInvestigationId'),
+  setLastViewedInvestigationId: (id) =>
+    ipcRenderer.invoke('settings:setLastViewedInvestigationId', { id }),
 
   // Window management
   openManager: () => ipcRenderer.invoke('window:openManager'),

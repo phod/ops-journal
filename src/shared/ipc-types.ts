@@ -81,6 +81,8 @@ export interface ElectronAPI {
   setScreenshotHotkey: (accelerator: string) => Promise<boolean>
   getUploadHotkey: () => Promise<string>
   setUploadHotkey: (accelerator: string) => Promise<boolean>
+  getLastViewedInvestigationId: () => Promise<string | null>
+  setLastViewedInvestigationId: (id: string | null) => Promise<void>
 
   // Window management
   openManager: () => Promise<void>

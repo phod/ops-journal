@@ -10,7 +10,8 @@ import {
   type OnConnect,
   type Node,
   type Edge,
-  type Viewport
+  type Viewport,
+  SelectionMode
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import EntryNode from './nodes/EntryNode'
@@ -131,6 +132,7 @@ export function BoardCanvas({
         fitViewOptions={{ padding: 0.2 }}
         deleteKeyCode={['Backspace', 'Delete']}
         proOptions={{ hideAttribution: true }}
+        selectionMode={SelectionMode.Partial}
         className="bg-gray-900"
       >
         <Background color="#374151" gap={20} size={1} />

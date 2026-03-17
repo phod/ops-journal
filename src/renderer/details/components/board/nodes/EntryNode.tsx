@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
 import { getEntryTypeDefinition } from '@shared/entry-types'
@@ -13,6 +13,19 @@ export interface EntryNodeData {
 
 function EntryNode({ id, data, selected }: NodeProps) {
   const { entry, onExplode } = data as EntryNodeData
+  const [imageDataUrls, setImageDataUrls] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (!entry?.image_paths.length) return
+    for (const path of entry.image_paths) {
+      if (!imageDataUrls[path]) {
+        window.electronAPI.getEntryImage(path).then((dataUrl) => {
+          setImageDataUrls((prev) => ({ ...prev, [path]: dataUrl }))
+        }).catch(() => {})
+      }
+    }
+  }, [entry?.image_paths])
+
   const isHypothesis = entry?.type === 'hypothesis'
   const hasRelations = isHypothesis && (
     (entry.linked_finding_ids?.length ?? 0) > 0 ||
@@ -59,6 +72,25 @@ function EntryNode({ id, data, selected }: NodeProps) {
         )}
       </div>
       <p className="text-xs text-gray-200 leading-relaxed whitespace-pre-wrap break-words">{truncated}</p>
+      {hasImages && (
+        <div className="mt-1.5 flex flex-col gap-1.5">
+          {entry.image_paths.map((path) => (
+            <div key={path} className="rounded-lg border border-gray-600 overflow-hidden bg-gray-900">
+              {imageDataUrls[path] ? (
+                <img
+                  src={imageDataUrls[path]}
+                  alt=""
+                  className="w-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-[120px] flex items-center justify-center text-gray-500 text-[10px]">
+                  Loading…
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       {selected && hasRelations && (
         <button
           onClick={(e) => { e.stopPropagation(); onExplode?.() }}

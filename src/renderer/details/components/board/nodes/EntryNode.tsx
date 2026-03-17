@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from 'react'
-import { Handle, Position } from '@xyflow/react'
+import { Handle, Position, NodeResizer } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
 import { getEntryTypeDefinition } from '@shared/entry-types'
 import type { JournalEntry } from '@shared/ipc-types'
@@ -36,6 +36,13 @@ function EntryNode({ id, data, selected }: NodeProps) {
   if (!entry) {
     return (
       <div className={`relative rounded border px-3 py-2 min-w-[180px] max-w-[280px] bg-gray-800 border-gray-600 ${selected ? 'ring-2 ring-blue-500' : ''}`}>
+        <NodeResizer
+          isVisible={!!selected}
+          minWidth={180}
+          minHeight={60}
+          lineStyle={{ borderColor: '#3b82f6' }}
+          handleStyle={{ background: '#3b82f6', width: 8, height: 8, borderRadius: 2 }}
+        />
         {selected && <NodeDeleteButton nodeId={id} />}
         <Handle type="target" position={Position.Top} />
         <Handle type="target" position={Position.Left} id="left-target" />
@@ -52,8 +59,15 @@ function EntryNode({ id, data, selected }: NodeProps) {
 
   return (
     <div
-      className={`relative rounded border px-3 py-2 min-w-[180px] max-w-[280px] ${def.cardBgClass || 'bg-gray-800/80'} ${def.cardBorderClass || 'border-gray-600'} ${selected ? 'ring-2 ring-blue-500' : ''}`}
+      className={`relative rounded border px-3 py-2 min-w-[180px] overflow-auto ${def.cardBgClass || 'bg-gray-800/80'} ${def.cardBorderClass || 'border-gray-600'} ${selected ? 'ring-2 ring-blue-500' : ''}`}
     >
+      <NodeResizer
+        isVisible={!!selected}
+        minWidth={180}
+        minHeight={60}
+        lineStyle={{ borderColor: '#3b82f6' }}
+        handleStyle={{ background: '#3b82f6', width: 8, height: 8, borderRadius: 2 }}
+      />
       {selected && <NodeDeleteButton nodeId={id} />}
       <Handle type="target" position={Position.Top} style={{ background: '#4b5563' }} />
       <Handle type="target" position={Position.Left} id="left-target" style={{ background: '#4b5563' }} />

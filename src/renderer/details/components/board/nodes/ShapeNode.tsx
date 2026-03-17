@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react'
-import { Handle, Position } from '@xyflow/react'
+import { Handle, Position, NodeResizer } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
 import { NodeDeleteButton } from './NodeDeleteButton'
 import type { ShapeKind } from '@shared/board-types'
@@ -34,39 +34,37 @@ function ShapeNode({ id, data, selected }: NodeProps) {
     />
   )
 
+  // Treat legacy rectangle as square, legacy oval as circle
+  const effectiveShape = shape === 'rectangle' ? 'square' : shape === 'oval' ? 'circle' : shape
+
   return (
-    <div className="relative">
+    <div className="relative w-full h-full">
+      <NodeResizer
+        isVisible={!!selected}
+        minWidth={60}
+        minHeight={60}
+        lineStyle={{ borderColor: '#3b82f6' }}
+        handleStyle={{ background: '#3b82f6', width: 8, height: 8, borderRadius: 2 }}
+      />
       {selected && <NodeDeleteButton nodeId={id} />}
       <Handle type="target" position={Position.Top} style={handleStyle} />
       <Handle type="target" position={Position.Left} id="left-target" style={handleStyle} />
 
-      {shape === 'rectangle' && (
-        <div className={`flex items-center justify-center px-4 py-3 min-w-[140px] min-h-[60px] rounded border bg-gray-800/90 ${selected ? 'ring-2 ring-blue-500 border-gray-500' : 'border-gray-500'}`}>
+      {effectiveShape === 'square' && (
+        <div className={`flex items-center justify-center px-4 py-3 w-full h-full rounded border bg-gray-800/90 ${selected ? 'ring-2 ring-blue-500 border-gray-500' : 'border-gray-500'}`}>
           {shapeContent}
         </div>
       )}
 
-      {shape === 'square' && (
-        <div className={`flex items-center justify-center p-4 w-[100px] h-[100px] rounded border bg-gray-800/90 ${selected ? 'ring-2 ring-blue-500 border-gray-500' : 'border-gray-500'}`}>
+      {effectiveShape === 'circle' && (
+        <div className={`flex items-center justify-center p-4 w-full h-full rounded-full border bg-gray-800/90 ${selected ? 'ring-2 ring-blue-500 border-gray-500' : 'border-gray-500'}`}>
           {shapeContent}
         </div>
       )}
 
-      {shape === 'circle' && (
-        <div className={`flex items-center justify-center p-4 w-[100px] h-[100px] rounded-full border bg-gray-800/90 ${selected ? 'ring-2 ring-blue-500 border-gray-500' : 'border-gray-500'}`}>
-          {shapeContent}
-        </div>
-      )}
-
-      {shape === 'oval' && (
-        <div className={`flex items-center justify-center px-6 py-3 min-w-[140px] min-h-[70px] rounded-[50%] border bg-gray-800/90 ${selected ? 'ring-2 ring-blue-500 border-gray-500' : 'border-gray-500'}`}>
-          {shapeContent}
-        </div>
-      )}
-
-      {shape === 'cloud' && (
-        <div className="relative flex items-center justify-center" style={{ width: 110, height: 70 }}>
-          <svg viewBox="0 0 110 70" className="absolute inset-0 w-full h-full">
+      {effectiveShape === 'cloud' && (
+        <div className="relative flex items-center justify-center w-full h-full">
+          <svg viewBox="0 0 110 70" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
             {selected && (
               <path
                 d={CLOUD_PATH}

@@ -21,10 +21,8 @@ const FILTER_TABS: { key: Filter; label: string }[] = [
 ]
 
 const SHAPES: { kind: ShapeKind; label: string; icon: string }[] = [
-  { kind: 'rectangle', label: 'Rectangle', icon: '▬' },
   { kind: 'square', label: 'Square', icon: '◻' },
   { kind: 'circle', label: 'Circle', icon: '○' },
-  { kind: 'oval', label: 'Oval', icon: '⬭' },
   { kind: 'cloud', label: 'Cloud', icon: '☁' }
 ]
 

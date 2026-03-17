@@ -84,6 +84,7 @@ export interface ElectronAPI {
   pickImage: () => Promise<string[]>
   captureScreenshot: () => Promise<string | null>
   getEntryImage: (imagePath: string) => Promise<string>
+  showImageContextMenu: (imagePath: string) => Promise<void>
 
   // Settings
   getHotkey: () => Promise<string>

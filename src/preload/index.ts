@@ -70,6 +70,7 @@ const electronAPI: ElectronAPI = {
   pickImage: () => ipcRenderer.invoke('image:pick') as Promise<string[]>,
   captureScreenshot: () => ipcRenderer.invoke('screenshot:capture'),
   getEntryImage: (imagePath) => ipcRenderer.invoke('image:getEntryImage', { imagePath }),
+  showImageContextMenu: (imagePath) => ipcRenderer.invoke('image:contextMenu', { imagePath }),
 
   // Settings
   getHotkey: () => ipcRenderer.invoke('settings:getHotkey'),

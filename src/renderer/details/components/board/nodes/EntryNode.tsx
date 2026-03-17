@@ -81,6 +81,7 @@ function EntryNode({ id, data, selected }: NodeProps) {
                   src={imageDataUrls[path]}
                   alt=""
                   className="w-full object-cover"
+                  onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(path) }}
                 />
               ) : (
                 <div className="w-full h-[120px] flex items-center justify-center text-gray-500 text-[10px]">

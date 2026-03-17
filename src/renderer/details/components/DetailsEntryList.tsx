@@ -54,6 +54,7 @@ function FindingDetailCard({ finding }: { finding: JournalEntry }) {
               src={imageDataUrls[path]}
               alt="Attached"
               onClick={() => setExpandedPath(expandedPath === path ? null : path)}
+              onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(path) }}
               className={`rounded border border-teal-500/30 object-contain cursor-pointer transition-all ${
                 expandedPath === path ? 'max-h-none w-full' : 'max-h-48'
               }`}
@@ -313,6 +314,7 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
               src={imageDataUrls[path]}
               alt="Attached"
               onClick={() => setExpandedPath(expandedPath === path ? null : path)}
+              onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(path) }}
               className={`rounded border border-gray-600 object-contain cursor-pointer transition-all ${
                 expandedPath === path ? 'max-h-none w-full' : 'max-h-40'
               }`}

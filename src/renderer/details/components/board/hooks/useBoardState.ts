@@ -3,7 +3,7 @@ import { applyNodeChanges, applyEdgeChanges } from '@xyflow/react'
 import type { Node, Edge, NodeChange, EdgeChange, Connection, Viewport } from '@xyflow/react'
 import { v4 as uuidv4 } from 'uuid'
 import type { JournalEntry } from '@shared/ipc-types'
-import type { BoardNode, BoardEdge, BoardViewport } from '@shared/board-types'
+import type { BoardNode, BoardEdge, BoardViewport, ShapeKind } from '@shared/board-types'
 import { resolveLinkedFindings, resolveChildHypotheses, resolveParentHypotheses } from '@shared/entry-types'
 
 function boardNodeToFlow(node: BoardNode): Node {
@@ -63,7 +63,9 @@ export interface BoardStateHook {
   addEntryNode: (entry: JournalEntry, position: { x: number; y: number }) => void
   addTextBoxNode: (position: { x: number; y: number }) => void
   addImageNode: (imagePath: string, position: { x: number; y: number }) => void
+  addShapeNode: (shape: ShapeKind, position: { x: number; y: number }) => void
   updateTextBoxNode: (nodeId: string, text: string) => void
+  updateShapeLabel: (nodeId: string, label: string) => void
   explodeHypothesisNode: (nodeId: string) => void
   toBoardNodes: (boardId: string) => BoardNode[]
   toBoardEdges: (boardId: string) => BoardEdge[]
@@ -187,6 +189,26 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
         data: { imagePath }
       }
     ])
+    setDirty(true)
+  }, [])
+
+  const addShapeNode = useCallback((shape: ShapeKind, position: { x: number; y: number }) => {
+    setNodes((nds) => [
+      ...nds,
+      {
+        id: uuidv4(),
+        type: 'shape',
+        position,
+        data: { shape, label: '' }
+      }
+    ])
+    setDirty(true)
+  }, [])
+
+  const updateShapeLabel = useCallback((nodeId: string, label: string) => {
+    setNodes((nds) =>
+      nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, label } } : n))
+    )
     setDirty(true)
   }, [])
 
@@ -387,7 +409,9 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
     addEntryNode,
     addTextBoxNode,
     addImageNode,
+    addShapeNode,
     updateTextBoxNode,
+    updateShapeLabel,
     explodeHypothesisNode,
     toBoardNodes,
     toBoardEdges,

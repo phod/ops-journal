@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { filterEntries, getEntryTypeDefinition } from '@shared/entry-types'
 import type { Filter } from '@shared/entry-types'
 import type { JournalEntry } from '@shared/ipc-types'
+import type { ShapeKind } from '@shared/board-types'
 
 interface Props {
   entries: JournalEntry[]
   onAddTextBox: () => void
   onAddImage: (imagePath: string) => void
+  onAddShape: (shape: ShapeKind) => void
 }
 
 const FILTER_TABS: { key: Filter; label: string }[] = [
@@ -18,7 +20,15 @@ const FILTER_TABS: { key: Filter; label: string }[] = [
   { key: 'images', label: 'Images' }
 ]
 
-export function BoardSidebar({ entries, onAddTextBox, onAddImage }: Props) {
+const SHAPES: { kind: ShapeKind; label: string; icon: string }[] = [
+  { kind: 'rectangle', label: 'Rectangle', icon: '▬' },
+  { kind: 'square', label: 'Square', icon: '◻' },
+  { kind: 'circle', label: 'Circle', icon: '○' },
+  { kind: 'oval', label: 'Oval', icon: '⬭' },
+  { kind: 'cloud', label: 'Cloud', icon: '☁' }
+]
+
+export function BoardSidebar({ entries, onAddTextBox, onAddImage, onAddShape }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
 
   const filtered = filterEntries(entries, filter)
@@ -80,6 +90,18 @@ export function BoardSidebar({ entries, onAddTextBox, onAddImage }: Props) {
         >
           + Text Box
         </button>
+        <div className="flex gap-1">
+          {SHAPES.map(({ kind, label, icon }) => (
+            <button
+              key={kind}
+              onClick={() => onAddShape(kind)}
+              title={label}
+              className="flex-1 text-sm py-1.5 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
+            >
+              {icon}
+            </button>
+          ))}
+        </div>
         <button
           onClick={handleUploadImage}
           className="w-full text-xs px-3 py-1.5 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"

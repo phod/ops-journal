@@ -1,4 +1,6 @@
-export type BoardNodeType = 'entry' | 'textbox' | 'image'
+export type BoardNodeType = 'entry' | 'textbox' | 'image' | 'shape'
+
+export type ShapeKind = 'rectangle' | 'square' | 'circle' | 'oval' | 'cloud'
 
 export interface RumourBoard {
   id: string

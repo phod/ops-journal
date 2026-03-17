@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
-import type { RumourBoard } from '@shared/board-types'
+import type { RumourBoard, ShapeKind } from '@shared/board-types'
 import { BoardSelector } from './BoardSelector'
 import { BoardCanvas } from './BoardCanvas'
 import { BoardSidebar } from './BoardSidebar'
@@ -78,6 +78,10 @@ export function RumourBoardView({ investigationId, entries }: Props) {
     boardState.addImageNode(imagePath, { x: 200, y: 200 })
   }
 
+  function handleAddShape(shape: ShapeKind) {
+    boardState.addShapeNode(shape, { x: 200, y: 200 })
+  }
+
   if (loadingBoards) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">Loading…</div>
@@ -122,6 +126,7 @@ export function RumourBoardView({ investigationId, entries }: Props) {
             onAddTextBox={handleAddTextBox}
             onUpdateTextBox={boardState.updateTextBoxNode}
             onExplodeHypothesis={boardState.explodeHypothesisNode}
+            onUpdateShapeLabel={boardState.updateShapeLabel}
             allEntries={entries}
           />
         ) : (
@@ -133,6 +138,7 @@ export function RumourBoardView({ investigationId, entries }: Props) {
           entries={entries}
           onAddTextBox={handleAddTextBox}
           onAddImage={handleAddImage}
+          onAddShape={handleAddShape}
         />
       </div>
     </div>

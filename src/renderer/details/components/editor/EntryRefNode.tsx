@@ -93,6 +93,7 @@ function EntryRefNodeView({ node }: NodeViewProps) {
                     src={dataUrls[p]}
                     alt=""
                     onClick={() => setExpandedPath(expandedPath === p ? null : p)}
+                    onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(p) }}
                     className={`rounded border border-gray-700 object-contain cursor-pointer transition-all ${
                       expandedPath === p ? 'max-h-none w-full' : 'h-16 w-16 object-cover'
                     }`}

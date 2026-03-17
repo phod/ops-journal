@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog, clipboard, shell } from 'electron'
+import { ipcMain, BrowserWindow, dialog, clipboard, shell, Menu, nativeImage } from 'electron'
 import {
   getActiveInvestigations,
   listInvestigations,
@@ -191,6 +191,33 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('image:getEntryImage', (_event, { imagePath }: { imagePath: string }) => readImageAsDataUrl(imagePath))
 
   ipcMain.handle('screenshot:capture', () => captureScreenshot())
+
+  ipcMain.handle('image:contextMenu', (event, { imagePath }: { imagePath: string }) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return
+    const menu = Menu.buildFromTemplate([
+      {
+        label: 'Copy Image',
+        click: () => {
+          const img = nativeImage.createFromPath(imagePath)
+          clipboard.writeImage(img)
+        }
+      },
+      {
+        label: 'Open Image',
+        click: () => {
+          shell.openPath(imagePath)
+        }
+      },
+      {
+        label: 'Show in Folder',
+        click: () => {
+          shell.showItemInFolder(imagePath)
+        }
+      }
+    ])
+    menu.popup({ window: win })
+  })
 
   // --- Export ---
 

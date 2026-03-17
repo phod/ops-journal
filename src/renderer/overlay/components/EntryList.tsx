@@ -613,6 +613,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                       className={`max-h-20 max-w-[100px] rounded border object-contain transition-opacity ${
                         markedForRemoval ? 'opacity-30 border-red-500' : 'border-gray-600'
                       }`}
+                      onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(path) }}
                     />
                     <button
                       onClick={() => toggleRemoval(path)}
@@ -673,6 +674,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   src={imageDataUrls[path]}
                   alt="Attached"
                   onClick={() => setExpandedPath(expandedPath === path ? null : path)}
+                  onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(path) }}
                   className={`rounded border border-gray-600 object-contain cursor-pointer transition-all ${
                     expandedPath === path ? 'max-h-none w-full' : 'max-h-24'
                   }`}

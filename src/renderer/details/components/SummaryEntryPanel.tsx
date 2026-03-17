@@ -214,6 +214,7 @@ function EntryImageStrip({
               src={dataUrls[p]}
               alt=""
               className="h-12 w-12 object-cover rounded border border-gray-700"
+              onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(p) }}
             />
           ) : (
             <div className="h-12 w-12 rounded border border-gray-700 bg-gray-800" />

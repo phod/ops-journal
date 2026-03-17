@@ -27,6 +27,7 @@ function ImageNode({ id, data, selected }: NodeProps) {
           alt=""
           className="block max-w-[280px] max-h-[200px] object-contain"
           draggable={false}
+          onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(imagePath) }}
         />
       ) : (
         <div className="w-[180px] h-[120px] flex items-center justify-center text-xs text-gray-500">

@@ -68,6 +68,7 @@ function SummaryImageNodeView({ node, updateAttributes, editor }: NodeViewProps)
           alt=""
           className="rounded border border-gray-700 w-full"
           draggable={false}
+          onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(src) }}
         />
         {isEditable && (
           <div

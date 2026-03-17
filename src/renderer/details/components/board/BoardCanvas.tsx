@@ -17,12 +17,14 @@ import '@xyflow/react/dist/style.css'
 import EntryNode from './nodes/EntryNode'
 import TextBoxNode from './nodes/TextBoxNode'
 import ImageNode from './nodes/ImageNode'
+import ShapeNode from './nodes/ShapeNode'
 import type { JournalEntry } from '@shared/ipc-types'
 
 const nodeTypes: NodeTypes = {
   entry: EntryNode,
   textbox: TextBoxNode,
-  image: ImageNode
+  image: ImageNode,
+  shape: ShapeNode
 }
 
 interface Props {
@@ -37,6 +39,7 @@ interface Props {
   onAddTextBox: (position: { x: number; y: number }) => void
   onUpdateTextBox: (nodeId: string, text: string) => void
   onExplodeHypothesis: (nodeId: string) => void
+  onUpdateShapeLabel: (nodeId: string, label: string) => void
   allEntries: JournalEntry[]
 }
 
@@ -52,6 +55,7 @@ export function BoardCanvas({
   onAddTextBox,
   onUpdateTextBox,
   onExplodeHypothesis,
+  onUpdateShapeLabel,
   allEntries
 }: Props) {
   const reactFlowRef = useRef<HTMLDivElement>(null)
@@ -102,6 +106,15 @@ export function BoardCanvas({
         data: {
           ...node.data,
           onExplode: () => onExplodeHypothesis(node.id)
+        }
+      }
+    }
+    if (node.type === 'shape') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onChange: (label: string) => onUpdateShapeLabel(node.id, label)
         }
       }
     }
@@ -158,6 +171,7 @@ export function BoardCanvas({
                 return '#4b5563'
               }
               if (n.type === 'textbox') return '#374151'
+              if (n.type === 'shape') return '#6b7280'
               return '#1f2937'
             }}
             bgColor="#1e293b"

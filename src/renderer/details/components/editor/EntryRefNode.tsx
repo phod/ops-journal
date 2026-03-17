@@ -17,7 +17,7 @@ interface LinkedHypothesis {
 }
 
 function EntryRefNodeView({ node }: NodeViewProps) {
-  const { entryType, entryBody, entryTimestamp, entryImagePaths, entryHypothesisStatus, entryLinkedFindings, entryChildHypotheses, entryParentHypotheses } = node.attrs
+  const { entryType, entryBody, entryTimestamp, entryImagePaths, entryHypothesisStatus, entryLinkedFindings, entryChildHypotheses, entryParentHypotheses, entryFlagged } = node.attrs
   const typeDef = getEntryTypeDefinition(entryType ?? 'note')
   const isTyped = entryType !== 'note'
   const isHypothesis = entryType === 'hypothesis'
@@ -61,6 +61,12 @@ function EntryRefNodeView({ node }: NodeViewProps) {
             <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${HYPOTHESIS_STATUS_CLASS[status]}`}>
               {HYPOTHESIS_STATUS_LABEL[status]}
             </span>
+          )}
+          {entryFlagged && (
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+              <line x1="4" y1="22" x2="4" y2="15"/>
+            </svg>
           )}
           <span className="text-gray-500 text-xs">
             {entryTimestamp ? formatDate(entryTimestamp, TIMESTAMP_OPTIONS_SHORT) : ''}
@@ -173,7 +179,8 @@ export const EntryRefNode = Node.create({
       entryHypothesisStatus: { default: null },
       entryLinkedFindings: { default: [] },
       entryChildHypotheses: { default: [] },
-      entryParentHypotheses: { default: [] }
+      entryParentHypotheses: { default: [] },
+      entryFlagged: { default: false }
     }
   },
 

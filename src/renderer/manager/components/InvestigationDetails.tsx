@@ -95,6 +95,7 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
 
   const tabs: { key: Filter; label: string }[] = [
     { key: 'all', label: 'All' },
+    { key: 'flagged', label: 'Flagged' },
     { key: 'images', label: 'Images' },
     { key: 'finding', label: 'Findings' },
     { key: 'action', label: 'Actions' },

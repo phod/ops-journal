@@ -312,6 +312,32 @@ export function ExportView({ investigationId, investigationName, entries, onBack
               >
                 None
               </button>
+              {(() => {
+                const flaggedIds = entries.filter((e) => e.flagged).map((e) => e.id)
+                if (flaggedIds.length === 0) return null
+                const allFlaggedSelected = flaggedIds.every((id) => selectedIds.has(id))
+                return (
+                  <span className="flex items-center gap-1">
+                    <span className="text-gray-700">·</span>
+                    <button
+                      onClick={() => {
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev)
+                          if (allFlaggedSelected) {
+                            flaggedIds.forEach((id) => next.delete(id))
+                          } else {
+                            flaggedIds.forEach((id) => next.add(id))
+                          }
+                          return next
+                        })
+                      }}
+                      className={`text-xs transition-colors ${allFlaggedSelected ? 'text-amber-400' : 'text-gray-500 hover:text-amber-400'}`}
+                    >
+                      Flagged
+                    </button>
+                  </span>
+                )
+              })()}
               {allTypes.map((type) => {
                 const typeIds = entries.filter((e) => e.type === type).map((e) => e.id)
                 const allSelected = typeIds.every((id) => selectedIds.has(id))
@@ -356,6 +382,12 @@ export function ExportView({ investigationId, investigationName, entries, onBack
                       <span className={`text-xs px-1.5 py-0.5 rounded border font-medium ${colorClass}`}>
                         {TYPE_LABELS[entry.type] ?? entry.type}
                       </span>
+                      {entry.flagged && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400 flex-shrink-0">
+                          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                          <line x1="4" y1="22" x2="4" y2="15"/>
+                        </svg>
+                      )}
                       <span className="text-xs text-gray-600">{formatTimestamp(entry.created_at)}</span>
                       {entry.image_paths.length > 0 && (
                         <span className="text-xs text-gray-600">· {entry.image_paths.length} image{entry.image_paths.length > 1 ? 's' : ''}</span>

@@ -35,6 +35,10 @@ const electronAPI: ElectronAPI = {
   toggleActionCompleted: (entryId: string) =>
     ipcRenderer.invoke('action:toggleCompleted', { entryId }),
 
+  // Flagging
+  toggleFlagged: (entryId: string) =>
+    ipcRenderer.invoke('entry:toggleFlagged', { entryId }),
+
   // Hypotheses
   updateHypothesisStatus: (entryId: string, status: HypothesisStatus) =>
     ipcRenderer.invoke('hypothesis:updateStatus', { entryId, status }),

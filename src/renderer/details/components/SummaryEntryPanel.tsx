@@ -12,6 +12,7 @@ interface Props {
 
 const PANEL_FILTERS: { label: string; value: Filter }[] = [
   { label: 'All', value: 'all' },
+  { label: 'Flagged', value: 'flagged' },
   { label: 'Findings', value: 'finding' },
   { label: 'Actions', value: 'action' },
   { label: 'Hypotheses', value: 'hypothesis' }
@@ -104,6 +105,12 @@ function PanelEntry({
             <span className={`flex-shrink-0 px-1 py-0.5 rounded text-xs font-semibold ${HYPOTHESIS_STATUS_CLASS[status]}`}>
               {HYPOTHESIS_STATUS_LABEL[status]}
             </span>
+          )}
+          {entry.flagged && (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-amber-400">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+              <line x1="4" y1="22" x2="4" y2="15"/>
+            </svg>
           )}
           <span className="text-gray-600 text-xs truncate">
             {formatDate(entry.created_at, TIMESTAMP_OPTIONS_SHORT)}

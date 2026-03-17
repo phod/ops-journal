@@ -29,6 +29,7 @@ export interface JournalEntry {
   linked_child_hypothesis_ids?: string[]
   parent_hypothesis_ids?: string[]
   action_completed?: boolean
+  flagged?: boolean
 }
 
 export interface ElectronAPI {
@@ -48,6 +49,9 @@ export interface ElectronAPI {
 
   // Actions
   toggleActionCompleted: (entryId: string) => Promise<JournalEntry>
+
+  // Flagging
+  toggleFlagged: (entryId: string) => Promise<JournalEntry>
 
   // Hypotheses
   updateHypothesisStatus: (entryId: string, status: HypothesisStatus) => Promise<JournalEntry>

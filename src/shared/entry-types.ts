@@ -81,7 +81,7 @@ export const HYPOTHESIS_STATUS_TEXT_CLASS: Record<HypothesisStatus, string> = {
   abandoned: 'text-gray-400'
 }
 
-export type Filter = 'all' | 'images' | 'finding' | 'action' | 'hypothesis'
+export type Filter = 'all' | 'images' | 'finding' | 'action' | 'hypothesis' | 'flagged'
 
 export function countEntries(entries: JournalEntry[]) {
   return entries.reduce(
@@ -91,15 +91,17 @@ export function countEntries(entries: JournalEntry[]) {
       if (e.type === 'finding') acc.finding++
       if (e.type === 'action') acc.action++
       if (e.type === 'hypothesis') acc.hypothesis++
+      if (e.flagged) acc.flagged++
       return acc
     },
-    { all: 0, images: 0, finding: 0, action: 0, hypothesis: 0 }
+    { all: 0, images: 0, finding: 0, action: 0, hypothesis: 0, flagged: 0 }
   )
 }
 
 export function filterEntries(entries: JournalEntry[], filter: Filter): JournalEntry[] {
   if (filter === 'all') return entries
   if (filter === 'images') return entries.filter((e) => e.image_paths.length > 0)
+  if (filter === 'flagged') return entries.filter((e) => e.flagged)
   return entries.filter((e) => e.type === filter)
 }
 

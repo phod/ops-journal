@@ -9,7 +9,7 @@ import {
   getSummary,
   saveSummary
 } from './db/investigations'
-import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from './db/entries'
+import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
@@ -109,6 +109,14 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('action:toggleCompleted', (_event, { entryId }: { entryId: string }) => {
     const entry = toggleActionCompleted(entryId)
+    if (entry) broadcastEntriesChanged(entry.investigation_id)
+    return entry
+  })
+
+  // --- Flagging ---
+
+  ipcMain.handle('entry:toggleFlagged', (_event, { entryId }: { entryId: string }) => {
+    const entry = toggleFlagged(entryId)
     if (entry) broadcastEntriesChanged(entry.investigation_id)
     return entry
   })

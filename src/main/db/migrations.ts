@@ -103,4 +103,7 @@ export const migrations: string[] = [
     PRIMARY KEY (parent_hypothesis_id, child_hypothesis_id)
   );
   `,
+
+  // Migration 10 — flagged entries
+  `ALTER TABLE journal_entries ADD COLUMN flagged INTEGER NOT NULL DEFAULT 0;`,
 ]

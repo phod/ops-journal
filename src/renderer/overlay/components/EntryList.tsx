@@ -358,6 +358,15 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     }
   }
 
+  const toggleFlagged = async () => {
+    try {
+      const updated = await window.electronAPI.toggleFlagged(entry.id)
+      onUpdated(updated)
+    } catch (err) {
+      console.error('[overlay] Failed to toggle flagged:', err)
+    }
+  }
+
   const linkedFindings = isHypothesis
     ? (entry.linked_finding_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
     : []
@@ -505,6 +514,23 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               title="Manage linked findings and child hypotheses"
             >
               {(linkedFindings.length + linkedChildHypotheses.length) > 0 ? 'edit links' : '+ link'}
+            </button>
+          )}
+          {/* Flag toggle */}
+          {!isEditing && (
+            <button
+              onClick={toggleFlagged}
+              className={`no-drag transition-all px-1 ${
+                entry.flagged
+                  ? 'text-amber-400 hover:text-amber-300'
+                  : 'opacity-0 group-hover:opacity-100 text-gray-600 hover:text-amber-400'
+              }`}
+              title={entry.flagged ? 'Remove flag' : 'Flag as important'}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill={entry.flagged ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                <line x1="4" y1="22" x2="4" y2="15"/>
+              </svg>
             </button>
           )}
         </div>

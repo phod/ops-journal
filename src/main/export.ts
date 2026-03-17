@@ -88,7 +88,8 @@ function tiptapNodeToMarkdown(node: TipTapNode, indent = 0, imageHandling: Image
       const body = (a.entryBody as string) ?? ''
       const ts = a.entryTimestamp as string | undefined
       const tsStr = ts ? ` · ${formatTimestamp(ts)}` : ''
-      const lines = [`> **[${entryTypeLabel(type)}${tsStr}]**`]
+      const flagStr = a.entryFlagged ? ' ⚑' : ''
+      const lines = [`> **[${entryTypeLabel(type)}${tsStr}]**${flagStr}`]
       if (body) lines.push(`> ${body.replace(/\n/g, '\n> ')}`)
       const imagePaths = (a.entryImagePaths as string[]) ?? []
       for (const p of imagePaths) {
@@ -244,6 +245,7 @@ function tiptapNodeToHtml(node: TipTapNode): string {
             <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
               <span style="font-size:12px;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(entryTypeLabel(type))}</span>
               ${isHypothesis && hypothesisStatus ? hypothesisStatusBadgeHtml(hypothesisStatus) : ''}
+              ${a.entryFlagged ? '<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:#fef3c7;border:1px solid #f59e0b;color:#92400e;">⚑ Flagged</span>' : ''}
               ${ts ? `<span style="font-size:14px;color:#6b7280;">${formatTimestamp(ts)}</span>` : ''}
             </div>
             ${body ? `<div style="font-size:18px;color:#1f2937;white-space:pre-wrap;line-height:1.7;">${escapeHtml(body)}</div>` : ''}
@@ -342,7 +344,8 @@ export function exportAsMarkdown(
     for (const entry of entries) {
       const isHypothesis = entry.type === 'hypothesis'
       const statusStr = isHypothesis ? ` [${(entry.hypothesis_status ?? 'open').toUpperCase()}]` : ''
-      lines.push(`### [${formatTimestamp(entry.created_at)}] ${entryTypeLabel(entry.type)}${statusStr}`)
+      const flagStr = entry.flagged ? ' ⚑' : ''
+      lines.push(`### [${formatTimestamp(entry.created_at)}] ${entryTypeLabel(entry.type)}${statusStr}${flagStr}`)
       lines.push('')
       lines.push(entry.body)
       lines.push('')
@@ -641,6 +644,7 @@ export function buildExportHtml(
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                 <span style="font-size:12px;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:0.06em;">${entryTypeLabel(entry.type)}</span>
                 ${isHypothesis ? hypothesisStatusBadgeHtml(status) : ''}
+                ${entry.flagged ? '<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:#fef3c7;border:1px solid #f59e0b;color:#92400e;">⚑ Flagged</span>' : ''}
                 <span style="font-size:14px;color:#6b7280;">${formatTimestamp(entry.created_at)}</span>
               </div>
               <div style="font-size:18px;color:#1f2937;white-space:pre-wrap;line-height:1.7;">${escapeHtml(entry.body)}</div>

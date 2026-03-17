@@ -32,7 +32,8 @@ function entryRefAttrs(entry: JournalEntry, allEntries: JournalEntry[]) {
     entryHypothesisStatus: entry.hypothesis_status ?? null,
     entryLinkedFindings: resolveLinkedFindings(entry, allEntries).map((f) => ({ id: f.id, body: f.body })),
     entryChildHypotheses: resolveChildHypotheses(entry, allEntries).map((h) => ({ id: h.id, body: h.body, status: h.hypothesis_status ?? 'open' })),
-    entryParentHypotheses: resolveParentHypotheses(entry, allEntries).map((h) => ({ id: h.id, body: h.body, status: h.hypothesis_status ?? 'open' }))
+    entryParentHypotheses: resolveParentHypotheses(entry, allEntries).map((h) => ({ id: h.id, body: h.body, status: h.hypothesis_status ?? 'open' })),
+    entryFlagged: entry.flagged ?? false
   }
 }
 

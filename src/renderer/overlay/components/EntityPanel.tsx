@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
 
-type PanelTab = 'finding' | 'hypothesis' | 'action'
+type PanelTab = 'flagged' | 'finding' | 'hypothesis' | 'action'
 
 interface Props {
   entries: JournalEntry[]
@@ -9,12 +9,20 @@ interface Props {
 }
 
 const TABS: { type: PanelTab; label: string; icon: string }[] = [
+  { type: 'flagged', label: 'Flagged', icon: '⚑' },
   { type: 'finding', label: 'Findings', icon: '◆' },
   { type: 'hypothesis', label: 'Hypotheses', icon: '⬡' },
   { type: 'action', label: 'Actions', icon: '☐' }
 ]
 
 const TAB_COLORS: Record<PanelTab, { active: string; inactive: string; border: string; bg: string; headerText: string }> = {
+  flagged: {
+    active: 'text-amber-300 bg-amber-500/25',
+    inactive: 'text-gray-500 hover:text-amber-400',
+    border: 'border-amber-500/40',
+    bg: 'bg-amber-950/30',
+    headerText: 'text-amber-300'
+  },
   finding: {
     active: 'text-teal-300 bg-teal-500/25',
     inactive: 'text-gray-500 hover:text-teal-400',
@@ -39,6 +47,7 @@ const TAB_COLORS: Record<PanelTab, { active: string; inactive: string; border: s
 }
 
 const CARD_COLORS: Record<PanelTab, { bg: string; border: string; hover: string }> = {
+  flagged: { bg: 'bg-amber-500/10', border: 'border-amber-500/20', hover: 'hover:bg-amber-500/25' },
   finding: { bg: 'bg-teal-500/10', border: 'border-teal-500/20', hover: 'hover:bg-teal-500/25' },
   hypothesis: { bg: 'bg-violet-500/10', border: 'border-violet-500/20', hover: 'hover:bg-violet-500/25' },
   action: { bg: 'bg-orange-500/10', border: 'border-orange-500/20', hover: 'hover:bg-orange-500/25' }
@@ -63,6 +72,15 @@ function scrollToEntry(id: string) {
   el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
+function FlagIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400 flex-shrink-0">
+      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+      <line x1="4" y1="22" x2="4" y2="15"/>
+    </svg>
+  )
+}
+
 function HypothesisCard({ entry }: { entry: JournalEntry }) {
   const status = entry.hypothesis_status ?? 'open'
   const findingCount = entry.linked_finding_ids?.length ?? 0
@@ -77,6 +95,7 @@ function HypothesisCard({ entry }: { entry: JournalEntry }) {
         <span className={`text-xs font-semibold ${STATUS_CLASS[status]}`}>
           {STATUS_LABEL[status]}
         </span>
+        {entry.flagged && <FlagIcon />}
         {findingCount > 0 && (
           <span className="text-xs text-gray-600">· {findingCount}f</span>
         )}
@@ -98,6 +117,9 @@ function FindingCard({ entry }: { entry: JournalEntry }) {
       onClick={() => scrollToEntry(entry.id)}
       className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-colors`}
     >
+      {entry.flagged && (
+        <div className="mb-0.5"><FlagIcon /></div>
+      )}
       <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
         {entry.body || '(no text)'}
       </div>
@@ -117,6 +139,42 @@ function ActionCard({ entry }: { entry: JournalEntry }) {
         <span className={`text-xs font-semibold ${completed ? 'text-green-300' : 'text-orange-300'}`}>
           {completed ? '✓ Done' : '○ Open'}
         </span>
+        {entry.flagged && <FlagIcon />}
+      </div>
+      <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
+        {entry.body || '(no text)'}
+      </div>
+    </button>
+  )
+}
+
+function FlaggedCard({ entry }: { entry: JournalEntry }) {
+  const colors = CARD_COLORS.flagged
+  const typeDef = entry.type !== 'note' ? entry.type.charAt(0).toUpperCase() + entry.type.slice(1) : null
+  const isHypothesis = entry.type === 'hypothesis'
+  const status = entry.hypothesis_status ?? 'open'
+  const isAction = entry.type === 'action'
+  const completed = entry.action_completed ?? false
+  return (
+    <button
+      onClick={() => scrollToEntry(entry.id)}
+      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-colors`}
+    >
+      <div className="flex items-center gap-1 mb-0.5">
+        <FlagIcon />
+        {typeDef && (
+          <span className="text-xs text-gray-500 font-medium">{typeDef}</span>
+        )}
+        {isHypothesis && (
+          <span className={`text-xs font-semibold ${STATUS_CLASS[status]}`}>
+            {STATUS_LABEL[status]}
+          </span>
+        )}
+        {isAction && (
+          <span className={`text-xs font-semibold ${completed ? 'text-green-300' : 'text-orange-300'}`}>
+            {completed ? '✓' : '○'}
+          </span>
+        )}
       </div>
       <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
         {entry.body || '(no text)'}
@@ -126,12 +184,14 @@ function ActionCard({ entry }: { entry: JournalEntry }) {
 }
 
 const CARD_COMPONENT: Record<PanelTab, React.ComponentType<{ entry: JournalEntry }>> = {
+  flagged: FlaggedCard,
   finding: FindingCard,
   hypothesis: HypothesisCard,
   action: ActionCard
 }
 
 const EMPTY_HINT: Record<PanelTab, string> = {
+  flagged: 'No flagged entries.\nFlag important entries with the flag icon.',
   finding: 'No findings yet.\nUse /finding to add one.',
   hypothesis: 'No hypotheses yet.\nUse /hypothesis to add one.',
   action: 'No actions yet.\nUse /action to add one.'
@@ -140,7 +200,9 @@ const EMPTY_HINT: Record<PanelTab, string> = {
 export function EntityPanel({ entries, onClose }: Props) {
   const [activeTab, setActiveTab] = useState<PanelTab>('hypothesis')
   const colors = TAB_COLORS[activeTab]
-  const filtered = entries.filter((e) => e.type === activeTab)
+  const filtered = activeTab === 'flagged'
+    ? entries.filter((e) => e.flagged)
+    : entries.filter((e) => e.type === activeTab)
   const Card = CARD_COMPONENT[activeTab]
 
   return (
@@ -151,7 +213,9 @@ export function EntityPanel({ entries, onClose }: Props) {
           {TABS.map((tab) => {
             const isActive = activeTab === tab.type
             const tabColors = TAB_COLORS[tab.type]
-            const count = entries.filter((e) => e.type === tab.type).length
+            const count = tab.type === 'flagged'
+              ? entries.filter((e) => e.flagged).length
+              : entries.filter((e) => e.type === tab.type).length
             return (
               <button
                 key={tab.type}

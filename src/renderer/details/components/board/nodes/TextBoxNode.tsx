@@ -29,8 +29,10 @@ function TextBoxNode({ id, data, selected }: NodeProps) {
         handleStyle={{ background: '#3b82f6', width: 8, height: 8, borderRadius: 2 }}
       />}
       {selected && <NodeDeleteButton nodeId={id} />}
-      <Handle type="target" position={Position.Top} style={{ background: '#4b5563' }} />
+      <Handle type="target" position={Position.Top} id="top-target" style={{ background: '#4b5563' }} />
+      <Handle type="source" position={Position.Top} id="top-source" style={{ background: '#4b5563' }} />
       <Handle type="target" position={Position.Left} id="left-target" style={{ background: '#4b5563' }} />
+      <Handle type="source" position={Position.Left} id="left-source" style={{ background: '#4b5563' }} />
       <textarea
         value={text}
         onChange={handleChange}
@@ -38,7 +40,9 @@ function TextBoxNode({ id, data, selected }: NodeProps) {
         className="block w-full h-full bg-transparent text-xs text-gray-200 p-2.5 resize-none focus:outline-none placeholder-gray-600 min-h-[60px]"
         rows={3}
       />
-      <Handle type="source" position={Position.Bottom} style={{ background: '#4b5563' }} />
+      <Handle type="target" position={Position.Bottom} id="bottom-target" style={{ background: '#4b5563' }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-source" style={{ background: '#4b5563' }} />
+      <Handle type="target" position={Position.Right} id="right-target" style={{ background: '#4b5563' }} />
       <Handle type="source" position={Position.Right} id="right-source" style={{ background: '#4b5563' }} />
     </div>
   )

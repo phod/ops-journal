@@ -83,6 +83,8 @@ const electronAPI: ElectronAPI = {
   getLastViewedInvestigationId: () => ipcRenderer.invoke('settings:getLastViewedInvestigationId'),
   setLastViewedInvestigationId: (id) =>
     ipcRenderer.invoke('settings:setLastViewedInvestigationId', { id }),
+  getMinimapOpen: () => ipcRenderer.invoke('settings:getMinimapOpen'),
+  setMinimapOpen: (open) => ipcRenderer.invoke('settings:setMinimapOpen', { open }),
 
   // Window management
   openManager: () => ipcRenderer.invoke('window:openManager'),

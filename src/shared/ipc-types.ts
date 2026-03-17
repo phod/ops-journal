@@ -94,6 +94,8 @@ export interface ElectronAPI {
   setUploadHotkey: (accelerator: string) => Promise<boolean>
   getLastViewedInvestigationId: () => Promise<string | null>
   setLastViewedInvestigationId: (id: string | null) => Promise<void>
+  getMinimapOpen: () => Promise<boolean>
+  setMinimapOpen: (open: boolean) => Promise<void>
 
   // Window management
   openManager: () => Promise<void>

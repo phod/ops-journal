@@ -39,13 +39,12 @@ function ShapeNode({ id, data, selected }: NodeProps) {
 
   return (
     <div className="relative w-full h-full">
-      <NodeResizer
-        isVisible={!!selected}
+      {selected && <NodeResizer
         minWidth={60}
         minHeight={60}
         lineStyle={{ borderColor: '#3b82f6' }}
         handleStyle={{ background: '#3b82f6', width: 8, height: 8, borderRadius: 2 }}
-      />
+      />}
       {selected && <NodeDeleteButton nodeId={id} />}
       <Handle type="target" position={Position.Top} style={handleStyle} />
       <Handle type="target" position={Position.Left} id="left-target" style={handleStyle} />

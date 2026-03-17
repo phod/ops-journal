@@ -20,15 +20,14 @@ function TextBoxNode({ id, data, selected }: NodeProps) {
 
   return (
     <div
-      className={`relative rounded border bg-gray-800/90 border-gray-600 min-w-[160px] ${selected ? 'ring-2 ring-blue-500' : ''}`}
+      className={`relative rounded border bg-gray-800/90 border-gray-600 ${selected ? 'ring-2 ring-blue-500' : ''}`}
     >
-      <NodeResizer
-        isVisible={!!selected}
+      {selected && <NodeResizer
         minWidth={120}
         minHeight={50}
         lineStyle={{ borderColor: '#3b82f6' }}
         handleStyle={{ background: '#3b82f6', width: 8, height: 8, borderRadius: 2 }}
-      />
+      />}
       {selected && <NodeDeleteButton nodeId={id} />}
       <Handle type="target" position={Position.Top} style={{ background: '#4b5563' }} />
       <Handle type="target" position={Position.Left} id="left-target" style={{ background: '#4b5563' }} />

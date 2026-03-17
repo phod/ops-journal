@@ -11,13 +11,15 @@ interface Settings {
   screenshotHotkey: string
   uploadHotkey: string
   lastViewedInvestigationId: string | null
+  minimapOpen: boolean
 }
 
 const DEFAULTS: Settings = {
   hotkey: DEFAULT_HOTKEY,
   screenshotHotkey: DEFAULT_SCREENSHOT_HOTKEY,
   uploadHotkey: DEFAULT_UPLOAD_HOTKEY,
-  lastViewedInvestigationId: null
+  lastViewedInvestigationId: null,
+  minimapOpen: false
 }
 
 function settingsPath(): string {
@@ -67,4 +69,12 @@ export function getLastViewedInvestigationId(): string | null {
 
 export function setLastViewedInvestigationId(id: string | null): void {
   save({ ...load(), lastViewedInvestigationId: id })
+}
+
+export function getMinimapOpen(): boolean {
+  return load().minimapOpen
+}
+
+export function setMinimapOpen(open: boolean): void {
+  save({ ...load(), minimapOpen: open })
 }

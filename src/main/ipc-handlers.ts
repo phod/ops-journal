@@ -13,7 +13,7 @@ import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleAct
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
-import { getHotkey, getScreenshotHotkey, getUploadHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId } from './settings'
+import { getHotkey, getScreenshotHotkey, getUploadHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
 import type { Investigation } from '@shared/ipc-types'
@@ -287,6 +287,9 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('settings:getLastViewedInvestigationId', () => getLastViewedInvestigationId())
   ipcMain.handle('settings:setLastViewedInvestigationId', (_event, { id }: { id: string | null }) => setLastViewedInvestigationId(id))
+
+  ipcMain.handle('settings:getMinimapOpen', () => getMinimapOpen())
+  ipcMain.handle('settings:setMinimapOpen', (_event, { open }: { open: boolean }) => setMinimapOpen(open))
 
   // --- Window management ---
 

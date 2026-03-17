@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -56,6 +56,10 @@ export function BoardCanvas({
 }: Props) {
   const reactFlowRef = useRef<HTMLDivElement>(null)
   const [minimapOpen, setMinimapOpen] = useState(false)
+
+  useEffect(() => {
+    window.electronAPI.getMinimapOpen().then(setMinimapOpen)
+  }, [])
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -155,7 +159,11 @@ export function BoardCanvas({
         )}
         <div className="react-flow__panel react-flow__panel-bottom-right" style={{ marginBottom: minimapOpen ? '148px' : '8px', marginRight: '8px' }}>
           <button
-            onClick={() => setMinimapOpen((v) => !v)}
+            onClick={() => setMinimapOpen((v) => {
+              const next = !v
+              window.electronAPI.setMinimapOpen(next)
+              return next
+            })}
             className="text-xs px-2 py-1 rounded bg-gray-800 border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors"
             title={minimapOpen ? 'Hide minimap' : 'Show minimap'}
           >

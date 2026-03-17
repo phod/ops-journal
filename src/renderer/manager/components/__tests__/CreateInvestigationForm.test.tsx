@@ -11,6 +11,10 @@ const mockInvestigation = {
   created_at: '2024-01-01 10:00:00'
 }
 
+async function openDialog(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: /new investigation/i }))
+}
+
 describe('CreateInvestigationForm', () => {
   let onCreated: ReturnType<typeof vi.fn>
 
@@ -20,20 +24,27 @@ describe('CreateInvestigationForm', () => {
     window.electronAPI.setActiveInvestigation = vi.fn().mockResolvedValue(mockInvestigation)
   })
 
-  it('renders the name input and submit button', () => {
+  it('renders a trigger button that opens the dialog', async () => {
+    const user = userEvent.setup()
     render(<CreateInvestigationForm onCreated={onCreated} />)
+    expect(screen.getByRole('button', { name: /new investigation/i })).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText(/investigation name/i)).not.toBeInTheDocument()
+
+    await openDialog(user)
     expect(screen.getByPlaceholderText(/investigation name/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /create/i })).toBeInTheDocument()
   })
 
-  it('disables the button when input is empty', () => {
+  it('disables the submit button when input is empty', async () => {
+    const user = userEvent.setup()
     render(<CreateInvestigationForm onCreated={onCreated} />)
+    await openDialog(user)
     expect(screen.getByRole('button', { name: /create/i })).toBeDisabled()
   })
 
-  it('enables the button when input has text', async () => {
+  it('enables the submit button when input has text', async () => {
     const user = userEvent.setup()
     render(<CreateInvestigationForm onCreated={onCreated} />)
+    await openDialog(user)
     await user.type(screen.getByPlaceholderText(/investigation name/i), 'My Investigation')
     expect(screen.getByRole('button', { name: /create/i })).not.toBeDisabled()
   })
@@ -41,6 +52,7 @@ describe('CreateInvestigationForm', () => {
   it('calls createInvestigation and setActiveInvestigation on submit', async () => {
     const user = userEvent.setup()
     render(<CreateInvestigationForm onCreated={onCreated} />)
+    await openDialog(user)
 
     await user.type(screen.getByPlaceholderText(/investigation name/i), 'New Investigation')
     await user.click(screen.getByRole('button', { name: /create/i }))
@@ -52,15 +64,15 @@ describe('CreateInvestigationForm', () => {
     })
   })
 
-  it('clears input after successful submission', async () => {
+  it('closes the dialog after successful submission', async () => {
     const user = userEvent.setup()
     render(<CreateInvestigationForm onCreated={onCreated} />)
+    await openDialog(user)
 
-    const input = screen.getByPlaceholderText(/investigation name/i)
-    await user.type(input, 'Cleared After Submit')
+    await user.type(screen.getByPlaceholderText(/investigation name/i), 'Cleared After Submit')
     await user.click(screen.getByRole('button', { name: /create/i }))
 
-    await waitFor(() => expect(input).toHaveValue(''))
+    await waitFor(() => expect(screen.queryByPlaceholderText(/investigation name/i)).not.toBeInTheDocument())
   })
 
   it('shows an error message when creation fails', async () => {
@@ -68,6 +80,7 @@ describe('CreateInvestigationForm', () => {
     window.electronAPI.createInvestigation = vi.fn().mockRejectedValue(new Error('DB error'))
 
     render(<CreateInvestigationForm onCreated={onCreated} />)
+    await openDialog(user)
 
     await user.type(screen.getByPlaceholderText(/investigation name/i), 'Failing Investigation')
     await user.click(screen.getByRole('button', { name: /create/i }))
@@ -79,10 +92,20 @@ describe('CreateInvestigationForm', () => {
   it('does not submit whitespace-only names', async () => {
     const user = userEvent.setup()
     render(<CreateInvestigationForm onCreated={onCreated} />)
+    await openDialog(user)
 
     await user.type(screen.getByPlaceholderText(/investigation name/i), '   ')
     await user.click(screen.getByRole('button', { name: /create/i }))
 
     expect(window.electronAPI.createInvestigation).not.toHaveBeenCalled()
+  })
+
+  it('closes the dialog when cancel is clicked', async () => {
+    const user = userEvent.setup()
+    render(<CreateInvestigationForm onCreated={onCreated} />)
+    await openDialog(user)
+
+    await user.click(screen.getByRole('button', { name: /cancel/i }))
+    expect(screen.queryByPlaceholderText(/investigation name/i)).not.toBeInTheDocument()
   })
 })

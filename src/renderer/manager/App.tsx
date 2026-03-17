@@ -96,42 +96,32 @@ export default function App() {
             />
           </div>
         ) : (
-        <div className="max-w-2xl mx-auto px-6 py-6 flex flex-col gap-8">
+        <div className={`mx-auto px-6 py-6 flex flex-col gap-6 ${tab === 'settings' ? 'max-w-2xl' : 'max-w-4xl'}`}>
           {tab === 'settings' ? (
             <section>
               <HotkeySettings />
             </section>
           ) : (
             <>
-              {/* Create form */}
-              <section className="bg-gray-800/50 rounded-xl p-5 border border-gray-700/50">
+              {/* Header with create button */}
+              <div className="flex items-center justify-between">
+                <h2 className="text-gray-200 font-semibold text-sm">Investigations</h2>
                 <CreateInvestigationForm onCreated={fetchInvestigations} />
-              </section>
+              </div>
 
               {/* List */}
-              <section>
-                <h2 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
-                  All Investigations
-                  {investigations.length > 0 && (
-                    <span className="ml-2 text-gray-600 font-normal normal-case">
-                      ({investigations.length})
-                    </span>
-                  )}
-                </h2>
-
-                {loading ? (
-                  <div className="text-gray-500 text-sm py-8 text-center">Loading…</div>
-                ) : error ? (
-                  <div className="text-red-400 text-sm py-4">{error}</div>
-                ) : (
-                  <InvestigationList
-                    investigations={investigations}
-                    onSetActive={handleSetActive}
-                    onDeactivate={handleDeactivate}
-                    onDelete={handleDelete}
-                  />
-                )}
-              </section>
+              {loading ? (
+                <div className="text-gray-500 text-sm py-8 text-center">Loading…</div>
+              ) : error ? (
+                <div className="text-red-400 text-sm py-4">{error}</div>
+              ) : (
+                <InvestigationList
+                  investigations={investigations}
+                  onSetActive={handleSetActive}
+                  onDeactivate={handleDeactivate}
+                  onDelete={handleDelete}
+                />
+              )}
             </>
           )}
         </div>

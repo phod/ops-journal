@@ -44,7 +44,7 @@ export interface ElectronAPI {
   // Entries
   listEntries: (investigationId: string) => Promise<JournalEntry[]>
   createEntry: (investigationId: string, body: string, imageDataUrls?: string[], type?: EntryType) => Promise<JournalEntry>
-  updateEntry: (id: string, body: string, keepImagePaths?: string[] | null, type?: EntryType) => Promise<JournalEntry>
+  updateEntry: (id: string, body: string, keepImagePaths?: string[] | null, type?: EntryType, newImageDataUrls?: string[]) => Promise<JournalEntry>
   deleteEntry: (id: string) => Promise<void>
 
   // Actions

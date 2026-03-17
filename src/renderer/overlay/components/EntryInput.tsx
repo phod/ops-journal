@@ -166,6 +166,25 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
     onPendingImagesChange((prev: string[]) => prev.filter((_, i) => i !== index))
   }, [onPendingImagesChange])
 
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items
+    const imageItems: DataTransferItem[] = []
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) imageItems.push(items[i])
+    }
+    if (imageItems.length === 0) return
+    e.preventDefault()
+    for (const item of imageItems) {
+      const file = item.getAsFile()
+      if (!file) continue
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result === 'string') addImages([reader.result])
+      }
+      reader.readAsDataURL(file)
+    }
+  }, [addImages])
+
   const handlePickImage = useCallback(async () => {
     if (atLimit) return
     try {
@@ -263,6 +282,7 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
           value={value}
           onChange={(e) => handleValueChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Type a note… (Enter to save, Shift+Enter for newline)"
           style={{ minHeight: '5rem' }}
           className="no-drag w-full bg-gray-800/80 text-gray-100 placeholder-gray-600 font-mono text-sm rounded-lg px-3 py-2.5 border border-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none transition-colors"

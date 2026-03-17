@@ -85,7 +85,7 @@ export function createEntry(investigationId: string, body: string, imagePaths?: 
   return getEntry(id)!
 }
 
-export function updateEntry(id: string, body: string, keepImagePaths?: string[] | null, type?: EntryType): JournalEntry {
+export function updateEntry(id: string, body: string, keepImagePaths?: string[] | null, type?: EntryType, newImagePaths?: string[]): JournalEntry {
   const db = getDb()
   if (type !== undefined) {
     db.prepare('UPDATE journal_entries SET body = ?, type = ? WHERE id = ?').run(body, type, id)
@@ -105,6 +105,14 @@ export function updateEntry(id: string, body: string, keepImagePaths?: string[] 
       if (!keepImagePaths.includes(image_path)) {
         deleteImage.run(id, image_path)
       }
+    }
+  }
+
+  if (newImagePaths && newImagePaths.length > 0) {
+    const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as max_order FROM entry_images WHERE entry_id = ?').get(id) as { max_order: number }
+    const insertImage = db.prepare('INSERT INTO entry_images (entry_id, image_path, sort_order) VALUES (?, ?, ?)')
+    for (let i = 0; i < newImagePaths.length; i++) {
+      insertImage.run(id, newImagePaths[i], maxOrder.max_order + 1 + i)
     }
   }
 

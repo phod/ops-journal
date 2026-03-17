@@ -127,6 +127,10 @@ export function RumourBoardView({ investigationId, entries }: Props) {
             onUpdateTextBox={boardState.updateTextBoxNode}
             onExplodeHypothesis={boardState.explodeHypothesisNode}
             onUpdateShapeLabel={boardState.updateShapeLabel}
+            onBringToFront={boardState.bringToFront}
+            onSendToBack={boardState.sendToBack}
+            onBringForward={boardState.bringForward}
+            onSendBackward={boardState.sendBackward}
             allEntries={entries}
           />
         ) : (

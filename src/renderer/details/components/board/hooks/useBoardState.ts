@@ -13,7 +13,8 @@ function boardNodeToFlow(node: BoardNode): Node {
     position: { x: node.position_x, y: node.position_y },
     data: JSON.parse(node.data_json),
     width: node.width ?? undefined,
-    height: node.height ?? undefined
+    height: node.height ?? undefined,
+    zIndex: node.z_index
   }
 }
 
@@ -36,6 +37,7 @@ function flowNodeToBoard(node: Node, boardId: string): BoardNode {
     position_y: node.position.y,
     width: node.measured?.width ?? null,
     height: node.measured?.height ?? null,
+    z_index: node.zIndex ?? 0,
     data_json: JSON.stringify(node.data),
     created_at: ''
   }
@@ -66,6 +68,10 @@ export interface BoardStateHook {
   addShapeNode: (shape: ShapeKind, position: { x: number; y: number }) => void
   updateTextBoxNode: (nodeId: string, text: string) => void
   updateShapeLabel: (nodeId: string, label: string) => void
+  bringToFront: (nodeId: string) => void
+  sendToBack: (nodeId: string) => void
+  bringForward: (nodeId: string) => void
+  sendBackward: (nodeId: string) => void
   explodeHypothesisNode: (nodeId: string) => void
   toBoardNodes: (boardId: string) => BoardNode[]
   toBoardEdges: (boardId: string) => BoardEdge[]
@@ -216,6 +222,42 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
     setNodes((nds) =>
       nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, text } } : n))
     )
+    setDirty(true)
+  }, [])
+
+  const bringToFront = useCallback((nodeId: string) => {
+    setNodes((nds) => {
+      const maxZ = Math.max(...nds.map((n) => n.zIndex ?? 0))
+      return nds.map((n) => (n.id === nodeId ? { ...n, zIndex: maxZ + 1 } : n))
+    })
+    setDirty(true)
+  }, [])
+
+  const sendToBack = useCallback((nodeId: string) => {
+    setNodes((nds) => {
+      const minZ = Math.min(...nds.map((n) => n.zIndex ?? 0))
+      return nds.map((n) => (n.id === nodeId ? { ...n, zIndex: minZ - 1 } : n))
+    })
+    setDirty(true)
+  }, [])
+
+  const bringForward = useCallback((nodeId: string) => {
+    setNodes((nds) => {
+      const node = nds.find((n) => n.id === nodeId)
+      if (!node) return nds
+      const currentZ = node.zIndex ?? 0
+      return nds.map((n) => (n.id === nodeId ? { ...n, zIndex: currentZ + 1 } : n))
+    })
+    setDirty(true)
+  }, [])
+
+  const sendBackward = useCallback((nodeId: string) => {
+    setNodes((nds) => {
+      const node = nds.find((n) => n.id === nodeId)
+      if (!node) return nds
+      const currentZ = node.zIndex ?? 0
+      return nds.map((n) => (n.id === nodeId ? { ...n, zIndex: currentZ - 1 } : n))
+    })
     setDirty(true)
   }, [])
 
@@ -412,6 +454,10 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
     addShapeNode,
     updateTextBoxNode,
     updateShapeLabel,
+    bringToFront,
+    sendToBack,
+    bringForward,
+    sendBackward,
     explodeHypothesisNode,
     toBoardNodes,
     toBoardEdges,

@@ -11,6 +11,7 @@ import {
   type Node,
   type Edge,
   type Viewport,
+  type NodeMouseHandler,
   SelectionMode
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
@@ -40,6 +41,10 @@ interface Props {
   onUpdateTextBox: (nodeId: string, text: string) => void
   onExplodeHypothesis: (nodeId: string) => void
   onUpdateShapeLabel: (nodeId: string, label: string) => void
+  onBringToFront: (nodeId: string) => void
+  onSendToBack: (nodeId: string) => void
+  onBringForward: (nodeId: string) => void
+  onSendBackward: (nodeId: string) => void
   allEntries: JournalEntry[]
 }
 
@@ -56,14 +61,32 @@ export function BoardCanvas({
   onUpdateTextBox,
   onExplodeHypothesis,
   onUpdateShapeLabel,
+  onBringToFront,
+  onSendToBack,
+  onBringForward,
+  onSendBackward,
   allEntries
 }: Props) {
   const reactFlowRef = useRef<HTMLDivElement>(null)
   const [minimapOpen, setMinimapOpen] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null)
 
   useEffect(() => {
     window.electronAPI.getMinimapOpen().then(setMinimapOpen)
   }, [])
+
+  const onNodeContextMenu: NodeMouseHandler = useCallback((event, node) => {
+    event.preventDefault()
+    setContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id })
+  }, [])
+
+  // Close context menu on click anywhere
+  useEffect(() => {
+    if (!contextMenu) return
+    const close = () => setContextMenu(null)
+    window.addEventListener('click', close)
+    return () => window.removeEventListener('click', close)
+  }, [contextMenu])
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -150,6 +173,8 @@ export function BoardCanvas({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeContextMenu={onNodeContextMenu}
+        onPaneClick={() => setContextMenu(null)}
         onMoveEnd={(_, vp) => onViewportChange(vp)}
         defaultViewport={viewport}
         fitViewOptions={{ padding: 0.2 }}
@@ -192,6 +217,37 @@ export function BoardCanvas({
           </button>
         </div>
       </ReactFlow>
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-gray-800 border border-gray-600 rounded-md shadow-lg py-1 min-w-[160px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <button
+            className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-700 transition-colors"
+            onClick={() => { onBringToFront(contextMenu.nodeId); setContextMenu(null) }}
+          >
+            Bring to Front
+          </button>
+          <button
+            className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-700 transition-colors"
+            onClick={() => { onBringForward(contextMenu.nodeId); setContextMenu(null) }}
+          >
+            Bring Forward
+          </button>
+          <button
+            className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-700 transition-colors"
+            onClick={() => { onSendBackward(contextMenu.nodeId); setContextMenu(null) }}
+          >
+            Send Backward
+          </button>
+          <button
+            className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-700 transition-colors"
+            onClick={() => { onSendToBack(contextMenu.nodeId); setContextMenu(null) }}
+          >
+            Send to Back
+          </button>
+        </div>
+      )}
     </div>
   )
 }

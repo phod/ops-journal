@@ -21,6 +21,7 @@ function rowToNode(row: Record<string, unknown>): BoardNode {
     position_y: row.position_y as number,
     width: row.width as number | null,
     height: row.height as number | null,
+    z_index: (row.z_index as number) ?? 0,
     data_json: row.data_json as string,
     created_at: row.created_at as string
   }
@@ -93,10 +94,10 @@ export function saveBoardState(
     db.prepare('DELETE FROM board_edges WHERE board_id = ?').run(boardId)
 
     const insertNode = db.prepare(
-      'INSERT INTO board_nodes (id, board_id, node_type, position_x, position_y, width, height, data_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO board_nodes (id, board_id, node_type, position_x, position_y, width, height, z_index, data_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )
     for (const node of nodes) {
-      insertNode.run(node.id, boardId, node.node_type, node.position_x, node.position_y, node.width ?? null, node.height ?? null, node.data_json)
+      insertNode.run(node.id, boardId, node.node_type, node.position_x, node.position_y, node.width ?? null, node.height ?? null, node.z_index, node.data_json)
     }
 
     const insertEdge = db.prepare(

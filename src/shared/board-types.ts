@@ -18,6 +18,7 @@ export interface BoardNode {
   position_y: number
   width: number | null
   height: number | null
+  z_index: number
   data_json: string
   created_at: string
 }

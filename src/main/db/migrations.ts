@@ -106,4 +106,7 @@ export const migrations: string[] = [
 
   // Migration 10 — flagged entries
   `ALTER TABLE journal_entries ADD COLUMN flagged INTEGER NOT NULL DEFAULT 0;`,
+
+  // Migration 11 — z-index for board nodes (layer ordering)
+  `ALTER TABLE board_nodes ADD COLUMN z_index INTEGER NOT NULL DEFAULT 0;`,
 ]

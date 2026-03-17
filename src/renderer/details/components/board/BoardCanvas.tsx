@@ -123,6 +123,12 @@ export function BoardCanvas({
         .react-flow__controls-button svg {
           fill: inherit;
         }
+        .react-flow__minimap {
+          border: 1px solid #334155 !important;
+          border-radius: 10px !important;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.45), 0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+          overflow: hidden;
+        }
       `}</style>
       <ReactFlow
         nodes={nodesWithHandlers}
@@ -154,7 +160,8 @@ export function BoardCanvas({
               if (n.type === 'textbox') return '#374151'
               return '#1f2937'
             }}
-            style={{ border: '1px solid #4b5563', borderRadius: '6px', backgroundColor: '#111827' }}
+            bgColor="#1e293b"
+            maskColor="rgba(0,0,0,0.5)"
           />
         )}
         <div className="react-flow__panel react-flow__panel-bottom-right" style={{ marginBottom: minimapOpen ? '148px' : '8px', marginRight: '8px' }}>

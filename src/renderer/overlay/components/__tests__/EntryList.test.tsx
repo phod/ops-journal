@@ -73,7 +73,7 @@ describe('EntryList', () => {
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await waitFor(() => {
-        const img = screen.getByAltText('Attached')
+        const img = screen.getByRole('presentation')
         expect(img).toBeInTheDocument()
         expect(img).toHaveAttribute('src', dataUrl)
       })
@@ -84,7 +84,7 @@ describe('EntryList', () => {
       const entry = makeEntry({ image_paths: [] })
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      expect(screen.queryByAltText('Attached')).not.toBeInTheDocument()
+      expect(screen.queryByRole('presentation')).not.toBeInTheDocument()
       expect(window.electronAPI.getEntryImage).not.toHaveBeenCalled()
     })
 
@@ -98,7 +98,7 @@ describe('EntryList', () => {
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
       await waitFor(() => {
-        expect(screen.getAllByAltText('Attached')).toHaveLength(2)
+        expect(screen.getAllByRole('presentation')).toHaveLength(2)
       })
     })
 
@@ -109,7 +109,7 @@ describe('EntryList', () => {
       const entry = makeEntry({ image_paths: ['/img.png'] })
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      const img = await screen.findByAltText('Attached')
+      const img = await screen.findByRole('presentation')
       expect(img).toHaveClass('max-h-24')
 
       fireEvent.click(img)
@@ -252,7 +252,7 @@ describe('EntryList', () => {
       const entry = makeEntry({ image_paths: ['/img.png'] })
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await screen.findByAltText('Attached')
+      await screen.findByRole('presentation')
 
       const user = userEvent.setup()
       await user.click(screen.getByTitle('Edit'))
@@ -268,7 +268,7 @@ describe('EntryList', () => {
       const entry = makeEntry({ image_paths: ['/img.png'] })
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await screen.findByAltText('Attached')
+      await screen.findByRole('presentation')
 
       const user = userEvent.setup()
       await user.click(screen.getByTitle('Edit'))
@@ -287,7 +287,7 @@ describe('EntryList', () => {
       const entry = makeEntry({ body: 'Same text', image_paths: ['/img.png'] })
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await screen.findByAltText('Attached')
+      await screen.findByRole('presentation')
 
       const user = userEvent.setup()
       await user.click(screen.getByTitle('Edit'))
@@ -308,7 +308,7 @@ describe('EntryList', () => {
       const entry = makeEntry({ image_paths: ['/img.png'] })
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await screen.findByAltText('Attached')
+      await screen.findByRole('presentation')
 
       const user = userEvent.setup()
       await user.click(screen.getByTitle('Edit'))

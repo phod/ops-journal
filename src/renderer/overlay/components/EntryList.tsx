@@ -440,12 +440,30 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     ? allEntries.filter((e) => e.type === 'hypothesis' && e.linked_finding_ids?.includes(entry.id))
     : []
 
+  const handleCopy = useCallback((e: React.ClipboardEvent) => {
+    const selection = window.getSelection()
+    if (!selection || selection.isCollapsed) return
+
+    const range = selection.getRangeAt(0)
+    const fragment = range.cloneContents()
+    const imgs = fragment.querySelectorAll('img')
+    if (imgs.length === 0) return
+
+    e.preventDefault()
+
+    const plainText = selection.toString()
+    const wrapper = document.createElement('div')
+    wrapper.appendChild(fragment)
+    e.clipboardData.setData('text/plain', plainText)
+    e.clipboardData.setData('text/html', wrapper.innerHTML)
+  }, [])
+
   const cardClass = isTyped
     ? `group border-l-4 ${typeDef.leftBorderClass} ${typeDef.cardBgClass} ${typeDef.cardBorderClass} rounded-lg px-3 py-2 border`
     : 'group bg-gray-800/60 rounded-lg px-3 py-2 border border-gray-700/50'
 
   return (
-    <div id={`entry-${entry.id}`} className={cardClass}>
+    <div id={`entry-${entry.id}`} className={cardClass} onCopy={handleCopy}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono select-none flex-wrap">
           {formatTimestamp(entry.created_at)}
@@ -649,7 +667,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   <div key={path} className="relative inline-block">
                     <img
                       src={imageDataUrls[path]}
-                      alt="Attached"
+                      alt=""
                       className={`max-h-20 max-w-[100px] rounded border object-contain transition-opacity ${
                         markedForRemoval ? 'opacity-30 border-red-500' : 'border-gray-600'
                       }`}
@@ -737,7 +755,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                 <img
                   key={path}
                   src={imageDataUrls[path]}
-                  alt="Attached"
+                  alt=""
                   onClick={() => setExpandedPath(expandedPath === path ? null : path)}
                   onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(path) }}
                   className={`rounded border border-gray-600 object-contain cursor-pointer transition-all ${

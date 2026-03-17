@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
 import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
@@ -52,7 +52,7 @@ function FindingDetailCard({ finding }: { finding: JournalEntry }) {
             <img
               key={path}
               src={imageDataUrls[path]}
-              alt="Attached"
+              alt=""
               onClick={() => setExpandedPath(expandedPath === path ? null : path)}
               onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(path) }}
               className={`rounded border border-teal-500/30 object-contain cursor-pointer transition-all ${
@@ -182,12 +182,30 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
     ? allEntries.filter((e) => e.type === 'hypothesis' && e.linked_finding_ids?.includes(entry.id))
     : []
 
+  const handleCopy = useCallback((e: React.ClipboardEvent) => {
+    const selection = window.getSelection()
+    if (!selection || selection.isCollapsed) return
+
+    const range = selection.getRangeAt(0)
+    const fragment = range.cloneContents()
+    const imgs = fragment.querySelectorAll('img')
+    if (imgs.length === 0) return
+
+    e.preventDefault()
+
+    const plainText = selection.toString()
+    const wrapper = document.createElement('div')
+    wrapper.appendChild(fragment)
+    e.clipboardData.setData('text/plain', plainText)
+    e.clipboardData.setData('text/html', wrapper.innerHTML)
+  }, [])
+
   const cardClass = isTyped
     ? `group border-l-4 ${typeDef.leftBorderClass} ${typeDef.cardBgClass} ${typeDef.cardBorderClass} rounded-lg px-4 py-3 border`
     : 'group bg-gray-800/60 rounded-lg px-4 py-3 border border-gray-700/50'
 
   return (
-    <div id={`entry-${entry.id}`} className={cardClass}>
+    <div id={`entry-${entry.id}`} className={cardClass} onCopy={handleCopy}>
       <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono mb-1.5 flex-wrap">
         {formatDate(entry.created_at, TIMESTAMP_OPTIONS)}
         <div className="relative" ref={typeMenuRef}>
@@ -312,7 +330,7 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
             <img
               key={path}
               src={imageDataUrls[path]}
-              alt="Attached"
+              alt=""
               onClick={() => setExpandedPath(expandedPath === path ? null : path)}
               onContextMenu={(e) => { e.preventDefault(); window.electronAPI.showImageContextMenu(path) }}
               className={`rounded border border-gray-600 object-contain cursor-pointer transition-all ${

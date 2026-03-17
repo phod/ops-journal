@@ -1,5 +1,6 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
+import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 import type { EntryTypeDefinition } from '@shared/entry-types'
 import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
 import { parseSlashCommand, getCompletions } from '@shared/slash-commands'
@@ -84,6 +85,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   const [saving, setSaving] = useState(false)
   const [imageDataUrls, setImageDataUrls] = useState<Record<string, string>>({})
   const [pendingRemovals, setPendingRemovals] = useState<Set<string>>(new Set())
+  const [pendingNewImages, setPendingNewImages] = useState<string[]>([])
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
   const [showTypeMenu, setShowTypeMenu] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
@@ -111,6 +113,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     if (isEditing) {
       setDraft(entry.body)
       setPendingRemovals(new Set())
+      setPendingNewImages([])
       setCompletions([])
       setDetectedType(null)
       textareaRef.current?.focus()
@@ -194,6 +197,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   const cancelEdit = () => {
     setDraft(entry.body)
     setPendingRemovals(new Set())
+    setPendingNewImages([])
     setCompletions([])
     setDetectedType(null)
     onEditEnd()
@@ -224,9 +228,40 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     textareaRef.current?.focus()
   }
 
+  const totalImageCount = entry.image_paths.length - pendingRemovals.size + pendingNewImages.length
+  const editAtLimit = totalImageCount >= MAX_IMAGES_PER_ENTRY
+
+  const addNewImages = useCallback((dataUrls: string[]) => {
+    setPendingNewImages((prev) => {
+      const remaining = entry.image_paths.length - pendingRemovals.size
+      const slots = MAX_IMAGES_PER_ENTRY - remaining - prev.length
+      if (slots <= 0) return prev
+      return [...prev, ...dataUrls.slice(0, slots)]
+    })
+  }, [entry.image_paths.length, pendingRemovals.size])
+
+  const handleEditPaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items
+    const imageItems: DataTransferItem[] = []
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) imageItems.push(items[i])
+    }
+    if (imageItems.length === 0) return
+    e.preventDefault()
+    for (const item of imageItems) {
+      const file = item.getAsFile()
+      if (!file) continue
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result === 'string') addNewImages([reader.result])
+      }
+      reader.readAsDataURL(file)
+    }
+  }, [addNewImages])
+
   const saveEdit = async () => {
     const trimmed = draft.trim()
-    const hasImages = entry.image_paths.length > pendingRemovals.size
+    const hasImages = entry.image_paths.length > pendingRemovals.size || pendingNewImages.length > 0
     if (!trimmed && !hasImages) {
       try {
         await window.electronAPI.deleteEntry(entry.id)
@@ -242,7 +277,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     const newBody = parsedType !== 'note' ? parsedBody : trimmed
     const newType = parsedType !== 'note' ? parsedType : undefined
 
-    if (newBody === entry.body && pendingRemovals.size === 0 && !newType) {
+    if (newBody === entry.body && pendingRemovals.size === 0 && !newType && pendingNewImages.length === 0) {
       cancelEdit()
       return
     }
@@ -251,10 +286,14 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
       const keepImagePaths = pendingRemovals.size > 0
         ? entry.image_paths.filter((p) => !pendingRemovals.has(p))
         : undefined
-      const updated = await window.electronAPI.updateEntry(entry.id, newBody, keepImagePaths, newType)
+      const updated = await window.electronAPI.updateEntry(
+        entry.id, newBody, keepImagePaths, newType,
+        pendingNewImages.length > 0 ? pendingNewImages : undefined
+      )
       onUpdated(updated)
       onEditEnd()
       setPendingRemovals(new Set())
+      setPendingNewImages([])
     } catch (err) {
       console.error('[overlay] Failed to update entry:', err)
     } finally {
@@ -589,6 +628,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               value={draft}
               onChange={(e) => handleDraftChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              onPaste={handleEditPaste}
               disabled={saving}
               style={{ minHeight: '5rem' }}
               className="no-drag w-full bg-gray-700/80 text-gray-100 font-mono text-sm rounded px-2 py-1.5 border border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
@@ -631,9 +671,34 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               })}
             </div>
           )}
+          {pendingNewImages.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {pendingNewImages.map((src, i) => (
+                <div key={i} className="relative inline-block">
+                  <img
+                    src={src}
+                    alt={`New attachment ${i + 1}`}
+                    className="max-h-20 max-w-[100px] rounded border border-green-600 object-contain"
+                  />
+                  <button
+                    onClick={() => setPendingNewImages((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="no-drag absolute -top-1.5 -right-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-full w-4 h-4 flex items-center justify-center text-xs leading-none"
+                    title="Remove image"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           {pendingRemovals.size > 0 && (
             <div className="mt-1 text-xs text-gray-500">
               {pendingRemovals.size} image{pendingRemovals.size > 1 ? 's' : ''} will be removed on save.
+            </div>
+          )}
+          {editAtLimit && (
+            <div className="text-xs text-amber-500 font-mono mt-1">
+              Image limit reached ({MAX_IMAGES_PER_ENTRY}/{MAX_IMAGES_PER_ENTRY})
             </div>
           )}
           <div className="flex gap-2 mt-1.5">

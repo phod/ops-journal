@@ -7,7 +7,7 @@ import type { BoardNode, BoardEdge, BoardViewport, ShapeKind } from '@shared/boa
 import { resolveLinkedFindings, resolveChildHypotheses, resolveParentHypotheses } from '@shared/entry-types'
 
 function boardNodeToFlow(node: BoardNode): Node {
-  return {
+  const flowNode: Node = {
     id: node.id,
     type: node.node_type,
     position: { x: node.position_x, y: node.position_y },
@@ -16,6 +16,10 @@ function boardNodeToFlow(node: BoardNode): Node {
     height: node.height ?? undefined,
     zIndex: node.z_index
   }
+  if (node.width != null && node.height != null) {
+    flowNode.style = { width: node.width, height: node.height }
+  }
+  return flowNode
 }
 
 function boardEdgeToFlow(edge: BoardEdge): Edge {
@@ -29,14 +33,18 @@ function boardEdgeToFlow(edge: BoardEdge): Edge {
 }
 
 function flowNodeToBoard(node: Node, boardId: string): BoardNode {
+  // Prefer explicit width/height (set by NodeResizer) over measured dimensions
+  const style = node.style as { width?: number; height?: number } | undefined
+  const width = (typeof style?.width === 'number' ? style.width : null) ?? node.width ?? node.measured?.width ?? null
+  const height = (typeof style?.height === 'number' ? style.height : null) ?? node.height ?? node.measured?.height ?? null
   return {
     id: node.id,
     board_id: boardId,
     node_type: (node.type ?? 'textbox') as BoardNode['node_type'],
     position_x: node.position.x,
     position_y: node.position.y,
-    width: node.measured?.width ?? null,
-    height: node.measured?.height ?? null,
+    width,
+    height,
     z_index: node.zIndex ?? 0,
     data_json: JSON.stringify(node.data),
     created_at: ''
@@ -199,13 +207,15 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
   }, [])
 
   const addShapeNode = useCallback((shape: ShapeKind, position: { x: number; y: number }) => {
+    const size = shape === 'cloud' ? { width: 110, height: 70 } : { width: 100, height: 100 }
     setNodes((nds) => [
       ...nds,
       {
         id: uuidv4(),
         type: 'shape',
         position,
-        data: { shape, label: '' }
+        data: { shape, label: '' },
+        style: size
       }
     ])
     setDirty(true)

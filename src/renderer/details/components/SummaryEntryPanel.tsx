@@ -4,6 +4,7 @@ import { getEntryTypeDefinition, filterEntries, resolveLinkedFindings, resolveCh
 import type { Filter } from '@shared/entry-types'
 import { formatDate, TIMESTAMP_OPTIONS_SHORT } from '@shared/format-date'
 import { useEntryImages } from '@shared/useEntryImages'
+import { FlagIcon } from '@shared/FlagIcon'
 
 interface Props {
   entries: JournalEntry[]
@@ -108,10 +109,7 @@ function PanelEntry({
             </span>
           )}
           {entry.flagged && (
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-amber-400">
-              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-              <line x1="4" y1="22" x2="4" y2="15"/>
-            </svg>
+            <FlagIcon size={10} className="text-amber-400 flex-shrink-0" />
           )}
           <span className="text-gray-600 text-xs truncate">
             {formatDate(entry.created_at, TIMESTAMP_OPTIONS_SHORT)}

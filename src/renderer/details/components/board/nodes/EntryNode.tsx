@@ -4,6 +4,7 @@ import { getEntryTypeDefinition } from '@shared/entry-types'
 import type { JournalEntry } from '@shared/ipc-types'
 import { NodeShell } from './NodeShell'
 import { useEntryImages } from '@shared/useEntryImages'
+import { FlagIcon } from '@shared/FlagIcon'
 
 export interface EntryNodeData {
   entry: JournalEntry | null
@@ -46,10 +47,7 @@ function EntryNode({ id, data, selected }: NodeProps) {
           {def.label}
         </span>
         {entry.flagged && (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400">
-            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-            <line x1="4" y1="22" x2="4" y2="15"/>
-          </svg>
+          <FlagIcon size={11} />
         )}
         {hasImages && (
           <span className="text-xs text-gray-500">📷 {entry.image_paths.length}</span>

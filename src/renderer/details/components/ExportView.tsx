@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ExportFormat, JournalEntry, RumourBoard } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
+import { FlagIcon } from '@shared/FlagIcon'
 
 interface ExportViewProps {
   investigationId: string
@@ -380,10 +381,7 @@ export function ExportView({ investigationId, investigationName, entries, onBack
                         {TYPE_LABELS[entry.type] ?? entry.type}
                       </span>
                       {entry.flagged && (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400 flex-shrink-0">
-                          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-                          <line x1="4" y1="22" x2="4" y2="15"/>
-                        </svg>
+                        <FlagIcon size={10} className="text-amber-400 flex-shrink-0" />
                       )}
                       <span className="text-xs text-gray-600">{formatDate(entry.created_at)}</span>
                       {entry.image_paths.length > 0 && (

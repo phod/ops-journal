@@ -1,9 +1,8 @@
 import { memo } from 'react'
-import { Handle, Position, NodeResizer } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
 import { getEntryTypeDefinition } from '@shared/entry-types'
 import type { JournalEntry } from '@shared/ipc-types'
-import { NodeDeleteButton } from './NodeDeleteButton'
+import { NodeShell } from './NodeShell'
 import { useEntryImages } from '@shared/useEntryImages'
 
 export interface EntryNodeData {
@@ -26,22 +25,9 @@ function EntryNode({ id, data, selected }: NodeProps) {
   if (!entry) {
     return (
       <div className={`relative rounded border px-3 py-2  bg-gray-800 border-gray-600 ${selected ? 'ring-2 ring-blue-500' : ''}`}>
-        {selected && <NodeResizer
-          minWidth={180}
-          minHeight={60}
-          lineStyle={{ borderColor: '#3b82f6' }}
-          handleStyle={{ background: '#3b82f6', width: 8, height: 8, borderRadius: 2 }}
-        />}
-        {selected && <NodeDeleteButton nodeId={id} />}
-        <Handle type="target" position={Position.Top} id="top-target" />
-        <Handle type="source" position={Position.Top} id="top-source" />
-        <Handle type="target" position={Position.Left} id="left-target" />
-        <Handle type="source" position={Position.Left} id="left-source" />
-        <span className="text-xs text-gray-500 italic">[deleted entry]</span>
-        <Handle type="target" position={Position.Bottom} id="bottom-target" />
-        <Handle type="source" position={Position.Bottom} id="bottom-source" />
-        <Handle type="target" position={Position.Right} id="right-target" />
-        <Handle type="source" position={Position.Right} id="right-source" />
+        <NodeShell nodeId={id} selected={selected ?? false} minWidth={180}>
+          <span className="text-xs text-gray-500 italic">[deleted entry]</span>
+        </NodeShell>
       </div>
     )
   }
@@ -54,17 +40,7 @@ function EntryNode({ id, data, selected }: NodeProps) {
     <div
       className={`relative rounded border px-3 py-2  ${def.cardBgClass || 'bg-gray-800/80'} ${def.cardBorderClass || 'border-gray-600'} ${selected ? 'ring-2 ring-blue-500' : ''}`}
     >
-      {selected && <NodeResizer
-        minWidth={180}
-        minHeight={60}
-        lineStyle={{ borderColor: '#3b82f6' }}
-        handleStyle={{ background: '#3b82f6', width: 8, height: 8, borderRadius: 2 }}
-      />}
-      {selected && <NodeDeleteButton nodeId={id} />}
-      <Handle type="target" position={Position.Top} id="top-target" style={{ background: '#4b5563' }} />
-      <Handle type="source" position={Position.Top} id="top-source" style={{ background: '#4b5563' }} />
-      <Handle type="target" position={Position.Left} id="left-target" style={{ background: '#4b5563' }} />
-      <Handle type="source" position={Position.Left} id="left-source" style={{ background: '#4b5563' }} />
+      <NodeShell nodeId={id} selected={selected ?? false} minWidth={180}>
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${def.tagBgClass} ${def.tagTextClass}`}>
           {def.label}
@@ -108,10 +84,7 @@ function EntryNode({ id, data, selected }: NodeProps) {
           Explode
         </button>
       )}
-      <Handle type="target" position={Position.Bottom} id="bottom-target" style={{ background: '#4b5563' }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-source" style={{ background: '#4b5563' }} />
-      <Handle type="target" position={Position.Right} id="right-target" style={{ background: '#4b5563' }} />
-      <Handle type="source" position={Position.Right} id="right-source" style={{ background: '#4b5563' }} />
+      </NodeShell>
     </div>
   )
 }

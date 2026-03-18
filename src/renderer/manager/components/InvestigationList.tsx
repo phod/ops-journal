@@ -1,34 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import type { Investigation } from '@shared/ipc-types'
-import { formatDate } from '@shared/format-date'
+import { formatDate, formatRelativeTime, formatDateShort } from '@shared/format-date'
 import { ConfirmDialog } from './ConfirmDialog'
-
-// ── Helpers ──────────────────────────────────────────────────────
-
-function formatRelativeTime(isoString: string): string {
-  try {
-    const normalized = isoString.endsWith('Z') ? isoString : isoString + 'Z'
-    const diff = Date.now() - new Date(normalized).getTime()
-    const minutes = Math.floor(diff / 60000)
-    if (minutes < 1) return 'just now'
-    if (minutes < 60) return `${minutes}m ago`
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    return `${days}d ago`
-  } catch {
-    return formatDate(isoString)
-  }
-}
-
-function formatDateShort(isoString: string): string {
-  try {
-    const normalized = isoString.endsWith('Z') ? isoString : isoString + 'Z'
-    return new Date(normalized).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-  } catch {
-    return isoString
-  }
-}
 
 // ── Types ────────────────────────────────────────────────────────
 

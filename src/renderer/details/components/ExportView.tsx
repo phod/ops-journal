@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ExportFormat, JournalEntry, RumourBoard } from '@shared/ipc-types'
+import { formatDate } from '@shared/format-date'
 
 interface ExportViewProps {
   investigationId: string
@@ -46,10 +47,6 @@ const TYPE_COLORS: Record<string, string> = {
   action: 'text-blue-400 border-blue-700/50 bg-blue-900/20',
   hypothesis: 'text-yellow-400 border-yellow-700/50 bg-yellow-900/20',
   note: 'text-gray-400 border-gray-600/50 bg-gray-700/20'
-}
-
-function formatTimestamp(iso: string): string {
-  return new Date(iso).toLocaleString()
 }
 
 export function ExportView({ investigationId, investigationName, entries, onBack }: ExportViewProps) {
@@ -388,7 +385,7 @@ export function ExportView({ investigationId, investigationName, entries, onBack
                           <line x1="4" y1="22" x2="4" y2="15"/>
                         </svg>
                       )}
-                      <span className="text-xs text-gray-600">{formatTimestamp(entry.created_at)}</span>
+                      <span className="text-xs text-gray-600">{formatDate(entry.created_at)}</span>
                       {entry.image_paths.length > 0 && (
                         <span className="text-xs text-gray-600">· {entry.image_paths.length} image{entry.image_paths.length > 1 ? 's' : ''}</span>
                       )}

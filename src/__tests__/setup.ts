@@ -12,24 +12,55 @@ const DEFAULT_MOCKS = {
   createEntry: vi.fn(),
   updateEntry: vi.fn(),
   deleteEntry: vi.fn(),
+  toggleActionCompleted: vi.fn(),
+  toggleFlagged: vi.fn(),
+  updateHypothesisStatus: vi.fn(),
+  linkHypothesisFinding: vi.fn(),
+  unlinkHypothesisFinding: vi.fn(),
+  getHypothesisFindings: vi.fn().mockResolvedValue([]),
+  getFindingHypotheses: vi.fn().mockResolvedValue([]),
+  linkHypothesisChild: vi.fn(),
+  unlinkHypothesisChild: vi.fn(),
+  getHypothesisNestingDepth: vi.fn().mockResolvedValue(0),
+  getSummary: vi.fn().mockResolvedValue(null),
+  saveSummary: vi.fn(),
+  saveSummaryImage: vi.fn(),
+  exportInvestigation: vi.fn().mockResolvedValue({ success: true }),
   pickImage: vi.fn().mockResolvedValue(null),
   captureScreenshot: vi.fn().mockResolvedValue(null),
   getEntryImage: vi.fn().mockResolvedValue('data:image/png;base64,abc'),
+  showImageContextMenu: vi.fn(),
   openManager: vi.fn(),
   hideOverlay: vi.fn(),
+  showOverlay: vi.fn(),
+  expandOverlayForBoard: vi.fn(),
+  restoreOverlayFromBoard: vi.fn(),
   openDetails: vi.fn(),
   onShowDetails: vi.fn().mockReturnValue(() => {}),
+  onShowHome: vi.fn().mockReturnValue(() => {}),
   getHotkey: vi.fn().mockResolvedValue('CommandOrControl+Shift+J'),
   setHotkey: vi.fn().mockResolvedValue(true),
   getScreenshotHotkey: vi.fn().mockResolvedValue('CommandOrControl+Shift+S'),
   setScreenshotHotkey: vi.fn().mockResolvedValue(true),
   getUploadHotkey: vi.fn().mockResolvedValue('CommandOrControl+Shift+U'),
   setUploadHotkey: vi.fn().mockResolvedValue(true),
+  getLastViewedInvestigationId: vi.fn().mockResolvedValue(null),
+  setLastViewedInvestigationId: vi.fn().mockResolvedValue(undefined),
+  getMinimapOpen: vi.fn().mockResolvedValue(false),
+  setMinimapOpen: vi.fn(),
   onInvestigationChanged: vi.fn().mockReturnValue(() => {}),
+  onEntriesChanged: vi.fn().mockReturnValue(() => {}),
   onTriggerScreenshot: vi.fn().mockReturnValue(() => {}),
   onTriggerUpload: vi.fn().mockReturnValue(() => {}),
   onScreenshotData: vi.fn().mockReturnValue(() => {}),
-  sendScreenshotSelection: vi.fn()
+  sendScreenshotSelection: vi.fn(),
+  listBoards: vi.fn().mockResolvedValue([]),
+  createBoard: vi.fn(),
+  deleteBoard: vi.fn(),
+  renameBoard: vi.fn(),
+  getBoardState: vi.fn().mockResolvedValue({ board: {}, nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }),
+  saveBoardState: vi.fn().mockResolvedValue(undefined),
+  saveBoardImage: vi.fn()
 } as const
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
@@ -54,6 +85,11 @@ beforeEach(() => {
   DEFAULT_MOCKS.getActiveInvestigations.mockResolvedValue([])
   DEFAULT_MOCKS.listInvestigations.mockResolvedValue([])
   DEFAULT_MOCKS.listEntries.mockResolvedValue([])
+  DEFAULT_MOCKS.getHypothesisFindings.mockResolvedValue([])
+  DEFAULT_MOCKS.getFindingHypotheses.mockResolvedValue([])
+  DEFAULT_MOCKS.getHypothesisNestingDepth.mockResolvedValue(0)
+  DEFAULT_MOCKS.getSummary.mockResolvedValue(null)
+  DEFAULT_MOCKS.exportInvestigation.mockResolvedValue({ success: true })
   DEFAULT_MOCKS.pickImage.mockResolvedValue(null)
   DEFAULT_MOCKS.captureScreenshot.mockResolvedValue(null)
   DEFAULT_MOCKS.getEntryImage.mockResolvedValue('data:image/png;base64,abc')
@@ -63,9 +99,15 @@ beforeEach(() => {
   DEFAULT_MOCKS.setScreenshotHotkey.mockResolvedValue(true)
   DEFAULT_MOCKS.getUploadHotkey.mockResolvedValue('CommandOrControl+Shift+U')
   DEFAULT_MOCKS.setUploadHotkey.mockResolvedValue(true)
+  DEFAULT_MOCKS.getLastViewedInvestigationId.mockResolvedValue(null)
+  DEFAULT_MOCKS.getMinimapOpen.mockResolvedValue(false)
   DEFAULT_MOCKS.onInvestigationChanged.mockReturnValue(() => {})
+  DEFAULT_MOCKS.onEntriesChanged.mockReturnValue(() => {})
   DEFAULT_MOCKS.onShowDetails.mockReturnValue(() => {})
+  DEFAULT_MOCKS.onShowHome.mockReturnValue(() => {})
   DEFAULT_MOCKS.onTriggerScreenshot.mockReturnValue(() => {})
   DEFAULT_MOCKS.onTriggerUpload.mockReturnValue(() => {})
   DEFAULT_MOCKS.onScreenshotData.mockReturnValue(() => {})
+  DEFAULT_MOCKS.getBoardState.mockResolvedValue({ board: {}, nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } })
+  DEFAULT_MOCKS.listBoards.mockResolvedValue([])
 })

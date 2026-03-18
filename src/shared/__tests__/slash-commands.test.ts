@@ -104,4 +104,10 @@ describe('getCompletions', () => {
     expect(results).toHaveLength(1)
     expect(results[0].type).toBe('action')
   })
+
+  it('returns empty when prefix exactly matches a command', () => {
+    expect(getCompletions('/action')).toHaveLength(0)
+    expect(getCompletions('/finding')).toHaveLength(0)
+    expect(getCompletions('/hypothesis')).toHaveLength(0)
+  })
 })

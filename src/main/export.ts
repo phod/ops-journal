@@ -3,11 +3,8 @@ import { writeFileSync } from 'fs'
 import { readImageAsDataUrl } from './images'
 import type { JournalEntry } from '@shared/ipc-types'
 import { resolveEntriesByIds } from '@shared/entry-types'
+import { formatDate } from '@shared/format-date'
 import type { BoardState, BoardNode, BoardEdge } from '@shared/board-types'
-
-function formatTimestamp(iso: string): string {
-  return new Date(iso).toLocaleString()
-}
 
 function entryTypeLabel(type: string): string {
   return type.charAt(0).toUpperCase() + type.slice(1)
@@ -88,7 +85,7 @@ function tiptapNodeToMarkdown(node: TipTapNode, indent = 0, imageHandling: Image
       const type = (a.entryType as string) ?? 'note'
       const body = (a.entryBody as string) ?? ''
       const ts = a.entryTimestamp as string | undefined
-      const tsStr = ts ? ` · ${formatTimestamp(ts)}` : ''
+      const tsStr = ts ? ` · ${formatDate(ts)}` : ''
       const flagStr = a.entryFlagged ? ' ⚑' : ''
       const lines = [`> **[${entryTypeLabel(type)}${tsStr}]**${flagStr}`]
       if (body) lines.push(`> ${body.replace(/\n/g, '\n> ')}`)
@@ -247,7 +244,7 @@ function tiptapNodeToHtml(node: TipTapNode): string {
               <span style="font-size:12px;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(entryTypeLabel(type))}</span>
               ${isHypothesis && hypothesisStatus ? hypothesisStatusBadgeHtml(hypothesisStatus) : ''}
               ${a.entryFlagged ? '<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:#fef3c7;border:1px solid #f59e0b;color:#92400e;">⚑ Flagged</span>' : ''}
-              ${ts ? `<span style="font-size:14px;color:#6b7280;">${formatTimestamp(ts)}</span>` : ''}
+              ${ts ? `<span style="font-size:14px;color:#6b7280;">${formatDate(ts)}</span>` : ''}
             </div>
             ${body ? `<div style="font-size:18px;color:#1f2937;white-space:pre-wrap;line-height:1.7;">${escapeHtml(body)}</div>` : ''}
           </div>
@@ -324,7 +321,7 @@ export function exportAsMarkdown(
 ): string {
   const lines: string[] = []
   lines.push(`# ${investigationName}`)
-  lines.push(`Created: ${formatTimestamp(createdAt)}`)
+  lines.push(`Created: ${formatDate(createdAt)}`)
   lines.push('')
   lines.push('---')
   lines.push('')
@@ -346,7 +343,7 @@ export function exportAsMarkdown(
       const isHypothesis = entry.type === 'hypothesis'
       const statusStr = isHypothesis ? ` [${(entry.hypothesis_status ?? 'open').toUpperCase()}]` : ''
       const flagStr = entry.flagged ? ' ⚑' : ''
-      lines.push(`### [${formatTimestamp(entry.created_at)}] ${entryTypeLabel(entry.type)}${statusStr}${flagStr}`)
+      lines.push(`### [${formatDate(entry.created_at)}] ${entryTypeLabel(entry.type)}${statusStr}${flagStr}`)
       lines.push('')
       lines.push(entry.body)
       lines.push('')
@@ -640,7 +637,7 @@ export function buildExportHtml(
                 <span style="font-size:12px;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:0.06em;">${entryTypeLabel(entry.type)}</span>
                 ${isHypothesis ? hypothesisStatusBadgeHtml(status) : ''}
                 ${entry.flagged ? '<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:#fef3c7;border:1px solid #f59e0b;color:#92400e;">⚑ Flagged</span>' : ''}
-                <span style="font-size:14px;color:#6b7280;">${formatTimestamp(entry.created_at)}</span>
+                <span style="font-size:14px;color:#6b7280;">${formatDate(entry.created_at)}</span>
               </div>
               <div style="font-size:18px;color:#1f2937;white-space:pre-wrap;line-height:1.7;">${escapeHtml(entry.body)}</div>
             </div>
@@ -668,7 +665,7 @@ export function buildExportHtml(
     </head>
     <body>
       <h1>${escapeHtml(investigationName)}</h1>
-      <div class="meta">Created: ${formatTimestamp(createdAt)}</div>
+      <div class="meta">Created: ${formatDate(createdAt)}</div>
       <hr />
       ${summarySection}
       ${entryRows}

@@ -5,6 +5,7 @@ import type { EntryTypeDefinition } from '@shared/entry-types'
 import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, resolveLinkedFindings, resolveChildHypotheses } from '@shared/entry-types'
 import { parseSlashCommand, getCompletions } from '@shared/slash-commands'
 import { useEntryImages } from '@shared/useEntryImages'
+import { formatRelativeTime } from '@shared/format-date'
 import { LinkFindingModal } from './LinkFindingModal'
 
 interface Props {
@@ -40,34 +41,6 @@ function getCaretOffsetTop(textarea: HTMLTextAreaElement, position: number): num
   document.body.removeChild(div)
   return top
 }
-
-function formatTimestamp(isoString: string): string {
-  try {
-    const normalized = isoString.endsWith('Z') ? isoString : isoString + 'Z'
-    const date = new Date(normalized)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffSecs = Math.floor(diffMs / 1000)
-    const diffMins = Math.floor(diffSecs / 60)
-    const diffHours = Math.floor(diffMins / 60)
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffSecs < 60) return 'just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays === 1) return 'yesterday'
-    if (diffDays < 7) return `${diffDays}d ago`
-
-    return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-    })
-  } catch {
-    return isoString
-  }
-}
-
 
 interface EntryRowProps {
   entry: JournalEntry
@@ -453,7 +426,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     <div id={`entry-${entry.id}`} className={cardClass} onCopy={handleCopy}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono select-none flex-wrap">
-          {formatTimestamp(entry.created_at)}
+          {formatRelativeTime(entry.created_at)}
           {/* Type badge */}
           <div className="relative" ref={typeMenuRef}>
             {isTyped ? (

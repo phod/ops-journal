@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
   Controls,
   MiniMap,
+  MarkerType,
+  useViewport,
   type NodeTypes,
   type OnNodesChange,
   type OnEdgesChange,
@@ -20,6 +22,7 @@ import TextBoxNode from './nodes/TextBoxNode'
 import ImageNode from './nodes/ImageNode'
 import ShapeNode from './nodes/ShapeNode'
 import type { JournalEntry } from '@shared/ipc-types'
+import type { EdgeArrowDirection } from '@shared/board-types'
 
 const nodeTypes: NodeTypes = {
   entry: EntryNode,
@@ -27,6 +30,88 @@ const nodeTypes: NodeTypes = {
   image: ImageNode,
   shape: ShapeNode
 }
+
+const EDGE_COLOR_DEFAULT = '#6b7280' // gray-500
+const EDGE_COLOR_SELECTED = '#3b82f6' // blue-500 — matches shape selection ring
+
+function arrowMarker(color: string): Edge['markerEnd'] {
+  return { type: MarkerType.ArrowClosed, color, width: 20, height: 20 }
+}
+
+// ---------------------------------------------------------------------------
+// Floating toolbar shown at the midpoint of the selected edge
+// ---------------------------------------------------------------------------
+
+const DIRECTION_OPTIONS: { value: EdgeArrowDirection; label: string; icon: string }[] = [
+  { value: 'reverse', label: 'Reverse', icon: '←' },
+  { value: 'forward', label: 'Forward', icon: '→' },
+  { value: 'both', label: 'Both', icon: '↔' },
+  { value: 'none', label: 'None', icon: '—' }
+]
+
+function EdgeDirectionToolbar({
+  nodes,
+  edges,
+  onDirectionChange
+}: {
+  nodes: Node[]
+  edges: Edge[]
+  onDirectionChange: (edgeId: string, direction: EdgeArrowDirection) => void
+}) {
+  const { x: vpX, y: vpY, zoom } = useViewport()
+
+  const selectedEdge = edges.find((e) => e.selected)
+  if (!selectedEdge) return null
+
+  const sourceNode = nodes.find((n) => n.id === selectedEdge.source)
+  const targetNode = nodes.find((n) => n.id === selectedEdge.target)
+  if (!sourceNode || !targetNode) return null
+
+  // Compute center of each node in flow coordinates
+  const sw = (sourceNode.style as { width?: number })?.width ?? sourceNode.width ?? sourceNode.measured?.width ?? 200
+  const sh = (sourceNode.style as { height?: number })?.height ?? sourceNode.height ?? sourceNode.measured?.height ?? 70
+  const tw = (targetNode.style as { width?: number })?.width ?? targetNode.width ?? targetNode.measured?.width ?? 200
+  const th = (targetNode.style as { height?: number })?.height ?? targetNode.height ?? targetNode.measured?.height ?? 70
+
+  const midFlowX = (sourceNode.position.x + sw / 2 + targetNode.position.x + tw / 2) / 2
+  const midFlowY = (sourceNode.position.y + sh / 2 + targetNode.position.y + th / 2) / 2
+
+  // Convert to container pixel coordinates
+  const left = midFlowX * zoom + vpX
+  const top = midFlowY * zoom + vpY
+
+  const direction: EdgeArrowDirection = (selectedEdge.data as { arrowDirection?: EdgeArrowDirection })?.arrowDirection ?? 'forward'
+
+  return (
+    <div
+      style={{ position: 'absolute', left, top, transform: 'translate(-50%, calc(-100% - 12px))', zIndex: 50, pointerEvents: 'auto' }}
+      // Stop clicks from propagating to the pane (which would deselect the edge)
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center bg-gray-800 border border-gray-600 rounded-md shadow-lg overflow-hidden">
+        {DIRECTION_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => onDirectionChange(selectedEdge.id, opt.value)}
+            className={`px-2.5 py-1.5 text-sm transition-colors ${
+              direction === opt.value
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+            }`}
+            title={opt.label}
+          >
+            {opt.icon}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main canvas
+// ---------------------------------------------------------------------------
 
 interface Props {
   nodes: Node[]
@@ -45,6 +130,7 @@ interface Props {
   onSendToBack: (nodeId: string) => void
   onBringForward: (nodeId: string) => void
   onSendBackward: (nodeId: string) => void
+  onUpdateEdgeDirection: (edgeId: string, direction: EdgeArrowDirection) => void
   allEntries: JournalEntry[]
 }
 
@@ -65,6 +151,7 @@ export function BoardCanvas({
   onSendToBack,
   onBringForward,
   onSendBackward,
+  onUpdateEdgeDirection,
   allEntries
 }: Props) {
   const reactFlowRef = useRef<HTMLDivElement>(null)
@@ -100,8 +187,6 @@ export function BoardCanvas({
       if (!entryId || !reactFlowRef.current) return
 
       const bounds = reactFlowRef.current.getBoundingClientRect()
-      // We need to convert from screen coords to flow coords via the viewport transform
-      // The position relative to the container
       const position = {
         x: (e.clientX - bounds.left - viewport.x) / viewport.zoom,
         y: (e.clientY - bounds.top - viewport.y) / viewport.zoom
@@ -111,6 +196,20 @@ export function BoardCanvas({
     },
     [viewport, onDropEntry]
   )
+
+  // Apply per-edge arrow markers; blue when selected, gray otherwise
+  const styledEdges: Edge[] = useMemo(() => edges.map((edge) => {
+    const color = edge.selected ? EDGE_COLOR_SELECTED : EDGE_COLOR_DEFAULT
+    const direction: EdgeArrowDirection = (edge.data as { arrowDirection?: EdgeArrowDirection })?.arrowDirection ?? 'forward'
+    const showEnd = direction === 'forward' || direction === 'both'
+    const showStart = direction === 'reverse' || direction === 'both'
+    return {
+      ...edge,
+      style: { ...edge.style, stroke: color, strokeWidth: edge.selected ? 2.5 : 1.5 },
+      markerEnd: showEnd ? arrowMarker(color) : undefined,
+      markerStart: showStart ? arrowMarker(color) : undefined
+    }
+  }), [edges])
 
   // Wrap nodes so callbacks are wired up
   const nodesWithHandlers: Node[] = nodes.map((node) => {
@@ -168,7 +267,7 @@ export function BoardCanvas({
       `}</style>
       <ReactFlow
         nodes={nodesWithHandlers}
-        edges={edges}
+        edges={styledEdges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -203,6 +302,11 @@ export function BoardCanvas({
             maskColor="rgba(0,0,0,0.5)"
           />
         )}
+        <EdgeDirectionToolbar
+          nodes={nodesWithHandlers}
+          edges={styledEdges}
+          onDirectionChange={onUpdateEdgeDirection}
+        />
         <div className="react-flow__panel react-flow__panel-bottom-right" style={{ marginBottom: minimapOpen ? '148px' : '8px', marginRight: '8px' }}>
           <button
             onClick={() => setMinimapOpen((v) => {

@@ -270,7 +270,7 @@ export function registerIpcHandlers(): void {
           const boardStates = boardIds && boardIds.length > 0
             ? boardIds.map((id) => getBoardState(id))
             : undefined
-          await exportAsPdf(investigationName, createdAt, entries, dialogResult.filePath, summaryJson, boardStates)
+          await exportAsPdf(investigationName, createdAt, entries, dialogResult.filePath, summaryJson, boardStates, allEntries)
         } else {
           const md = exportAsMarkdown(investigationName, createdAt, entries, summaryJson, imageHandling)
           const { writeFileSync } = await import('fs')

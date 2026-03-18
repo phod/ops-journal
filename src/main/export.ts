@@ -528,10 +528,17 @@ function boardEdgeSvg(edge: BoardEdge, nodes: BoardNode[], offsetX: number, offs
     labelHtml = `<text x="${mx}" y="${my - 6}" text-anchor="middle" font-size="10" fill="#6b7280" font-family="-apple-system,BlinkMacSystemFont,sans-serif">${escapeHtml(edge.label)}</text>`
   }
 
-  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrowhead)" />${labelHtml}`
+  // Read per-edge arrow direction from style_json
+  const parsed = edge.style_json ? JSON.parse(edge.style_json) : {}
+  const direction: string = parsed.arrowDirection ?? 'forward'
+  const showEnd = direction === 'forward' || direction === 'both'
+  const showStart = direction === 'reverse' || direction === 'both'
+  const markerEnd = showEnd ? ' marker-end="url(#arrowhead)"' : ''
+  const markerStart = showStart ? ' marker-start="url(#arrowhead-reverse)"' : ''
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#3b82f6" stroke-width="2"${markerStart}${markerEnd} />${labelHtml}`
 }
 
-function buildBoardSectionHtml(boardStates: BoardState[], allEntries: JournalEntry[]): string {
+function buildBoardSectionHtml(boardStates: BoardState[], boardEntries: JournalEntry[]): string {
   if (boardStates.length === 0) return ''
 
   const sections = boardStates.map((state) => {
@@ -555,7 +562,7 @@ function buildBoardSectionHtml(boardStates: BoardState[], allEntries: JournalEnt
     const offsetX = minX - padding
     const offsetY = minY - padding
 
-    const nodesHtml = nodes.map((n) => boardNodeHtml(n, allEntries, offsetX, offsetY)).join('')
+    const nodesHtml = nodes.map((n) => boardNodeHtml(n, boardEntries, offsetX, offsetY)).join('')
     const edgesSvg = edges.map((e) => boardEdgeSvg(e, nodes, offsetX, offsetY)).join('')
 
     return `
@@ -565,7 +572,10 @@ function buildBoardSectionHtml(boardStates: BoardState[], allEntries: JournalEnt
           <svg width="${canvasW}" height="${canvasH}" style="position:absolute;top:0;left:0;pointer-events:none;">
             <defs>
               <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                <polygon points="0 0, 8 3, 0 6" fill="#9ca3af" />
+                <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" />
+              </marker>
+              <marker id="arrowhead-reverse" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto-start-reverse">
+                <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" />
               </marker>
             </defs>
             ${edgesSvg}
@@ -588,7 +598,8 @@ export function buildExportHtml(
   createdAt: string,
   entries: JournalEntry[],
   summaryJson?: string,
-  boardStates?: BoardState[]
+  boardStates?: BoardState[],
+  boardEntries?: JournalEntry[]
 ): string {
   const summarySection = summaryJson
     ? `
@@ -655,7 +666,7 @@ export function buildExportHtml(
       <hr />
       ${summarySection}
       ${entryRows}
-      ${boardStates ? buildBoardSectionHtml(boardStates, entries) : ''}
+      ${boardStates ? buildBoardSectionHtml(boardStates, boardEntries ?? entries) : ''}
     </body>
     </html>
   `
@@ -667,9 +678,10 @@ export async function exportAsPdf(
   entries: JournalEntry[],
   savePath: string,
   summaryJson?: string,
-  boardStates?: BoardState[]
+  boardStates?: BoardState[],
+  boardEntries?: JournalEntry[]
 ): Promise<void> {
-  const html = buildExportHtml(investigationName, createdAt, entries, summaryJson, boardStates)
+  const html = buildExportHtml(investigationName, createdAt, entries, summaryJson, boardStates, boardEntries)
   const win = new BrowserWindow({ show: false, webPreferences: { offscreen: true } })
   await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
   const pdfBuffer = await win.webContents.printToPDF({})

@@ -2,6 +2,8 @@ export type BoardNodeType = 'entry' | 'textbox' | 'image' | 'shape'
 
 export type ShapeKind = 'square' | 'circle' | 'cloud'
 
+export type EdgeArrowDirection = 'forward' | 'reverse' | 'both' | 'none'
+
 export interface RumourBoard {
   id: string
   investigation_id: string

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
 import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS, resolveLinkedFindings, resolveChildHypotheses } from '@shared/entry-types'
+import { useEntryImages } from '@shared/useEntryImages'
 
 interface Props {
   entries: JournalEntry[]
@@ -25,16 +26,8 @@ function scrollToEntry(id: string) {
 
 // Expanded inline detail card shown when clicking a finding chip on a hypothesis
 function FindingDetailCard({ finding }: { finding: JournalEntry }) {
-  const [imageDataUrls, setImageDataUrls] = useState<Record<string, string>>({})
+  const imageDataUrls = useEntryImages(finding.image_paths)
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
-
-  useEffect(() => {
-    for (const path of finding.image_paths) {
-      window.electronAPI.getEntryImage(path).then((url) => {
-        setImageDataUrls((prev) => ({ ...prev, [path]: url }))
-      }).catch(() => {})
-    }
-  }, [finding.image_paths])
 
   return (
     <div className="mt-1 p-3 bg-teal-950/40 border border-teal-500/30 rounded-lg">
@@ -68,26 +61,13 @@ function FindingDetailCard({ finding }: { finding: JournalEntry }) {
 }
 
 function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: JournalEntry; allEntries?: JournalEntry[]; onEntryUpdated?: (entry: JournalEntry) => void }): JSX.Element {
-  const [imageDataUrls, setImageDataUrls] = useState<Record<string, string>>({})
+  const imageDataUrls = useEntryImages(entry.image_paths)
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
   const [showTypeMenu, setShowTypeMenu] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [expandedFindingIds, setExpandedFindingIds] = useState<Set<string>>(new Set())
   const typeMenuRef = useRef<HTMLDivElement>(null)
   const statusMenuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    for (const path of entry.image_paths) {
-      if (!imageDataUrls[path]) {
-        window.electronAPI
-          .getEntryImage(path)
-          .then((dataUrl) => {
-            setImageDataUrls((prev) => ({ ...prev, [path]: dataUrl }))
-          })
-          .catch(() => {})
-      }
-    }
-  }, [entry.image_paths])
 
   useEffect(() => {
     if (!showTypeMenu) return

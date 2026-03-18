@@ -1,9 +1,10 @@
-import { memo, useEffect, useState } from 'react'
+import { memo } from 'react'
 import { Handle, Position, NodeResizer } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
 import { getEntryTypeDefinition } from '@shared/entry-types'
 import type { JournalEntry } from '@shared/ipc-types'
 import { NodeDeleteButton } from './NodeDeleteButton'
+import { useEntryImages } from '@shared/useEntryImages'
 
 export interface EntryNodeData {
   entry: JournalEntry | null
@@ -13,18 +14,7 @@ export interface EntryNodeData {
 
 function EntryNode({ id, data, selected }: NodeProps) {
   const { entry, onExplode } = data as EntryNodeData
-  const [imageDataUrls, setImageDataUrls] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    if (!entry?.image_paths.length) return
-    for (const path of entry.image_paths) {
-      if (!imageDataUrls[path]) {
-        window.electronAPI.getEntryImage(path).then((dataUrl) => {
-          setImageDataUrls((prev) => ({ ...prev, [path]: dataUrl }))
-        }).catch(() => {})
-      }
-    }
-  }, [entry?.image_paths])
+  const imageDataUrls = useEntryImages(entry?.image_paths ?? [])
 
   const isHypothesis = entry?.type === 'hypothesis'
   const hasRelations = isHypothesis && (

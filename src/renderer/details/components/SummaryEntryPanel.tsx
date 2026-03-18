@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { JournalEntry, HypothesisStatus } from '@shared/ipc-types'
 import { getEntryTypeDefinition, filterEntries, resolveLinkedFindings, resolveChildHypotheses, resolveParentHypotheses, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import type { Filter } from '@shared/entry-types'
 import { formatDate, TIMESTAMP_OPTIONS_SHORT } from '@shared/format-date'
+import { useEntryImages } from '@shared/useEntryImages'
 
 interface Props {
   entries: JournalEntry[]
@@ -191,19 +192,7 @@ function EntryImageStrip({
   imagePaths: string[]
   onInsertImage: (imagePath: string) => void
 }) {
-  const [dataUrls, setDataUrls] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    let cancelled = false
-    Promise.all(imagePaths.map((p) => window.electronAPI.getEntryImage(p).then((url) => [p, url] as const))).then(
-      (pairs) => {
-        if (!cancelled) setDataUrls(Object.fromEntries(pairs))
-      }
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [imagePaths.join(',')])
+  const dataUrls = useEntryImages(imagePaths)
 
   return (
     <div className="flex flex-wrap gap-1.5 mt-1.5">

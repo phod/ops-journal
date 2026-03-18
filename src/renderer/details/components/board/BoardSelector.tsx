@@ -66,7 +66,7 @@ export function BoardSelector({ boards, selectedId, onSelect, onCreate, onDelete
               {board.name}
             </button>
           )}
-          {selectedId === board.id && boards.length > 1 && (
+          {selectedId === board.id && (
             <button
               onClick={() => {
                 if (confirm(`Delete board "${board.name}"?`)) onDelete(board.id)

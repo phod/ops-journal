@@ -12,6 +12,7 @@ import { formatRelativeTime } from '@shared/format-date'
 import { useClickOutside } from '@shared/useClickOutside'
 import { scrollToEntry } from '@shared/scroll-to-entry'
 import { AutocompleteDropdown } from '@shared/AutocompleteDropdown'
+import { extractPastedImages } from '@shared/image-paste'
 import { EntryTypeMenu } from '@shared/EntryTypeMenu'
 import { HypothesisStatusMenu } from '@shared/HypothesisStatusMenu'
 import { LinkFindingModal } from './LinkFindingModal'
@@ -180,22 +181,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   }, [entry.image_paths.length, pendingRemovals.size])
 
   const handleEditPaste = useCallback((e: React.ClipboardEvent) => {
-    const items = e.clipboardData.items
-    const imageItems: DataTransferItem[] = []
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.startsWith('image/')) imageItems.push(items[i])
-    }
-    if (imageItems.length === 0) return
-    e.preventDefault()
-    for (const item of imageItems) {
-      const file = item.getAsFile()
-      if (!file) continue
-      const reader = new FileReader()
-      reader.onload = () => {
-        if (typeof reader.result === 'string') addNewImages([reader.result])
-      }
-      reader.readAsDataURL(file)
-    }
+    extractPastedImages(e, (dataUrl) => addNewImages([dataUrl]))
   }, [addNewImages])
 
   const saveEdit = async () => {

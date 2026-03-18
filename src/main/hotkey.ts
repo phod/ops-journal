@@ -7,10 +7,6 @@ import {
 } from './settings'
 import { captureScreenshot } from './screenshot'
 
-let currentHotkey: string | null = null
-let currentScreenshotHotkey: string | null = null
-let currentUploadHotkey: string | null = null
-
 async function handleScreenshotCapture(): Promise<void> {
   const dataUrl = await captureScreenshot()
   if (dataUrl) {
@@ -22,6 +18,34 @@ async function handleScreenshotCapture(): Promise<void> {
 function handleUploadTrigger(): void {
   showOverlay()
   getOverlayWindow()?.webContents.send('overlay:triggerUpload')
+}
+
+interface HotkeySlot {
+  current: string | null
+  callback: () => void
+  label: string
+  persist: (hotkey: string) => void
+}
+
+const overlaySlot: HotkeySlot = {
+  current: null,
+  callback: toggleOverlay,
+  label: 'hotkey',
+  persist: setHotkey
+}
+
+const screenshotSlot: HotkeySlot = {
+  current: null,
+  callback: handleScreenshotCapture,
+  label: 'screenshot hotkey',
+  persist: setScreenshotHotkey
+}
+
+const uploadSlot: HotkeySlot = {
+  current: null,
+  callback: handleUploadTrigger,
+  label: 'upload hotkey',
+  persist: setUploadHotkey
 }
 
 function registerShortcut(
@@ -44,61 +68,49 @@ function unregisterCurrent(current: string | null): void {
   }
 }
 
-export function registerHotkey(): void {
-  const hotkey = getHotkey()
-  if (registerShortcut(hotkey, toggleOverlay, 'hotkey')) {
-    currentHotkey = hotkey
+function registerSlot(slot: HotkeySlot, accelerator: string): boolean {
+  if (registerShortcut(accelerator, slot.callback, slot.label)) {
+    slot.current = accelerator
+    return true
   }
+  return false
+}
+
+function reregisterSlot(slot: HotkeySlot, newAccelerator: string): boolean {
+  unregisterCurrent(slot.current)
+  slot.current = null
+  if (registerShortcut(newAccelerator, slot.callback, slot.label)) {
+    slot.current = newAccelerator
+    slot.persist(newAccelerator)
+    return true
+  }
+  return false
+}
+
+export function registerHotkey(): void {
+  registerSlot(overlaySlot, getHotkey())
 }
 
 export function reregisterHotkey(newHotkey: string): boolean {
-  unregisterCurrent(currentHotkey)
-  currentHotkey = null
-  const registered = registerShortcut(newHotkey, toggleOverlay, 'hotkey')
-  if (registered) {
-    currentHotkey = newHotkey
-    setHotkey(newHotkey)
-  }
-  return registered
+  return reregisterSlot(overlaySlot, newHotkey)
 }
 
 export function registerImageHotkeys(): void {
-  const screenshotHotkey = getScreenshotHotkey()
-  if (registerShortcut(screenshotHotkey, handleScreenshotCapture, 'screenshot hotkey')) {
-    currentScreenshotHotkey = screenshotHotkey
-  }
-
-  const uploadHotkey = getUploadHotkey()
-  if (registerShortcut(uploadHotkey, handleUploadTrigger, 'upload hotkey')) {
-    currentUploadHotkey = uploadHotkey
-  }
+  registerSlot(screenshotSlot, getScreenshotHotkey())
+  registerSlot(uploadSlot, getUploadHotkey())
 }
 
 export function reregisterScreenshotHotkey(newHotkey: string): boolean {
-  unregisterCurrent(currentScreenshotHotkey)
-  currentScreenshotHotkey = null
-  const registered = registerShortcut(newHotkey, handleScreenshotCapture, 'screenshot hotkey')
-  if (registered) {
-    currentScreenshotHotkey = newHotkey
-    setScreenshotHotkey(newHotkey)
-  }
-  return registered
+  return reregisterSlot(screenshotSlot, newHotkey)
 }
 
 export function reregisterUploadHotkey(newHotkey: string): boolean {
-  unregisterCurrent(currentUploadHotkey)
-  currentUploadHotkey = null
-  const registered = registerShortcut(newHotkey, handleUploadTrigger, 'upload hotkey')
-  if (registered) {
-    currentUploadHotkey = newHotkey
-    setUploadHotkey(newHotkey)
-  }
-  return registered
+  return reregisterSlot(uploadSlot, newHotkey)
 }
 
 export function unregisterAllHotkeys(): void {
   globalShortcut.unregisterAll()
-  currentHotkey = null
-  currentScreenshotHotkey = null
-  currentUploadHotkey = null
+  overlaySlot.current = null
+  screenshotSlot.current = null
+  uploadSlot.current = null
 }

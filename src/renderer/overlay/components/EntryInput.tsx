@@ -4,6 +4,7 @@ import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 import type { EntryTypeDefinition } from '@shared/entry-types'
 import { getEntryTypeDefinition } from '@shared/entry-types'
 import { getCompletions, parseSlashCommand } from '@shared/slash-commands'
+import { AutocompleteDropdown } from '@shared/AutocompleteDropdown'
 
 const symbolMap: Record<string, string> = {
   CommandOrControl: '⌘',
@@ -257,25 +258,7 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
       )}
 
       <div className="relative">
-        {/* Autocomplete dropdown */}
-        {completions.length > 0 && (
-          <div className="absolute bottom-full mb-1 left-0 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-10 min-w-[160px]">
-            {completions.map((def, i) => (
-              <button
-                key={def.type}
-                onMouseDown={(e) => { e.preventDefault(); applyCompletion(def) }}
-                className={`w-full text-left px-3 py-1.5 text-sm font-mono flex items-center gap-2 transition-colors ${
-                  i === selectedCompletionIndex ? 'bg-gray-700 text-gray-100' : 'text-gray-300 hover:bg-gray-700/60'
-                }`}
-              >
-                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${def.tagBgClass} ${def.tagTextClass}`}>
-                  {def.label.toUpperCase()}
-                </span>
-                <span className="text-gray-500">{def.command}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        <AutocompleteDropdown completions={completions} selectedIndex={selectedCompletionIndex} onSelect={applyCompletion} />
 
         <textarea
           ref={textareaRef}

@@ -6,6 +6,7 @@ import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESI
 import { parseSlashCommand, getCompletions } from '@shared/slash-commands'
 import { useEntryImages } from '@shared/useEntryImages'
 import { formatRelativeTime } from '@shared/format-date'
+import { useClickOutside } from '@shared/useClickOutside'
 import { LinkFindingModal } from './LinkFindingModal'
 
 interface Props {
@@ -115,27 +116,8 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     }
   }, [draft, isEditing])
 
-  useEffect(() => {
-    if (!showTypeMenu) return
-    const handler = (e: MouseEvent) => {
-      if (typeMenuRef.current && !typeMenuRef.current.contains(e.target as Node)) {
-        setShowTypeMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showTypeMenu])
-
-  useEffect(() => {
-    if (!showStatusMenu) return
-    const handler = (e: MouseEvent) => {
-      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
-        setShowStatusMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showStatusMenu])
+  useClickOutside(typeMenuRef, showTypeMenu, () => setShowTypeMenu(false))
+  useClickOutside(statusMenuRef, showStatusMenu, () => setShowStatusMenu(false))
 
   const changeType = async (newType: EntryType) => {
     setShowTypeMenu(false)

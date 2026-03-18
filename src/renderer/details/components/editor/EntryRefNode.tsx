@@ -16,6 +16,58 @@ interface LinkedHypothesis {
   id: string
   body: string
   status: string
+  findings?: LinkedFinding[]
+  children?: LinkedHypothesis[]
+}
+
+function ChildHypothesisTree({ hypothesis, depth = 0 }: { hypothesis: LinkedHypothesis; depth?: number }) {
+  const status = (hypothesis.status ?? 'open') as HypothesisStatus
+  const findings = hypothesis.findings ?? []
+  const children = hypothesis.children ?? []
+
+  return (
+    <div
+      className="mt-1.5 px-2.5 py-1.5 rounded-lg border border-violet-500/25 bg-violet-500/5"
+      style={{ marginLeft: depth > 0 ? 8 : 0 }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-1.5">
+        <span className={`px-1 py-0.5 rounded text-xs font-semibold ${HYPOTHESIS_STATUS_CLASS[status]}`}>
+          {HYPOTHESIS_STATUS_LABEL[status]}
+        </span>
+        <span className="text-xs text-violet-300">
+          {hypothesis.body || <span className="italic text-gray-500">(no text)</span>}
+        </span>
+      </div>
+
+      {/* Findings */}
+      {findings.length > 0 && (
+        <div className="mt-1.5">
+          <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-0.5">Findings</div>
+          <div className="space-y-0.5">
+            {findings.map((f) => (
+              <div
+                key={f.id}
+                className="px-2 py-0.5 rounded text-xs font-mono bg-teal-500/10 border border-teal-500/25 text-teal-300"
+              >
+                {f.body || <span className="italic text-gray-500">(no text)</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Nested children */}
+      {children.length > 0 && (
+        <div className="mt-1.5">
+          <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-0.5">Child Hypotheses</div>
+          {children.map((ch) => (
+            <ChildHypothesisTree key={ch.id} hypothesis={ch} depth={depth + 1} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function EntryRefNodeView({ node }: NodeViewProps) {
@@ -30,6 +82,11 @@ function EntryRefNodeView({ node }: NodeViewProps) {
   const status = (entryHypothesisStatus ?? 'open') as HypothesisStatus
   const dataUrls = useEntryImages(imagePaths)
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
+  const [expandChildren, setExpandChildren] = useState(false)
+
+  const hasNestedContent = childHypotheses.some(
+    (ch) => (ch.findings && ch.findings.length > 0) || (ch.children && ch.children.length > 0)
+  )
 
   return (
     <NodeViewWrapper>
@@ -131,20 +188,38 @@ function EntryRefNodeView({ node }: NodeViewProps) {
         {/* Child hypotheses */}
         {isHypothesis && childHypotheses.length > 0 && (
           <div className="mt-2">
-            <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Child Hypotheses</div>
-            <div className="flex flex-wrap gap-1.5">
-              {childHypotheses.map((ch) => (
-                <div
-                  key={ch.id}
-                  className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 flex items-center gap-1.5"
+            <div className="flex items-center gap-2 mb-1">
+              <div className="text-xs text-gray-600 font-mono uppercase tracking-wider">Child Hypotheses</div>
+              {hasNestedContent && (
+                <button
+                  onClick={() => setExpandChildren(!expandChildren)}
+                  className="text-xs px-1.5 py-0.5 rounded border border-violet-500/30 text-violet-400 hover:bg-violet-500/15 hover:text-violet-300 transition-colors"
                 >
-                  <span className={`font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[(ch.status ?? 'open') as HypothesisStatus]}`}>
-                    {HYPOTHESIS_STATUS_LABEL[(ch.status ?? 'open') as HypothesisStatus]}
-                  </span>
-                  <span>{ch.body || <span className="italic text-gray-500">(no text)</span>}</span>
-                </div>
-              ))}
+                  {expandChildren ? '▾ Collapse' : '▸ Expand All'}
+                </button>
+              )}
             </div>
+            {expandChildren ? (
+              <div>
+                {childHypotheses.map((ch) => (
+                  <ChildHypothesisTree key={ch.id} hypothesis={ch} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {childHypotheses.map((ch) => (
+                  <div
+                    key={ch.id}
+                    className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 flex items-center gap-1.5"
+                  >
+                    <span className={`font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[(ch.status ?? 'open') as HypothesisStatus]}`}>
+                      {HYPOTHESIS_STATUS_LABEL[(ch.status ?? 'open') as HypothesisStatus]}
+                    </span>
+                    <span>{ch.body || <span className="italic text-gray-500">(no text)</span>}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

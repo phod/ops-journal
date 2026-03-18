@@ -1,7 +1,6 @@
 import { memo, useCallback } from 'react'
-import { Handle, Position, NodeResizer } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
-import { NodeDeleteButton } from './NodeDeleteButton'
+import { NodeShell } from './NodeShell'
 import type { ShapeKind } from '@shared/board-types'
 
 export interface ShapeNodeData {
@@ -23,8 +22,6 @@ function ShapeNode({ id, data, selected }: NodeProps) {
     [onChange]
   )
 
-  const handleStyle = { background: '#4b5563' }
-
   const shapeContent = (
     <input
       value={label}
@@ -39,17 +36,7 @@ function ShapeNode({ id, data, selected }: NodeProps) {
 
   return (
     <div className="relative w-full h-full">
-      {selected && <NodeResizer
-        minWidth={60}
-        minHeight={60}
-        lineStyle={{ borderColor: '#3b82f6' }}
-        handleStyle={{ background: '#3b82f6', width: 8, height: 8, borderRadius: 2 }}
-      />}
-      {selected && <NodeDeleteButton nodeId={id} />}
-      <Handle type="target" position={Position.Top} id="top-target" style={handleStyle} />
-      <Handle type="source" position={Position.Top} id="top-source" style={handleStyle} />
-      <Handle type="target" position={Position.Left} id="left-target" style={handleStyle} />
-      <Handle type="source" position={Position.Left} id="left-source" style={handleStyle} />
+      <NodeShell nodeId={id} selected={selected ?? false} minWidth={60} minHeight={60}>
 
       {effectiveShape === 'square' && (
         <div className={`flex items-center justify-center px-4 py-3 w-full h-full rounded border bg-gray-800/90 ${selected ? 'ring-2 ring-blue-500 border-gray-500' : 'border-gray-500'}`}>
@@ -85,10 +72,7 @@ function ShapeNode({ id, data, selected }: NodeProps) {
         </div>
       )}
 
-      <Handle type="target" position={Position.Bottom} id="bottom-target" style={handleStyle} />
-      <Handle type="source" position={Position.Bottom} id="bottom-source" style={handleStyle} />
-      <Handle type="target" position={Position.Right} id="right-target" style={handleStyle} />
-      <Handle type="source" position={Position.Right} id="right-source" style={handleStyle} />
+      </NodeShell>
     </div>
   )
 }

@@ -1,22 +1,9 @@
-import type { JournalEntry, HypothesisStatus } from '@shared/ipc-types'
+import type { JournalEntry } from '@shared/ipc-types'
+import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
 
 interface Props {
   entries: JournalEntry[]
   onClose: () => void
-}
-
-const STATUS_LABEL: Record<HypothesisStatus, string> = {
-  open: 'Open',
-  true: 'True',
-  false: 'False',
-  abandoned: 'Abandoned'
-}
-
-const STATUS_CLASS: Record<HypothesisStatus, string> = {
-  open: 'text-yellow-300',
-  true: 'text-green-300',
-  false: 'text-red-400',
-  abandoned: 'text-gray-500'
 }
 
 export function HypothesisPanel({ entries, onClose }: Props) {
@@ -56,8 +43,8 @@ export function HypothesisPanel({ entries, onClose }: Props) {
                 className="no-drag w-full text-left px-2 py-1.5 rounded bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/25 transition-colors"
               >
                 <div className="flex items-center gap-1 mb-0.5">
-                  <span className={`text-xs font-semibold ${STATUS_CLASS[status]}`}>
-                    {STATUS_LABEL[status]}
+                  <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[status]}`}>
+                    {HYPOTHESIS_STATUS_LABEL[status]}
                   </span>
                   {findingCount > 0 && (
                     <span className="text-xs text-gray-600">· {findingCount}f</span>

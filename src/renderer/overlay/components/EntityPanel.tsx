@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
+import type { JournalEntry } from '@shared/ipc-types'
+import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
 
 type PanelTab = 'flagged' | 'finding' | 'hypothesis' | 'action'
 
@@ -53,20 +54,6 @@ const CARD_COLORS: Record<PanelTab, { bg: string; border: string; hover: string 
   action: { bg: 'bg-orange-500/10', border: 'border-orange-500/20', hover: 'hover:bg-orange-500/25' }
 }
 
-const STATUS_LABEL: Record<HypothesisStatus, string> = {
-  open: 'Open',
-  true: 'True',
-  false: 'False',
-  abandoned: 'Abandoned'
-}
-
-const STATUS_CLASS: Record<HypothesisStatus, string> = {
-  open: 'text-yellow-300',
-  true: 'text-green-300',
-  false: 'text-red-400',
-  abandoned: 'text-gray-500'
-}
-
 function scrollToEntry(id: string) {
   const el = document.getElementById(`entry-${id}`)
   el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
@@ -92,8 +79,8 @@ function HypothesisCard({ entry }: { entry: JournalEntry }) {
       className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-colors`}
     >
       <div className="flex items-center gap-1 mb-0.5">
-        <span className={`text-xs font-semibold ${STATUS_CLASS[status]}`}>
-          {STATUS_LABEL[status]}
+        <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[status]}`}>
+          {HYPOTHESIS_STATUS_LABEL[status]}
         </span>
         {entry.flagged && <FlagIcon />}
         {findingCount > 0 && (
@@ -166,8 +153,8 @@ function FlaggedCard({ entry }: { entry: JournalEntry }) {
           <span className="text-xs text-gray-500 font-medium">{typeDef}</span>
         )}
         {isHypothesis && (
-          <span className={`text-xs font-semibold ${STATUS_CLASS[status]}`}>
-            {STATUS_LABEL[status]}
+          <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[status]}`}>
+            {HYPOTHESIS_STATUS_LABEL[status]}
           </span>
         )}
         {isAction && (

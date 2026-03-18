@@ -1,4 +1,5 @@
 import { type FormEvent, useState, useRef, useEffect } from 'react'
+import { Modal } from '@shared/Modal'
 
 interface Props {
   onCreated: () => void
@@ -59,15 +60,7 @@ export function CreateInvestigationForm({ onCreated }: Props) {
       </button>
 
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
-          onClick={handleClose}
-        >
-          <div
-            className="bg-gray-800 border border-gray-700 rounded-xl p-6 w-[420px] shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <Modal onClose={handleClose} className="p-6 w-[420px]">
             <h3 className="text-gray-100 font-semibold text-sm mb-4">New Investigation</h3>
             <form onSubmit={handleSubmit}>
               <input
@@ -103,8 +96,7 @@ export function CreateInvestigationForm({ onCreated }: Props) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   )

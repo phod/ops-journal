@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
 import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import type { HypothesisStatus } from '@shared/ipc-types'
+import { Modal } from '@shared/Modal'
 
 type Tab = 'findings' | 'hypotheses'
 
@@ -60,14 +61,7 @@ export function LinkFindingModal({ hypothesis, findings, hypotheses, onClose, on
   const hasBothTypes = findings.length > 0 || linkableHypotheses.length > 0
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={handleClose}
-    >
-      <div
-        className="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl p-4 w-80 max-h-[70vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={handleClose} className="p-4 w-80 max-h-[70vh] flex flex-col">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-gray-100">Link to Hypothesis</h3>
           <button
@@ -193,7 +187,6 @@ export function LinkFindingModal({ hypothesis, findings, hypotheses, onClose, on
             Done
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

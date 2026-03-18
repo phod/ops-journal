@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
-import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS, resolveLinkedFindings, resolveChildHypotheses } from '@shared/entry-types'
+import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS, resolveLinkedFindings, resolveChildHypotheses } from '@shared/entry-types'
 import { useEntryImages } from '@shared/useEntryImages'
 import { useClickOutside } from '@shared/useClickOutside'
+import { EntryTypeMenu } from '@shared/EntryTypeMenu'
+import { HypothesisStatusMenu } from '@shared/HypothesisStatusMenu'
 import { scrollToEntry } from '@shared/scroll-to-entry'
 
 interface Props {
@@ -189,22 +191,7 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
             </button>
           )}
           {showTypeMenu && (
-            <div className="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-20 min-w-[120px] shadow-lg">
-              {ENTRY_TYPES.map((def) => (
-                <button
-                  key={def.type}
-                  onMouseDown={(e) => { e.preventDefault(); changeType(def.type) }}
-                  className={`w-full text-left px-3 py-1.5 text-xs font-mono flex items-center gap-2 transition-colors hover:bg-gray-700 ${
-                    entry.type === def.type ? 'text-gray-100' : 'text-gray-400'
-                  }`}
-                >
-                  <span className={`px-1.5 py-0.5 rounded text-xs ${def.tagBgClass} ${def.tagTextClass}`}>
-                    {def.label.toUpperCase()}
-                  </span>
-                  {entry.type === def.type && <span className="ml-auto text-gray-500">✓</span>}
-                </button>
-              ))}
-            </div>
+            <EntryTypeMenu currentType={entry.type} onSelect={changeType} />
           )}
         </div>
         {/* Hypothesis status badge */}
@@ -218,22 +205,7 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
               {HYPOTHESIS_STATUS_LABEL[status]}
             </button>
             {showStatusMenu && (
-              <div className="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-20 min-w-[110px] shadow-lg">
-                {(Object.keys(HYPOTHESIS_STATUS_LABEL) as HypothesisStatus[]).map((s) => (
-                  <button
-                    key={s}
-                    onMouseDown={(e) => { e.preventDefault(); changeHypothesisStatus(s) }}
-                    className={`w-full text-left px-3 py-1.5 text-xs font-mono flex items-center gap-2 transition-colors hover:bg-gray-700 ${
-                      status === s ? 'text-gray-100' : 'text-gray-400'
-                    }`}
-                  >
-                    <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${HYPOTHESIS_STATUS_CLASS[s]}`}>
-                      {HYPOTHESIS_STATUS_LABEL[s]}
-                    </span>
-                    {status === s && <span className="ml-auto text-gray-500">✓</span>}
-                  </button>
-                ))}
-              </div>
+              <HypothesisStatusMenu currentStatus={status} onSelect={changeHypothesisStatus} />
             )}
           </div>
         )}

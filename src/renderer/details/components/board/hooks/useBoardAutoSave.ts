@@ -25,17 +25,7 @@ export function useBoardAutoSave({
   dirtyRef.current = isDirty
   boardIdRef.current = boardId
 
-  const save = useRef(() => {
-    const id = boardIdRef.current
-    if (!id || !dirtyRef.current) return
-    const nodes = toBoardNodes(id)
-    const edges = toBoardEdges(id)
-    const viewport = toBoardViewport()
-    window.electronAPI.saveBoardState(id, { nodes, edges, viewport })
-    setDirty(false)
-  })
-
-  // Keep save ref current
+  const save = useRef(() => {})
   save.current = () => {
     const id = boardIdRef.current
     if (!id || !dirtyRef.current) return

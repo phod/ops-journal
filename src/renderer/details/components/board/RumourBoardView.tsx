@@ -131,6 +131,7 @@ export function RumourBoardView({ investigationId, entries }: Props) {
             onSendToBack={boardState.sendToBack}
             onBringForward={boardState.bringForward}
             onSendBackward={boardState.sendBackward}
+            onUpdateEdgeDirection={boardState.updateEdgeDirection}
             allEntries={entries}
           />
         ) : (

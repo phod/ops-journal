@@ -3,7 +3,7 @@ import { applyNodeChanges, applyEdgeChanges } from '@xyflow/react'
 import type { Node, Edge, NodeChange, EdgeChange, Connection, Viewport } from '@xyflow/react'
 import { v4 as uuidv4 } from 'uuid'
 import type { JournalEntry } from '@shared/ipc-types'
-import type { BoardNode, BoardEdge, BoardViewport, ShapeKind } from '@shared/board-types'
+import type { BoardNode, BoardEdge, BoardViewport, ShapeKind, EdgeArrowDirection } from '@shared/board-types'
 import { resolveLinkedFindings, resolveChildHypotheses, resolveParentHypotheses } from '@shared/entry-types'
 
 function boardNodeToFlow(node: BoardNode): Node {
@@ -23,12 +23,15 @@ function boardNodeToFlow(node: BoardNode): Node {
 }
 
 function boardEdgeToFlow(edge: BoardEdge): Edge {
+  const parsed = edge.style_json ? JSON.parse(edge.style_json) : {}
+  const { arrowDirection, ...style } = parsed
   return {
     id: edge.id,
     source: edge.source_node_id,
     target: edge.target_node_id,
     label: edge.label ?? undefined,
-    style: edge.style_json ? JSON.parse(edge.style_json) : undefined
+    style: Object.keys(style).length > 0 ? style : undefined,
+    data: { arrowDirection: arrowDirection ?? 'forward' }
   }
 }
 
@@ -52,13 +55,15 @@ function flowNodeToBoard(node: Node, boardId: string): BoardNode {
 }
 
 function flowEdgeToBoard(edge: Edge, boardId: string): BoardEdge {
+  const arrowDirection = (edge.data as { arrowDirection?: string })?.arrowDirection ?? 'forward'
+  const combined = { ...(edge.style ?? {}), arrowDirection }
   return {
     id: edge.id,
     board_id: boardId,
     source_node_id: edge.source,
     target_node_id: edge.target,
     label: edge.label != null ? String(edge.label) : null,
-    style_json: edge.style ? JSON.stringify(edge.style) : null
+    style_json: JSON.stringify(combined)
   }
 }
 
@@ -75,6 +80,7 @@ export interface BoardStateHook {
   addImageNode: (imagePath: string, position: { x: number; y: number }) => void
   addShapeNode: (shape: ShapeKind, position: { x: number; y: number }) => void
   updateTextBoxNode: (nodeId: string, text: string) => void
+  updateEdgeDirection: (edgeId: string, direction: EdgeArrowDirection) => void
   updateShapeLabel: (nodeId: string, label: string) => void
   bringToFront: (nodeId: string) => void
   sendToBack: (nodeId: string) => void
@@ -155,7 +161,8 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
         source: connection.source,
         target: connection.target,
         sourceHandle: connection.sourceHandle ?? undefined,
-        targetHandle: connection.targetHandle ?? undefined
+        targetHandle: connection.targetHandle ?? undefined,
+        data: { arrowDirection: 'forward' as EdgeArrowDirection }
       }
     ])
     setDirty(true)
@@ -231,6 +238,13 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
   const updateTextBoxNode = useCallback((nodeId: string, text: string) => {
     setNodes((nds) =>
       nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, text } } : n))
+    )
+    setDirty(true)
+  }, [])
+
+  const updateEdgeDirection = useCallback((edgeId: string, direction: EdgeArrowDirection) => {
+    setEdges((eds) =>
+      eds.map((e) => (e.id === edgeId ? { ...e, data: { ...e.data, arrowDirection: direction } } : e))
     )
     setDirty(true)
   }, [])
@@ -412,7 +426,7 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
         const key = `${sourceId}->${targetId}`
         if (edgeSet.has(key)) continue
         edgeSet.add(key)
-        newEdges.push({ id: uuidv4(), source: sourceId, target: targetId })
+        newEdges.push({ id: uuidv4(), source: sourceId, target: targetId, data: { arrowDirection: 'forward' } })
       }
 
       for (const { hypothesisEntryId, findingEntryId } of findingEdges) {
@@ -427,7 +441,8 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
           source: sourceId,
           target: targetId,
           sourceHandle: 'right-source',
-          targetHandle: 'left-target'
+          targetHandle: 'left-target',
+          data: { arrowDirection: 'forward' }
         })
       }
 
@@ -463,6 +478,7 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
     addImageNode,
     addShapeNode,
     updateTextBoxNode,
+    updateEdgeDirection,
     updateShapeLabel,
     bringToFront,
     sendToBack,

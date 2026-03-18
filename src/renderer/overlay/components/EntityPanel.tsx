@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
 import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import { scrollToEntry } from '@shared/scroll-to-entry'
+import { FlagIcon } from '@shared/FlagIcon'
 
 type PanelTab = 'flagged' | 'finding' | 'hypothesis' | 'action'
 
@@ -55,14 +56,6 @@ const CARD_COLORS: Record<PanelTab, { bg: string; border: string; hover: string 
   action: { bg: 'bg-orange-500/10', border: 'border-orange-500/20', hover: 'hover:bg-orange-500/25' }
 }
 
-function FlagIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400 flex-shrink-0">
-      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-      <line x1="4" y1="22" x2="4" y2="15"/>
-    </svg>
-  )
-}
 
 function HypothesisCard({ entry }: { entry: JournalEntry }) {
   const status = entry.hypothesis_status ?? 'open'
@@ -78,7 +71,7 @@ function HypothesisCard({ entry }: { entry: JournalEntry }) {
         <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[status]}`}>
           {HYPOTHESIS_STATUS_LABEL[status]}
         </span>
-        {entry.flagged && <FlagIcon />}
+        {entry.flagged && <FlagIcon size={10} className="text-amber-400 flex-shrink-0" />}
         {findingCount > 0 && (
           <span className="text-xs text-gray-600">· {findingCount}f</span>
         )}
@@ -101,7 +94,7 @@ function FindingCard({ entry }: { entry: JournalEntry }) {
       className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-colors`}
     >
       {entry.flagged && (
-        <div className="mb-0.5"><FlagIcon /></div>
+        <div className="mb-0.5"><FlagIcon size={10} className="text-amber-400 flex-shrink-0" /></div>
       )}
       <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
         {entry.body || '(no text)'}
@@ -122,7 +115,7 @@ function ActionCard({ entry }: { entry: JournalEntry }) {
         <span className={`text-xs font-semibold ${completed ? 'text-green-300' : 'text-orange-300'}`}>
           {completed ? '✓ Done' : '○ Open'}
         </span>
-        {entry.flagged && <FlagIcon />}
+        {entry.flagged && <FlagIcon size={10} className="text-amber-400 flex-shrink-0" />}
       </div>
       <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
         {entry.body || '(no text)'}
@@ -144,7 +137,7 @@ function FlaggedCard({ entry }: { entry: JournalEntry }) {
       className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-colors`}
     >
       <div className="flex items-center gap-1 mb-0.5">
-        <FlagIcon />
+        <FlagIcon size={10} className="text-amber-400 flex-shrink-0" />
         {typeDef && (
           <span className="text-xs text-gray-500 font-medium">{typeDef}</span>
         )}

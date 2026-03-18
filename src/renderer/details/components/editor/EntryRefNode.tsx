@@ -5,6 +5,7 @@ import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLAS
 import type { HypothesisStatus } from '@shared/ipc-types'
 import { formatDate, TIMESTAMP_OPTIONS_SHORT } from '@shared/format-date'
 import { useEntryImages } from '@shared/useEntryImages'
+import { FlagIcon } from '@shared/FlagIcon'
 
 interface LinkedFinding {
   id: string
@@ -52,10 +53,7 @@ function EntryRefNodeView({ node }: NodeViewProps) {
             </span>
           )}
           {entryFlagged && (
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400">
-              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-              <line x1="4" y1="22" x2="4" y2="15"/>
-            </svg>
+            <FlagIcon size={11} />
           )}
           <span className="text-gray-500 text-xs">
             {entryTimestamp ? formatDate(entryTimestamp, TIMESTAMP_OPTIONS_SHORT) : ''}

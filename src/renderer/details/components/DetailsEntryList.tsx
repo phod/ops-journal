@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
+import { useCallback, useRef, useState } from 'react'
+import type { JournalEntry, HypothesisStatus } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
-import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS, resolveLinkedFindings, resolveChildHypotheses } from '@shared/entry-types'
+import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import { useEntryImages } from '@shared/useEntryImages'
+import { useEntryActions } from '@shared/useEntryActions'
+import { useEntryRelationships } from '@shared/useEntryRelationships'
+import { FlagIcon } from '@shared/FlagIcon'
 import { useClickOutside } from '@shared/useClickOutside'
 import { EntryTypeMenu } from '@shared/EntryTypeMenu'
 import { HypothesisStatusMenu } from '@shared/HypothesisStatusMenu'
@@ -72,26 +75,12 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
   useClickOutside(typeMenuRef, showTypeMenu, () => setShowTypeMenu(false))
   useClickOutside(statusMenuRef, showStatusMenu, () => setShowStatusMenu(false))
 
-  const changeType = async (newType: EntryType) => {
-    setShowTypeMenu(false)
-    if (newType === entry.type) return
-    try {
-      const updated = await window.electronAPI.updateEntry(entry.id, entry.body, undefined, newType)
-      onEntryUpdated?.(updated)
-    } catch (err) {
-      console.error('[details] Failed to change entry type:', err)
-    }
-  }
-
-  const changeHypothesisStatus = async (status: HypothesisStatus) => {
-    setShowStatusMenu(false)
-    try {
-      const updated = await window.electronAPI.updateHypothesisStatus(entry.id, status)
-      onEntryUpdated?.(updated)
-    } catch (err) {
-      console.error('[details] Failed to change hypothesis status:', err)
-    }
-  }
+  const { changeType, changeHypothesisStatus, toggleCompleted, toggleFlagged } = useEntryActions({
+    entry,
+    onUpdated: onEntryUpdated ?? (() => {}),
+    setShowTypeMenu,
+    setShowStatusMenu
+  })
 
   const toggleFindingExpanded = (findingId: string) => {
     setExpandedFindingIds((prev) => {
@@ -109,39 +98,7 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
   const isAction = entry.type === 'action'
   const status = entry.hypothesis_status ?? 'open'
 
-  const toggleCompleted = async () => {
-    try {
-      const updated = await window.electronAPI.toggleActionCompleted(entry.id)
-      onEntryUpdated?.(updated)
-    } catch (err) {
-      console.error('[details] Failed to toggle action completed:', err)
-    }
-  }
-
-  const toggleFlagged = async () => {
-    try {
-      const updated = await window.electronAPI.toggleFlagged(entry.id)
-      onEntryUpdated?.(updated)
-    } catch (err) {
-      console.error('[details] Failed to toggle flagged:', err)
-    }
-  }
-
-  const linkedFindings = isHypothesis && allEntries
-    ? resolveLinkedFindings(entry, allEntries)
-    : []
-
-  const linkedChildHypotheses = isHypothesis && allEntries
-    ? resolveChildHypotheses(entry, allEntries)
-    : []
-
-  const parentHypotheses = isHypothesis && allEntries
-    ? allEntries.filter((e) => e.type === 'hypothesis' && e.linked_child_hypothesis_ids?.includes(entry.id))
-    : []
-
-  const linkedHypotheses = isFinding && allEntries
-    ? allEntries.filter((e) => e.type === 'hypothesis' && e.linked_finding_ids?.includes(entry.id))
-    : []
+  const { linkedFindings, linkedChildHypotheses, parentHypotheses, linkedHypotheses } = useEntryRelationships(entry, allEntries ?? [])
 
   const handleCopy = useCallback((e: React.ClipboardEvent) => {
     const selection = window.getSelection()
@@ -242,10 +199,7 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
           }`}
           title={entry.flagged ? 'Remove flag' : 'Flag as important'}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill={entry.flagged ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-            <line x1="4" y1="22" x2="4" y2="15"/>
-          </svg>
+          <FlagIcon filled={!!entry.flagged} className={entry.flagged ? 'text-amber-400' : 'text-current'} />
         </button>
       </div>
       {entry.body && (

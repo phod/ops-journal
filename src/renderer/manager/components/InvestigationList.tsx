@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import type { Investigation } from '@shared/ipc-types'
 import { formatDate, formatRelativeTime, formatDateShort } from '@shared/format-date'
+import { useClickOutside } from '@shared/useClickOutside'
 import { ConfirmDialog } from './ConfirmDialog'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -21,16 +22,7 @@ function OverflowMenu({ onDelete }: { onDelete: () => void }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!open) return
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [open])
+  useClickOutside(ref, open, () => setOpen(false))
 
   return (
     <div ref={ref} className="relative" onClick={(e) => e.stopPropagation()}>

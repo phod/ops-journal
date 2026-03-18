@@ -3,6 +3,7 @@ import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-type
 import { formatDate } from '@shared/format-date'
 import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS, resolveLinkedFindings, resolveChildHypotheses } from '@shared/entry-types'
 import { useEntryImages } from '@shared/useEntryImages'
+import { useClickOutside } from '@shared/useClickOutside'
 
 interface Props {
   entries: JournalEntry[]
@@ -69,27 +70,8 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
   const typeMenuRef = useRef<HTMLDivElement>(null)
   const statusMenuRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!showTypeMenu) return
-    const handler = (e: MouseEvent) => {
-      if (typeMenuRef.current && !typeMenuRef.current.contains(e.target as Node)) {
-        setShowTypeMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showTypeMenu])
-
-  useEffect(() => {
-    if (!showStatusMenu) return
-    const handler = (e: MouseEvent) => {
-      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
-        setShowStatusMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showStatusMenu])
+  useClickOutside(typeMenuRef, showTypeMenu, () => setShowTypeMenu(false))
+  useClickOutside(statusMenuRef, showStatusMenu, () => setShowStatusMenu(false))
 
   const changeType = async (newType: EntryType) => {
     setShowTypeMenu(false)

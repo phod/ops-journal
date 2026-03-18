@@ -1,9 +1,10 @@
 import { Node, mergeAttributes, ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react'
 import type { NodeViewProps } from '@tiptap/react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import type { HypothesisStatus } from '@shared/ipc-types'
 import { formatDate, TIMESTAMP_OPTIONS_SHORT } from '@shared/format-date'
+import { useEntryImages } from '@shared/useEntryImages'
 
 interface LinkedFinding {
   id: string
@@ -26,20 +27,8 @@ function EntryRefNodeView({ node }: NodeViewProps) {
   const childHypotheses: LinkedHypothesis[] = Array.isArray(entryChildHypotheses) ? entryChildHypotheses : []
   const parentHypotheses: LinkedHypothesis[] = Array.isArray(entryParentHypotheses) ? entryParentHypotheses : []
   const status = (entryHypothesisStatus ?? 'open') as HypothesisStatus
-  const [dataUrls, setDataUrls] = useState<Record<string, string>>({})
+  const dataUrls = useEntryImages(imagePaths)
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    Promise.all(imagePaths.map((p) => window.electronAPI.getEntryImage(p).then((url) => [p, url] as const))).then(
-      (pairs) => {
-        if (!cancelled) setDataUrls(Object.fromEntries(pairs))
-      }
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [imagePaths.join(',')])
 
   return (
     <NodeViewWrapper>

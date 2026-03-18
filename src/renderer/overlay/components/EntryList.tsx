@@ -4,6 +4,7 @@ import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 import type { EntryTypeDefinition } from '@shared/entry-types'
 import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, resolveLinkedFindings, resolveChildHypotheses } from '@shared/entry-types'
 import { parseSlashCommand, getCompletions } from '@shared/slash-commands'
+import { useEntryImages } from '@shared/useEntryImages'
 import { LinkFindingModal } from './LinkFindingModal'
 
 interface Props {
@@ -83,7 +84,7 @@ interface EntryRowProps {
 function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavigateUp, onNavigateDown, onUpdated, onDeleted }: EntryRowProps) {
   const [draft, setDraft] = useState(entry.body)
   const [saving, setSaving] = useState(false)
-  const [imageDataUrls, setImageDataUrls] = useState<Record<string, string>>({})
+  const imageDataUrls = useEntryImages(entry.image_paths)
   const [pendingRemovals, setPendingRemovals] = useState<Set<string>>(new Set())
   const [pendingNewImages, setPendingNewImages] = useState<string[]>([])
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
@@ -97,16 +98,6 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   const typeMenuRef = useRef<HTMLDivElement>(null)
   const statusMenuRef = useRef<HTMLDivElement>(null)
   const prevEditHeightRef = useRef(0)
-
-  useEffect(() => {
-    for (const path of entry.image_paths) {
-      if (!imageDataUrls[path]) {
-        window.electronAPI.getEntryImage(path).then((dataUrl) => {
-          setImageDataUrls((prev) => ({ ...prev, [path]: dataUrl }))
-        }).catch(() => {})
-      }
-    }
-  }, [entry.image_paths])
 
   // Initialise draft and focus when entering edit mode
   useEffect(() => {

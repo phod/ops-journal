@@ -2,7 +2,7 @@ import { BrowserWindow } from 'electron'
 import { writeFileSync } from 'fs'
 import { readImageAsDataUrl } from './images'
 import type { JournalEntry } from '@shared/ipc-types'
-import { resolveEntriesByIds } from '@shared/entry-types'
+import { resolveEntriesByIds, getEntryTypeDefinition, HYPOTHESIS_STATUS_EXPORT_COLORS } from '@shared/entry-types'
 import { formatDate } from '@shared/format-date'
 import type { BoardState, BoardNode, BoardEdge } from '@shared/board-types'
 
@@ -188,7 +188,7 @@ function tiptapNodeToHtml(node: TipTapNode): string {
       const body = (a.entryBody as string) ?? ''
       const ts = a.entryTimestamp as string | undefined
       const hypothesisStatus = (a.entryHypothesisStatus as string) ?? null
-      const c = TYPE_COLORS_LIGHT[type] ?? TYPE_COLORS_LIGHT.note
+      const c = getEntryTypeDefinition(type).exportColors
       const isHypothesis = type === 'hypothesis'
       const imagePaths = (a.entryImagePaths as string[]) ?? []
       const linkedFindings = (a.entryLinkedFindings as { id: string; body: string }[]) ?? []
@@ -202,7 +202,7 @@ function tiptapNodeToHtml(node: TipTapNode): string {
           return `<em style="color:#9ca3af;">[image unavailable]</em>`
         }
       }).join('')
-      const fc = TYPE_COLORS_LIGHT.finding
+      const fc = getEntryTypeDefinition('finding').exportColors
       const findingsHtml = isHypothesis && linkedFindings.length > 0
         ? `<div style="margin-top:10px;">
             <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Findings</div>
@@ -214,7 +214,7 @@ function tiptapNodeToHtml(node: TipTapNode): string {
             <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Child Hypotheses</div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;">
               ${childHypotheses.map((ch) => {
-                const sc = HYPOTHESIS_STATUS_COLORS[ch.status] ?? HYPOTHESIS_STATUS_COLORS.open
+                const sc = HYPOTHESIS_STATUS_EXPORT_COLORS[ch.status] ?? HYPOTHESIS_STATUS_EXPORT_COLORS.open
                 return `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;background:#f5f3ff;border:1px solid #c4b5fd;font-size:13px;color:#5b21b6;">
                   <span style="font-weight:700;color:${sc.text};">${escapeHtml(ch.status.charAt(0).toUpperCase() + ch.status.slice(1))}</span>
                   ${escapeHtml(ch.body || '(no text)')}
@@ -228,7 +228,7 @@ function tiptapNodeToHtml(node: TipTapNode): string {
             <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Parent Hypothesis</div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;">
               ${parentHypotheses.map((p) => {
-                const sc = HYPOTHESIS_STATUS_COLORS[p.status] ?? HYPOTHESIS_STATUS_COLORS.open
+                const sc = HYPOTHESIS_STATUS_EXPORT_COLORS[p.status] ?? HYPOTHESIS_STATUS_EXPORT_COLORS.open
                 return `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;background:#ede9fe;border:1px solid #c4b5fd;font-size:13px;color:#5b21b6;">
                   <span style="font-weight:700;color:${sc.text};">${escapeHtml(p.status.charAt(0).toUpperCase() + p.status.slice(1))}</span>
                   ${escapeHtml(p.body || '(no text)')}
@@ -394,22 +394,8 @@ export function exportAsMarkdown(
   return lines.join('\n')
 }
 
-const TYPE_COLORS_LIGHT: Record<string, { bg: string; border: string; text: string }> = {
-  finding:    { bg: '#f0fdf4', border: '#86efac', text: '#166534' },
-  action:     { bg: '#eff6ff', border: '#93c5fd', text: '#1d4ed8' },
-  hypothesis: { bg: '#fffbeb', border: '#fcd34d', text: '#92400e' },
-  note:       { bg: '#f9fafb', border: '#d1d5db', text: '#374151' },
-}
-
-const HYPOTHESIS_STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  open:      { bg: '#fef9c3', border: '#facc15', text: '#854d0e' },
-  true:      { bg: '#dcfce7', border: '#86efac', text: '#166534' },
-  false:     { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
-  abandoned: { bg: '#f3f4f6', border: '#d1d5db', text: '#6b7280' },
-}
-
 function hypothesisStatusBadgeHtml(status: string): string {
-  const sc = HYPOTHESIS_STATUS_COLORS[status] ?? HYPOTHESIS_STATUS_COLORS.open
+  const sc = HYPOTHESIS_STATUS_EXPORT_COLORS[status] ?? HYPOTHESIS_STATUS_EXPORT_COLORS.open
   const label = status.charAt(0).toUpperCase() + status.slice(1)
   return `<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:${sc.bg};border:1px solid ${sc.border};color:${sc.text};text-transform:capitalize;">${escapeHtml(label)}</span>`
 }
@@ -418,7 +404,7 @@ function linkedFindingsHtml(entry: JournalEntry, allEntries: JournalEntry[]): st
   if (entry.type !== 'hypothesis') return ''
   const findings = resolveEntriesByIds(entry.linked_finding_ids, allEntries)
   if (findings.length === 0) return ''
-  const fc = TYPE_COLORS_LIGHT.finding
+  const fc = getEntryTypeDefinition('finding').exportColors
   return `
     <div style="margin-top:10px;">
       <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Findings</div>
@@ -436,7 +422,7 @@ function linkedChildHypothesesHtml(entry: JournalEntry, allEntries: JournalEntry
       <div style="display:flex;flex-wrap:wrap;gap:6px;">
         ${children.map((ch) => {
           const s = ch.hypothesis_status ?? 'open'
-          const sc = HYPOTHESIS_STATUS_COLORS[s] ?? HYPOTHESIS_STATUS_COLORS.open
+          const sc = HYPOTHESIS_STATUS_EXPORT_COLORS[s] ?? HYPOTHESIS_STATUS_EXPORT_COLORS.open
           return `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;background:#f5f3ff;border:1px solid #c4b5fd;font-size:13px;color:#5b21b6;">
             <span style="font-weight:700;color:${sc.text};">${escapeHtml(s.charAt(0).toUpperCase() + s.slice(1))}</span>
             ${escapeHtml(ch.body || '(no text)')}
@@ -456,7 +442,7 @@ function parentHypothesesHtml(entry: JournalEntry, allEntries: JournalEntry[]): 
       <div style="display:flex;flex-wrap:wrap;gap:6px;">
         ${parents.map((p) => {
           const s = p.hypothesis_status ?? 'open'
-          const sc = HYPOTHESIS_STATUS_COLORS[s] ?? HYPOTHESIS_STATUS_COLORS.open
+          const sc = HYPOTHESIS_STATUS_EXPORT_COLORS[s] ?? HYPOTHESIS_STATUS_EXPORT_COLORS.open
           return `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;background:#ede9fe;border:1px solid #c4b5fd;font-size:13px;color:#5b21b6;">
             <span style="font-weight:700;color:${sc.text};">${escapeHtml(s.charAt(0).toUpperCase() + s.slice(1))}</span>
             ${escapeHtml(p.body || '(no text)')}
@@ -617,7 +603,7 @@ export function buildExportHtml(
     ? `
       <h2 style="font-size:18px;font-weight:700;color:#111827;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.05em;">Entries</h2>
       ${entries.map((entry) => {
-        const c = TYPE_COLORS_LIGHT[entry.type] ?? TYPE_COLORS_LIGHT.note
+        const c = getEntryTypeDefinition(entry.type).exportColors
         const isHypothesis = entry.type === 'hypothesis'
         const status = entry.hypothesis_status ?? 'open'
         const images = entry.image_paths

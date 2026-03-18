@@ -19,5 +19,7 @@ export function parseSlashCommand(text: string): { type: EntryType; body: string
 export function getCompletions(prefix: string): EntryTypeDefinition[] {
   if (!prefix.startsWith('/')) return []
   const lower = prefix.toLowerCase()
+  // Don't show completions when the prefix already exactly matches a command
+  if (SLASH_COMMANDS.some((d) => d.command! === lower)) return []
   return SLASH_COMMANDS.filter((d) => d.command!.startsWith(lower))
 }

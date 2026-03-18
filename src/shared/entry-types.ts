@@ -105,23 +105,23 @@ export function filterEntries(entries: JournalEntry[], filter: Filter): JournalE
   return entries.filter((e) => e.type === filter)
 }
 
-export function resolveLinkedFindings(entry: JournalEntry, allEntries: JournalEntry[]): JournalEntry[] {
-  if (entry.type !== 'hypothesis') return []
-  return (entry.linked_finding_ids ?? [])
+export function resolveEntriesByIds(ids: number[] | undefined | null, allEntries: JournalEntry[]): JournalEntry[] {
+  return (ids ?? [])
     .map((id) => allEntries.find((e) => e.id === id))
     .filter(Boolean) as JournalEntry[]
+}
+
+export function resolveLinkedFindings(entry: JournalEntry, allEntries: JournalEntry[]): JournalEntry[] {
+  if (entry.type !== 'hypothesis') return []
+  return resolveEntriesByIds(entry.linked_finding_ids, allEntries)
 }
 
 export function resolveChildHypotheses(entry: JournalEntry, allEntries: JournalEntry[]): JournalEntry[] {
   if (entry.type !== 'hypothesis') return []
-  return (entry.linked_child_hypothesis_ids ?? [])
-    .map((id) => allEntries.find((e) => e.id === id))
-    .filter(Boolean) as JournalEntry[]
+  return resolveEntriesByIds(entry.linked_child_hypothesis_ids, allEntries)
 }
 
 export function resolveParentHypotheses(entry: JournalEntry, allEntries: JournalEntry[]): JournalEntry[] {
   if (entry.type !== 'hypothesis') return []
-  return (entry.parent_hypothesis_ids ?? [])
-    .map((id) => allEntries.find((e) => e.id === id))
-    .filter(Boolean) as JournalEntry[]
+  return resolveEntriesByIds(entry.parent_hypothesis_ids, allEntries)
 }

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 import type { EntryTypeDefinition } from '@shared/entry-types'
-import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
+import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, resolveLinkedFindings, resolveChildHypotheses } from '@shared/entry-types'
 import { parseSlashCommand, getCompletions } from '@shared/slash-commands'
 import { LinkFindingModal } from './LinkFindingModal'
 
@@ -406,13 +406,9 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     }
   }
 
-  const linkedFindings = isHypothesis
-    ? (entry.linked_finding_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
-    : []
+  const linkedFindings = resolveLinkedFindings(entry, allEntries)
 
-  const linkedChildHypotheses = isHypothesis
-    ? (entry.linked_child_hypothesis_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
-    : []
+  const linkedChildHypotheses = resolveChildHypotheses(entry, allEntries)
 
   const parentHypotheses = isHypothesis
     ? allEntries.filter((e) => e.type === 'hypothesis' && e.linked_child_hypothesis_ids?.includes(entry.id))

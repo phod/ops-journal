@@ -2,6 +2,7 @@ import { BrowserWindow } from 'electron'
 import { writeFileSync } from 'fs'
 import { readImageAsDataUrl } from './images'
 import type { JournalEntry } from '@shared/ipc-types'
+import { resolveEntriesByIds } from '@shared/entry-types'
 import type { BoardState, BoardNode, BoardEdge } from '@shared/board-types'
 
 function formatTimestamp(iso: string): string {
@@ -366,8 +367,7 @@ export function exportAsMarkdown(
 
       // Linked findings
       if (isHypothesis) {
-        const findingIds = entry.linked_finding_ids ?? []
-        const findings = findingIds.map((id) => entries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+        const findings = resolveEntriesByIds(entry.linked_finding_ids, entries)
         if (findings.length > 0) {
           lines.push('**Findings:**')
           for (const f of findings) {
@@ -379,8 +379,7 @@ export function exportAsMarkdown(
 
       // Child hypotheses
       if (isHypothesis) {
-        const childIds = entry.linked_child_hypothesis_ids ?? []
-        const children = childIds.map((id) => entries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+        const children = resolveEntriesByIds(entry.linked_child_hypothesis_ids, entries)
         if (children.length > 0) {
           lines.push('**Child Hypotheses:**')
           for (const ch of children) {
@@ -420,9 +419,7 @@ function hypothesisStatusBadgeHtml(status: string): string {
 
 function linkedFindingsHtml(entry: JournalEntry, allEntries: JournalEntry[]): string {
   if (entry.type !== 'hypothesis') return ''
-  const findingIds = entry.linked_finding_ids ?? []
-  if (findingIds.length === 0) return ''
-  const findings = findingIds.map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+  const findings = resolveEntriesByIds(entry.linked_finding_ids, allEntries)
   if (findings.length === 0) return ''
   const fc = TYPE_COLORS_LIGHT.finding
   return `
@@ -434,9 +431,7 @@ function linkedFindingsHtml(entry: JournalEntry, allEntries: JournalEntry[]): st
 
 function linkedChildHypothesesHtml(entry: JournalEntry, allEntries: JournalEntry[]): string {
   if (entry.type !== 'hypothesis') return ''
-  const childIds = entry.linked_child_hypothesis_ids ?? []
-  if (childIds.length === 0) return ''
-  const children = childIds.map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+  const children = resolveEntriesByIds(entry.linked_child_hypothesis_ids, allEntries)
   if (children.length === 0) return ''
   return `
     <div style="margin-top:10px;">

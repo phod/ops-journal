@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
-import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
+import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS, resolveLinkedFindings, resolveChildHypotheses } from '@shared/entry-types'
 
 interface Props {
   entries: JournalEntry[]
@@ -167,11 +167,11 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
   }
 
   const linkedFindings = isHypothesis && allEntries
-    ? (entry.linked_finding_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+    ? resolveLinkedFindings(entry, allEntries)
     : []
 
   const linkedChildHypotheses = isHypothesis && allEntries
-    ? (entry.linked_child_hypothesis_ids ?? []).map((id) => allEntries.find((e) => e.id === id)).filter(Boolean) as JournalEntry[]
+    ? resolveChildHypotheses(entry, allEntries)
     : []
 
   const parentHypotheses = isHypothesis && allEntries

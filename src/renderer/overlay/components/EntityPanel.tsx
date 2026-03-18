@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
 import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
+import { scrollToEntry } from '@shared/scroll-to-entry'
 
 type PanelTab = 'flagged' | 'finding' | 'hypothesis' | 'action'
 
@@ -52,11 +53,6 @@ const CARD_COLORS: Record<PanelTab, { bg: string; border: string; hover: string 
   finding: { bg: 'bg-teal-500/10', border: 'border-teal-500/20', hover: 'hover:bg-teal-500/25' },
   hypothesis: { bg: 'bg-violet-500/10', border: 'border-violet-500/20', hover: 'hover:bg-violet-500/25' },
   action: { bg: 'bg-orange-500/10', border: 'border-orange-500/20', hover: 'hover:bg-orange-500/25' }
-}
-
-function scrollToEntry(id: string) {
-  const el = document.getElementById(`entry-${id}`)
-  el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
 function FlagIcon() {

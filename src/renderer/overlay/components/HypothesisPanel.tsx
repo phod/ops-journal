@@ -1,5 +1,6 @@
 import type { JournalEntry } from '@shared/ipc-types'
 import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
+import { scrollToEntry } from '@shared/scroll-to-entry'
 
 interface Props {
   entries: JournalEntry[]
@@ -8,11 +9,6 @@ interface Props {
 
 export function HypothesisPanel({ entries, onClose }: Props) {
   const hypotheses = entries.filter((e) => e.type === 'hypothesis')
-
-  const scrollToEntry = (id: string) => {
-    const el = document.getElementById(`entry-${id}`)
-    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }
 
   return (
     <div className="w-full border-l-2 border-violet-500/40 bg-violet-950/30 flex flex-col flex-shrink-0">

@@ -7,6 +7,7 @@ import { parseSlashCommand, getCompletions } from '@shared/slash-commands'
 import { useEntryImages } from '@shared/useEntryImages'
 import { formatRelativeTime } from '@shared/format-date'
 import { useClickOutside } from '@shared/useClickOutside'
+import { scrollToEntry } from '@shared/scroll-to-entry'
 import { LinkFindingModal } from './LinkFindingModal'
 
 interface Props {
@@ -323,9 +324,6 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
 
   const visiblePaths = entry.image_paths.filter((p) => !pendingRemovals.has(p))
 
-  const scrollToEntry = (id: string) => {
-    document.getElementById(`entry-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }
 
   const typeDef = getEntryTypeDefinition(entry.type ?? 'note')
   const isTyped = entry.type !== 'note'

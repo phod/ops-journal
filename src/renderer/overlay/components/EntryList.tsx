@@ -16,6 +16,7 @@ import { extractPastedImages } from '@shared/image-paste'
 import { EntryTypeMenu } from '@shared/EntryTypeMenu'
 import { HypothesisStatusMenu } from '@shared/HypothesisStatusMenu'
 import { LinkFindingModal } from './LinkFindingModal'
+import { LinkHypothesisModal } from './LinkHypothesisModal'
 
 interface Props {
   entries: JournalEntry[]
@@ -433,6 +434,16 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               {(linkedFindings.length + linkedChildHypotheses.length) > 0 ? 'edit links' : '+ link'}
             </button>
           )}
+          {/* Link button for findings */}
+          {isFinding && !isEditing && (
+            <button
+              onClick={() => setShowLinkModal(true)}
+              className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-violet-400 px-1 text-xs"
+              title="Link to hypotheses"
+            >
+              {linkedHypotheses.length > 0 ? 'edit links' : '+ link'}
+            </button>
+          )}
           {/* Flag toggle */}
           {!isEditing && (
             <button
@@ -691,14 +702,23 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
         </>
       )}
 
-      {/* Link Modal */}
-      {showLinkModal && (
+      {/* Link Modal for hypotheses */}
+      {showLinkModal && isHypothesis && (
         <LinkFindingModal
           hypothesis={entry}
           findings={allEntries.filter((e) => e.type === 'finding')}
           hypotheses={allEntries.filter((e) => e.type === 'hypothesis')}
           onClose={() => setShowLinkModal(false)}
           onHypothesisUpdated={(updated) => onUpdated(updated)}
+        />
+      )}
+      {/* Link Modal for findings */}
+      {showLinkModal && isFinding && (
+        <LinkHypothesisModal
+          finding={entry}
+          hypotheses={allEntries.filter((e) => e.type === 'hypothesis')}
+          linkedHypothesisIds={new Set(linkedHypotheses.map((h) => h.id))}
+          onClose={() => setShowLinkModal(false)}
         />
       )}
     </div>

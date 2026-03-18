@@ -5,6 +5,7 @@ import type { EntryTypeDefinition } from '@shared/entry-types'
 import { getEntryTypeDefinition } from '@shared/entry-types'
 import { getCompletions, parseSlashCommand } from '@shared/slash-commands'
 import { AutocompleteDropdown } from '@shared/AutocompleteDropdown'
+import { extractPastedImages } from '@shared/image-paste'
 
 const symbolMap: Record<string, string> = {
   CommandOrControl: '⌘',
@@ -168,22 +169,7 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
   }, [onPendingImagesChange])
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    const items = e.clipboardData.items
-    const imageItems: DataTransferItem[] = []
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.startsWith('image/')) imageItems.push(items[i])
-    }
-    if (imageItems.length === 0) return
-    e.preventDefault()
-    for (const item of imageItems) {
-      const file = item.getAsFile()
-      if (!file) continue
-      const reader = new FileReader()
-      reader.onload = () => {
-        if (typeof reader.result === 'string') addImages([reader.result])
-      }
-      reader.readAsDataURL(file)
-    }
+    extractPastedImages(e, (dataUrl) => addImages([dataUrl]))
   }, [addImages])
 
   const handlePickImage = useCallback(async () => {

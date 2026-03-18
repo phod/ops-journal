@@ -22,6 +22,23 @@ interface Props {
   onCancel: () => void
 }
 
+function buildChildHypothesisTree(entry: JournalEntry, allEntries: JournalEntry[], visited: Set<string> = new Set()): any[] {
+  if (entry.type !== 'hypothesis') return []
+  return resolveChildHypotheses(entry, allEntries)
+    .filter((h) => !visited.has(h.id))
+    .map((h) => {
+      const nextVisited = new Set(visited)
+      nextVisited.add(h.id)
+      return {
+        id: h.id,
+        body: h.body,
+        status: h.hypothesis_status ?? 'open',
+        findings: resolveLinkedFindings(h, allEntries).map((f) => ({ id: f.id, body: f.body })),
+        children: buildChildHypothesisTree(h, allEntries, nextVisited)
+      }
+    })
+}
+
 function entryRefAttrs(entry: JournalEntry, allEntries: JournalEntry[]) {
   return {
     entryId: entry.id,
@@ -31,7 +48,7 @@ function entryRefAttrs(entry: JournalEntry, allEntries: JournalEntry[]) {
     entryImagePaths: entry.image_paths,
     entryHypothesisStatus: entry.hypothesis_status ?? null,
     entryLinkedFindings: resolveLinkedFindings(entry, allEntries).map((f) => ({ id: f.id, body: f.body })),
-    entryChildHypotheses: resolveChildHypotheses(entry, allEntries).map((h) => ({ id: h.id, body: h.body, status: h.hypothesis_status ?? 'open' })),
+    entryChildHypotheses: buildChildHypothesisTree(entry, allEntries),
     entryParentHypotheses: resolveParentHypotheses(entry, allEntries).map((h) => ({ id: h.id, body: h.body, status: h.hypothesis_status ?? 'open' })),
     entryFlagged: entry.flagged ?? false
   }

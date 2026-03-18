@@ -18,6 +18,45 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;')
 }
 
+interface NestedHypothesis {
+  id: string
+  body: string
+  status: string
+  findings?: { id: string; body: string }[]
+  children?: NestedHypothesis[]
+}
+
+function childHypothesisTreeHtml(hypothesis: NestedHypothesis, depth = 0): string {
+  const sc = HYPOTHESIS_STATUS_EXPORT_COLORS[hypothesis.status] ?? HYPOTHESIS_STATUS_EXPORT_COLORS.open
+  const fc = getEntryTypeDefinition('finding').exportColors
+  const findings = hypothesis.findings ?? []
+  const children = hypothesis.children ?? []
+  const marginLeft = depth > 0 ? 8 : 0
+
+  const findingsHtml = findings.length > 0
+    ? `<div style="margin-top:6px;">
+        <div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Findings</div>
+        ${findings.map((f) => `<div style="padding:4px 8px;margin-bottom:3px;border-radius:4px;background:${fc.bg};border:1px solid ${fc.border};font-size:12px;color:${fc.text};">${escapeHtml(f.body || '(no text)')}</div>`).join('')}
+      </div>`
+    : ''
+
+  const childrenHtml = children.length > 0
+    ? `<div style="margin-top:6px;">
+        <div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Child Hypotheses</div>
+        ${children.map((ch) => childHypothesisTreeHtml(ch, depth + 1)).join('')}
+      </div>`
+    : ''
+
+  return `<div style="margin-top:6px;margin-left:${marginLeft}px;padding:6px 10px;border-radius:6px;background:#f5f3ff;border:1px solid #c4b5fd;">
+    <div style="display:flex;align-items:center;gap:4px;">
+      <span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;background:${sc.bg};border:1px solid ${sc.border};color:${sc.text};">${escapeHtml(hypothesis.status.charAt(0).toUpperCase() + hypothesis.status.slice(1))}</span>
+      <span style="font-size:12px;color:#5b21b6;">${escapeHtml(hypothesis.body || '(no text)')}</span>
+    </div>
+    ${findingsHtml}
+    ${childrenHtml}
+  </div>`
+}
+
 // ---------------------------------------------------------------------------
 // TipTap JSON → plain text/markdown
 // ---------------------------------------------------------------------------
@@ -192,7 +231,7 @@ function tiptapNodeToHtml(node: TipTapNode): string {
       const isHypothesis = type === 'hypothesis'
       const imagePaths = (a.entryImagePaths as string[]) ?? []
       const linkedFindings = (a.entryLinkedFindings as { id: string; body: string }[]) ?? []
-      const childHypotheses = (a.entryChildHypotheses as { id: string; body: string; status: string }[]) ?? []
+      const childHypotheses = (a.entryChildHypotheses as NestedHypothesis[]) ?? []
       const parentHypotheses = (a.entryParentHypotheses as { id: string; body: string; status: string }[]) ?? []
       const imagesHtml = imagePaths.map((p) => {
         try {
@@ -212,15 +251,7 @@ function tiptapNodeToHtml(node: TipTapNode): string {
       const childrenHtml = isHypothesis && childHypotheses.length > 0
         ? `<div style="margin-top:10px;">
             <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Child Hypotheses</div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;">
-              ${childHypotheses.map((ch) => {
-                const sc = HYPOTHESIS_STATUS_EXPORT_COLORS[ch.status] ?? HYPOTHESIS_STATUS_EXPORT_COLORS.open
-                return `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;background:#f5f3ff;border:1px solid #c4b5fd;font-size:13px;color:#5b21b6;">
-                  <span style="font-weight:700;color:${sc.text};">${escapeHtml(ch.status.charAt(0).toUpperCase() + ch.status.slice(1))}</span>
-                  ${escapeHtml(ch.body || '(no text)')}
-                </span>`
-              }).join('')}
-            </div>
+            ${childHypotheses.map((ch) => childHypothesisTreeHtml(ch)).join('')}
           </div>`
         : ''
       const parentsHtml = isHypothesis && parentHypotheses.length > 0

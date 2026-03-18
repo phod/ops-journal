@@ -1,5 +1,11 @@
 import type { EntryType, HypothesisStatus, JournalEntry } from './ipc-types'
 
+export interface ExportColors {
+  bg: string
+  border: string
+  text: string
+}
+
 export interface EntryTypeDefinition {
   type: EntryType
   command: string | null
@@ -9,6 +15,7 @@ export interface EntryTypeDefinition {
   cardBorderClass: string
   tagBgClass: string
   tagTextClass: string
+  exportColors: ExportColors
 }
 
 export const ENTRY_TYPES: EntryTypeDefinition[] = [
@@ -20,7 +27,8 @@ export const ENTRY_TYPES: EntryTypeDefinition[] = [
     cardBgClass: '',
     cardBorderClass: '',
     tagBgClass: 'bg-gray-700',
-    tagTextClass: 'text-gray-400'
+    tagTextClass: 'text-gray-400',
+    exportColors: { bg: '#f9fafb', border: '#d1d5db', text: '#374151' }
   },
   {
     type: 'action',
@@ -30,7 +38,8 @@ export const ENTRY_TYPES: EntryTypeDefinition[] = [
     cardBgClass: 'bg-orange-400/10',
     cardBorderClass: 'border-orange-500/40',
     tagBgClass: 'bg-orange-400',
-    tagTextClass: 'text-orange-950 font-bold'
+    tagTextClass: 'text-orange-950 font-bold',
+    exportColors: { bg: '#eff6ff', border: '#93c5fd', text: '#1d4ed8' }
   },
   {
     type: 'finding',
@@ -40,7 +49,8 @@ export const ENTRY_TYPES: EntryTypeDefinition[] = [
     cardBgClass: 'bg-teal-400/10',
     cardBorderClass: 'border-teal-500/40',
     tagBgClass: 'bg-teal-400',
-    tagTextClass: 'text-teal-950 font-bold'
+    tagTextClass: 'text-teal-950 font-bold',
+    exportColors: { bg: '#f0fdf4', border: '#86efac', text: '#166534' }
   },
   {
     type: 'hypothesis',
@@ -50,7 +60,8 @@ export const ENTRY_TYPES: EntryTypeDefinition[] = [
     cardBgClass: 'bg-violet-400/10',
     cardBorderClass: 'border-violet-500/40',
     tagBgClass: 'bg-violet-500',
-    tagTextClass: 'text-violet-50 font-bold'
+    tagTextClass: 'text-violet-50 font-bold',
+    exportColors: { bg: '#fffbeb', border: '#fcd34d', text: '#92400e' }
   }
 ]
 
@@ -79,6 +90,13 @@ export const HYPOTHESIS_STATUS_TEXT_CLASS: Record<HypothesisStatus, string> = {
   true: 'text-green-300',
   false: 'text-red-300',
   abandoned: 'text-gray-400'
+}
+
+export const HYPOTHESIS_STATUS_EXPORT_COLORS: Record<HypothesisStatus, ExportColors> = {
+  open:      { bg: '#fef9c3', border: '#facc15', text: '#854d0e' },
+  true:      { bg: '#dcfce7', border: '#86efac', text: '#166534' },
+  false:     { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
+  abandoned: { bg: '#f3f4f6', border: '#d1d5db', text: '#6b7280' },
 }
 
 export type Filter = 'all' | 'images' | 'finding' | 'action' | 'hypothesis' | 'flagged'

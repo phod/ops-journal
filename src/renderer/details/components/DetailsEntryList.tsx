@@ -4,6 +4,7 @@ import { formatDate } from '@shared/format-date'
 import { getEntryTypeDefinition, ENTRY_TYPES, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS, resolveLinkedFindings, resolveChildHypotheses } from '@shared/entry-types'
 import { useEntryImages } from '@shared/useEntryImages'
 import { useClickOutside } from '@shared/useClickOutside'
+import { scrollToEntry } from '@shared/scroll-to-entry'
 
 interface Props {
   entries: JournalEntry[]
@@ -19,10 +20,6 @@ const TIMESTAMP_OPTIONS: Intl.DateTimeFormatOptions = {
   hour: '2-digit',
   minute: '2-digit',
   second: '2-digit'
-}
-
-function scrollToEntry(id: string) {
-  document.getElementById(`entry-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
 // Expanded inline detail card shown when clicking a finding chip on a hypothesis

@@ -122,6 +122,7 @@ const electronAPI: ElectronAPI = {
   listTools: () => ipcRenderer.invoke('tool:list'),
   createTool: (name: string, toolType: ToolType, value: string, tags: string[]) =>
     ipcRenderer.invoke('tool:create', { name, toolType, value, tags }),
+  createToolsBulk: (tools) => ipcRenderer.invoke('tool:createBulk', { tools }),
   updateTool: (id: string, name: string, toolType: ToolType, value: string, tags: string[]) =>
     ipcRenderer.invoke('tool:update', { id, name, toolType, value, tags }),
   deleteTool: (id: string) => ipcRenderer.invoke('tool:delete', { id }),

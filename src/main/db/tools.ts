@@ -45,6 +45,26 @@ export function deleteTool(id: string): void {
   db.prepare('DELETE FROM tools WHERE id = ?').run(id)
 }
 
+export function createToolsBulk(tools: { name: string; toolType: ToolType; value: string; tags: string[] }[]): Tool[] {
+  if (tools.length === 0) return []
+  const db = getDb()
+  const created: Tool[] = []
+  const bulkInsert = db.transaction(() => {
+    const maxOrder = (db.prepare('SELECT MAX(sort_order) as m FROM tools').get() as Record<string, unknown>)?.m as number | null
+    let sortOrder = (maxOrder ?? -1) + 1
+    const stmt = db.prepare(
+      'INSERT INTO tools (id, name, tool_type, value, tags, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+    )
+    for (const tool of tools) {
+      const id = uuidv4()
+      stmt.run(id, tool.name, tool.toolType, tool.value, JSON.stringify(tool.tags), sortOrder++)
+      created.push(rowToTool(db.prepare('SELECT * FROM tools WHERE id = ?').get(id) as Record<string, unknown>))
+    }
+  })
+  bulkInsert()
+  return created
+}
+
 export function reorderTools(orderedIds: string[]): void {
   const db = getDb()
   const reorder = db.transaction(() => {

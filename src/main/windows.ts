@@ -1,4 +1,5 @@
 import { BrowserWindow, screen, app } from 'electron'
+import { execSync } from 'child_process'
 import path from 'path'
 import fs from 'fs'
 
@@ -9,6 +10,21 @@ let overlayWindow: BrowserWindow | null = null
 let managerWindow: BrowserWindow | null = null
 let toolkitOverlayWindow: BrowserWindow | null = null
 let appIsQuitting = false
+let previousFrontApp: string | null = null
+
+export function getPreviousFrontApp(): string | null {
+  return previousFrontApp
+}
+
+function capturePreviousFrontApp(): void {
+  try {
+    previousFrontApp = execSync(
+      'osascript -e \'tell application "System Events" to get name of first application process whose frontmost is true\''
+    ).toString().trim()
+  } catch {
+    previousFrontApp = null
+  }
+}
 
 export function setAppQuitting(): void {
   appIsQuitting = true
@@ -277,6 +293,7 @@ export function toggleToolkitOverlay(): void {
   if (win.isVisible()) {
     win.hide()
   } else {
+    capturePreviousFrontApp()
     if (!loadToolkitBounds()) {
       const { workAreaSize } = screen.getPrimaryDisplay()
       const [width] = win.getSize()
@@ -291,6 +308,7 @@ export function toggleToolkitOverlay(): void {
 export function showToolkitOverlay(): void {
   const win = toolkitOverlayWindow
   if (!win) return
+  capturePreviousFrontApp()
   if (!loadToolkitBounds()) {
     const { workAreaSize } = screen.getPrimaryDisplay()
     const [width] = win.getSize()

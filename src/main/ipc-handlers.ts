@@ -13,7 +13,7 @@ import {
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { listTools, createTool, updateTool, deleteTool, reorderTools } from './db/tools'
-import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow } from './windows'
+import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, getPreviousFrontApp } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, reregisterToolkitHotkey } from './hotkey'
 import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
@@ -376,12 +376,19 @@ export function registerIpcHandlers(): void {
       shell.openExternal(tool.value)
     } else {
       clipboard.writeText(tool.value)
+      const frontApp = getPreviousFrontApp()
+      console.log('[tool:execute] Previous front app:', frontApp)
       hideToolkitOverlay()
-      // Wait briefly then simulate paste via AppleScript
       await new Promise((r) => setTimeout(r, 150))
       try {
         const { execSync } = require('child_process')
-        execSync('osascript -e \'tell application "System Events" to keystroke "v" using command down\'')
+        if (frontApp) {
+          execSync(
+            `osascript -e 'tell application "${frontApp}" to activate' -e 'delay 0.1' -e 'tell application "System Events" to keystroke "v" using command down'`
+          )
+        } else {
+          execSync('osascript -e \'tell application "System Events" to keystroke "v" using command down\'')
+        }
       } catch {
         // Paste simulation failed — text is still on clipboard
       }

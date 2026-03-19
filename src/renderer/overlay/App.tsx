@@ -65,6 +65,13 @@ export default function App() {
     })
   }, [activeInvestigations])
 
+  // Listen for onboarding reset from Settings
+  useEffect(() => {
+    return window.electronAPI.onOnboardingReset(() => {
+      setShowOnboarding(true)
+    })
+  }, [])
+
   const dismissOnboarding = useCallback(() => {
     setShowOnboarding(false)
     window.electronAPI.setOnboardingDismissed(true)

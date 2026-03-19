@@ -19,6 +19,7 @@ function EntryNode({ id, data, selected }: NodeProps) {
   const isHypothesis = entry?.type === 'hypothesis'
   const hasRelations = isHypothesis && (
     (entry.linked_finding_ids?.length ?? 0) > 0 ||
+    (entry.linked_action_ids?.length ?? 0) > 0 ||
     (entry.linked_child_hypothesis_ids?.length ?? 0) > 0 ||
     (entry.parent_hypothesis_ids?.length ?? 0) > 0
   )

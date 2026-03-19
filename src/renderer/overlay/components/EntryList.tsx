@@ -317,7 +317,16 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   const status = entry.hypothesis_status ?? 'open'
   const toolStatus = entry.tool_status ?? 'pending'
 
-  const { linkedFindings, linkedChildHypotheses, parentHypotheses, linkedHypotheses } = useEntryRelationships(entry, allEntries)
+  const { linkedFindings, linkedActions, linkedChildHypotheses, parentHypotheses, linkedHypotheses } = useEntryRelationships(entry, allEntries)
+
+  const unlinkAction = async (actionId: string) => {
+    try {
+      const updated = await window.electronAPI.unlinkHypothesisAction(entry.id, actionId)
+      onUpdated(updated)
+    } catch (err) {
+      console.error('[overlay] Failed to unlink action:', err)
+    }
+  }
 
   const unlinkFinding = async (findingId: string) => {
     try {
@@ -450,13 +459,23 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
             <button
               onClick={() => setShowLinkModal(true)}
               className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-teal-400 px-1 text-xs"
-              title="Manage linked findings and child hypotheses"
+              title="Manage linked findings, actions, and child hypotheses"
             >
-              {(linkedFindings.length + linkedChildHypotheses.length) > 0 ? 'edit links' : '+ link'}
+              {(linkedFindings.length + linkedActions.length + linkedChildHypotheses.length) > 0 ? 'edit links' : '+ link'}
             </button>
           )}
           {/* Link button for findings */}
           {isFinding && !isEditing && (
+            <button
+              onClick={() => setShowLinkModal(true)}
+              className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-violet-400 px-1 text-xs"
+              title="Link to hypotheses"
+            >
+              {linkedHypotheses.length > 0 ? 'edit links' : '+ link'}
+            </button>
+          )}
+          {/* Link button for actions */}
+          {isAction && !isEditing && (
             <button
               onClick={() => setShowLinkModal(true)}
               className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-violet-400 px-1 text-xs"
@@ -663,6 +682,32 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               ))}
             </div>
           )}
+          {/* Linked action chips for hypothesis entries — click to scroll, × to unlink */}
+          {isHypothesis && linkedActions.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {linkedActions.map((a) => (
+                <div
+                  key={a.id}
+                  className="group/chip no-drag flex items-center rounded text-xs font-mono bg-orange-500/15 border border-orange-500/30 text-orange-300 hover:bg-orange-500/20 transition-colors max-w-[180px]"
+                >
+                  <button
+                    onClick={() => scrollToEntry(a.id)}
+                    className="no-drag px-1.5 py-0.5 truncate"
+                    title={`Go to action: ${a.body}`}
+                  >
+                    {a.body || '(no text)'}
+                  </button>
+                  <button
+                    onClick={() => unlinkAction(a.id)}
+                    className="no-drag px-1 py-0.5 pb-1 opacity-0 group-hover/chip:opacity-100 text-orange-500 hover:text-red-400 transition-all shrink-0"
+                    title="Unlink action"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           {/* Linked child hypothesis chips — click to scroll, × to unlink */}
           {isHypothesis && linkedChildHypotheses.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
@@ -720,6 +765,21 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               ))}
             </div>
           )}
+          {/* Linked hypothesis chips for action entries — click to scroll */}
+          {isAction && linkedHypotheses.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {linkedHypotheses.map((h) => (
+                <button
+                  key={h.id}
+                  onClick={() => scrollToEntry(h.id)}
+                  className="no-drag px-1.5 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/30 transition-colors truncate max-w-[160px]"
+                  title={`Go to hypothesis: ${h.body}`}
+                >
+                  {h.body || '(no text)'}
+                </button>
+              ))}
+            </div>
+          )}
         </>
       )}
 
@@ -728,6 +788,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
         <LinkFindingModal
           hypothesis={entry}
           findings={allEntries.filter((e) => e.type === 'finding')}
+          actions={allEntries.filter((e) => e.type === 'action')}
           hypotheses={allEntries.filter((e) => e.type === 'hypothesis')}
           onClose={() => setShowLinkModal(false)}
           onHypothesisUpdated={(updated) => onUpdated(updated)}
@@ -736,7 +797,16 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
       {/* Link Modal for findings */}
       {showLinkModal && isFinding && (
         <LinkHypothesisModal
-          finding={entry}
+          entry={entry}
+          hypotheses={allEntries.filter((e) => e.type === 'hypothesis')}
+          linkedHypothesisIds={new Set(linkedHypotheses.map((h) => h.id))}
+          onClose={() => setShowLinkModal(false)}
+        />
+      )}
+      {/* Link Modal for actions */}
+      {showLinkModal && isAction && (
+        <LinkHypothesisModal
+          entry={entry}
           hypotheses={allEntries.filter((e) => e.type === 'hypothesis')}
           linkedHypothesisIds={new Set(linkedHypotheses.map((h) => h.id))}
           onClose={() => setShowLinkModal(false)}

@@ -5,22 +5,31 @@ import type { HypothesisStatus } from '@shared/ipc-types'
 import { Modal } from '@shared/Modal'
 
 interface Props {
-  finding: JournalEntry
+  entry: JournalEntry
   hypotheses: JournalEntry[]
   linkedHypothesisIds: Set<string>
   onClose: () => void
 }
 
-export function LinkHypothesisModal({ finding, hypotheses, linkedHypothesisIds, onClose }: Props) {
+export function LinkHypothesisModal({ entry, hypotheses, linkedHypothesisIds, onClose }: Props) {
   const [linkedIds, setLinkedIds] = useState(linkedHypothesisIds)
+  const isAction = entry.type === 'action'
 
   const toggle = async (hypothesisId: string) => {
     try {
       if (linkedIds.has(hypothesisId)) {
-        await window.electronAPI.unlinkHypothesisFinding(hypothesisId, finding.id)
+        if (isAction) {
+          await window.electronAPI.unlinkHypothesisAction(hypothesisId, entry.id)
+        } else {
+          await window.electronAPI.unlinkHypothesisFinding(hypothesisId, entry.id)
+        }
         setLinkedIds((prev) => { const next = new Set(prev); next.delete(hypothesisId); return next })
       } else {
-        await window.electronAPI.linkHypothesisFinding(hypothesisId, finding.id)
+        if (isAction) {
+          await window.electronAPI.linkHypothesisAction(hypothesisId, entry.id)
+        } else {
+          await window.electronAPI.linkHypothesisFinding(hypothesisId, entry.id)
+        }
         setLinkedIds((prev) => new Set(prev).add(hypothesisId))
       }
     } catch (err) {
@@ -28,10 +37,12 @@ export function LinkHypothesisModal({ finding, hypotheses, linkedHypothesisIds, 
     }
   }
 
+  const label = isAction ? 'Action' : 'Finding'
+
   return (
     <Modal onClose={onClose} className="p-4 w-80 max-h-[70vh] flex flex-col">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-100">Link to Finding</h3>
+        <h3 className="text-sm font-semibold text-gray-100">Link to {label}</h3>
         <button
           onClick={onClose}
           className="no-drag text-gray-500 hover:text-gray-300 transition-colors"
@@ -40,7 +51,7 @@ export function LinkHypothesisModal({ finding, hypotheses, linkedHypothesisIds, 
         </button>
       </div>
       <div className="text-xs text-gray-500 font-mono mb-3 truncate">
-        {finding.body || '(no text)'}
+        {entry.body || '(no text)'}
       </div>
       {hypotheses.length === 0 ? (
         <div className="text-center text-gray-500 text-sm py-6 font-mono">

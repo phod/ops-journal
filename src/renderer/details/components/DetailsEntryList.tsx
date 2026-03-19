@@ -103,7 +103,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
   const status = entry.hypothesis_status ?? 'open'
   const toolStatus = entry.tool_status ?? 'pending'
 
-  const { linkedFindings, linkedChildHypotheses, parentHypotheses, linkedHypotheses } = useEntryRelationships(entry, allEntries ?? [])
+  const { linkedFindings, linkedActions, linkedChildHypotheses, parentHypotheses, linkedHypotheses } = useEntryRelationships(entry, allEntries ?? [])
 
   const handleCopy = useCallback((e: React.ClipboardEvent) => {
     const selection = window.getSelection()
@@ -292,6 +292,24 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
           })}
         </div>
       )}
+      {/* Linked actions for hypothesis entries */}
+      {isHypothesis && linkedActions.length > 0 && (
+        <div className="mt-2 space-y-1">
+          <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Actions</div>
+          <div className="flex flex-wrap gap-1.5">
+            {linkedActions.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => scrollToEntry(a.id)}
+                className="px-2 py-0.5 rounded text-xs font-mono bg-orange-500/15 border border-orange-500/30 text-orange-300 hover:bg-orange-500/25 transition-colors flex items-center gap-1.5"
+                title={a.body}
+              >
+                <span className="truncate max-w-[180px]">{a.body || '(no text)'}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* Child hypotheses for hypothesis entries — click to scroll */}
       {isHypothesis && linkedChildHypotheses.length > 0 && (
         <div className="mt-2 space-y-1">
@@ -318,6 +336,30 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
       )}
       {/* Linked hypotheses for finding entries — click to scroll to hypothesis */}
       {isFinding && linkedHypotheses.length > 0 && (
+        <div className="mt-2 space-y-1">
+          <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Hypotheses</div>
+          <div className="flex flex-wrap gap-1.5">
+            {linkedHypotheses.map((h) => {
+              const hStatus = (h.hypothesis_status ?? 'open') as HypothesisStatus
+              return (
+                <button
+                  key={h.id}
+                  onClick={() => scrollToEntry(h.id)}
+                  className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 transition-colors flex items-center gap-1.5"
+                  title={h.body}
+                >
+                  <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[hStatus]}`}>
+                    {HYPOTHESIS_STATUS_LABEL[hStatus]}
+                  </span>
+                  <span className="truncate max-w-[180px]">{h.body || '(no text)'}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {/* Linked hypotheses for action entries — click to scroll to hypothesis */}
+      {isAction && linkedHypotheses.length > 0 && (
         <div className="mt-2 space-y-1">
           <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Hypotheses</div>
           <div className="flex flex-wrap gap-1.5">

@@ -1,4 +1,4 @@
-import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
+import type { JournalEntry, EntryType, HypothesisStatus, ToolEntryStatus } from '@shared/ipc-types'
 
 interface UseEntryActionsOptions {
   entry: JournalEntry
@@ -29,6 +29,16 @@ export function useEntryActions({ entry, onUpdated, setShowTypeMenu, setShowStat
     }
   }
 
+  const changeToolEntryStatus = async (status: ToolEntryStatus) => {
+    setShowStatusMenu?.(false)
+    try {
+      const updated = await window.electronAPI.updateToolEntryStatus(entry.id, status)
+      onUpdated(updated)
+    } catch (err) {
+      console.error('Failed to change tool entry status:', err)
+    }
+  }
+
   const toggleCompleted = async () => {
     try {
       const updated = await window.electronAPI.toggleActionCompleted(entry.id)
@@ -47,5 +57,5 @@ export function useEntryActions({ entry, onUpdated, setShowTypeMenu, setShowStat
     }
   }
 
-  return { changeType, changeHypothesisStatus, toggleCompleted, toggleFlagged }
+  return { changeType, changeHypothesisStatus, changeToolEntryStatus, toggleCompleted, toggleFlagged }
 }

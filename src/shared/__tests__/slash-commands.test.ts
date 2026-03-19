@@ -20,6 +20,12 @@ describe('parseSlashCommand', () => {
     expect(result.body).toBe('maybe the cache is stale')
   })
 
+  it('parses /tool command', () => {
+    const result = parseSlashCommand('/tool kubectl get pods')
+    expect(result.type).toBe('tool')
+    expect(result.body).toBe('kubectl get pods')
+  })
+
   it('returns note type when no command present', () => {
     const result = parseSlashCommand('just a plain note')
     expect(result.type).toBe('note')
@@ -60,10 +66,11 @@ describe('parseSlashCommand', () => {
 describe('getCompletions', () => {
   it('returns all commands for bare /', () => {
     const results = getCompletions('/')
-    expect(results.length).toBe(3)
+    expect(results.length).toBe(4)
     expect(results.map((r) => r.type)).toContain('action')
     expect(results.map((r) => r.type)).toContain('finding')
     expect(results.map((r) => r.type)).toContain('hypothesis')
+    expect(results.map((r) => r.type)).toContain('tool')
   })
 
   it('returns only action for /a', () => {
@@ -82,6 +89,12 @@ describe('getCompletions', () => {
     const results = getCompletions('/h')
     expect(results).toHaveLength(1)
     expect(results[0].type).toBe('hypothesis')
+  })
+
+  it('returns only tool for /t', () => {
+    const results = getCompletions('/t')
+    expect(results).toHaveLength(1)
+    expect(results[0].type).toBe('tool')
   })
 
   it('returns empty for /x', () => {
@@ -109,5 +122,6 @@ describe('getCompletions', () => {
     expect(getCompletions('/action')).toHaveLength(0)
     expect(getCompletions('/finding')).toHaveLength(0)
     expect(getCompletions('/hypothesis')).toHaveLength(0)
+    expect(getCompletions('/tool')).toHaveLength(0)
   })
 })

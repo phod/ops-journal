@@ -14,6 +14,7 @@ const DEFAULT_MOCKS = {
   deleteEntry: vi.fn(),
   toggleActionCompleted: vi.fn(),
   toggleFlagged: vi.fn(),
+  updateToolEntryStatus: vi.fn(),
   updateHypothesisStatus: vi.fn(),
   linkHypothesisFinding: vi.fn(),
   unlinkHypothesisFinding: vi.fn(),

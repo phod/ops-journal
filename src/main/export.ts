@@ -2,7 +2,7 @@ import { BrowserWindow } from 'electron'
 import { writeFileSync } from 'fs'
 import { readImageAsDataUrl } from './images'
 import type { JournalEntry } from '@shared/ipc-types'
-import { resolveEntriesByIds, getEntryTypeDefinition, HYPOTHESIS_STATUS_EXPORT_COLORS } from '@shared/entry-types'
+import { resolveEntriesByIds, getEntryTypeDefinition, HYPOTHESIS_STATUS_EXPORT_COLORS, TOOL_ENTRY_STATUS_EXPORT_COLORS } from '@shared/entry-types'
 import { formatDate } from '@shared/format-date'
 import type { BoardState, BoardNode, BoardEdge } from '@shared/board-types'
 
@@ -229,6 +229,8 @@ function tiptapNodeToHtml(node: TipTapNode): string {
       const hypothesisStatus = (a.entryHypothesisStatus as string) ?? null
       const c = getEntryTypeDefinition(type).exportColors
       const isHypothesis = type === 'hypothesis'
+      const isToolEntryRef = type === 'tool'
+      const toolEntryStatus = (a.entryToolStatus as string) ?? null
       const imagePaths = (a.entryImagePaths as string[]) ?? []
       const linkedFindings = (a.entryLinkedFindings as { id: string; body: string }[]) ?? []
       const childHypotheses = (a.entryChildHypotheses as NestedHypothesis[]) ?? []
@@ -274,6 +276,7 @@ function tiptapNodeToHtml(node: TipTapNode): string {
             <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
               <span style="font-size:12px;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(entryTypeLabel(type))}</span>
               ${isHypothesis && hypothesisStatus ? hypothesisStatusBadgeHtml(hypothesisStatus) : ''}
+              ${isToolEntryRef && toolEntryStatus ? toolEntryStatusBadgeHtml(toolEntryStatus) : ''}
               ${a.entryFlagged ? '<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:#fef3c7;border:1px solid #f59e0b;color:#92400e;">⚑ Flagged</span>' : ''}
               ${ts ? `<span style="font-size:14px;color:#6b7280;">${formatDate(ts)}</span>` : ''}
             </div>
@@ -372,7 +375,9 @@ export function exportAsMarkdown(
 
     for (const entry of entries) {
       const isHypothesis = entry.type === 'hypothesis'
-      const statusStr = isHypothesis ? ` [${(entry.hypothesis_status ?? 'open').toUpperCase()}]` : ''
+      const isTool = entry.type === 'tool'
+      const statusStr = isHypothesis ? ` [${(entry.hypothesis_status ?? 'open').toUpperCase()}]`
+        : isTool ? ` [${(entry.tool_status ?? 'pending').toUpperCase()}]` : ''
       const flagStr = entry.flagged ? ' ⚑' : ''
       lines.push(`### [${formatDate(entry.created_at)}] ${entryTypeLabel(entry.type)}${statusStr}${flagStr}`)
       lines.push('')
@@ -427,6 +432,12 @@ export function exportAsMarkdown(
 
 function hypothesisStatusBadgeHtml(status: string): string {
   const sc = HYPOTHESIS_STATUS_EXPORT_COLORS[status] ?? HYPOTHESIS_STATUS_EXPORT_COLORS.open
+  const label = status.charAt(0).toUpperCase() + status.slice(1)
+  return `<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:${sc.bg};border:1px solid ${sc.border};color:${sc.text};text-transform:capitalize;">${escapeHtml(label)}</span>`
+}
+
+function toolEntryStatusBadgeHtml(status: string): string {
+  const sc = TOOL_ENTRY_STATUS_EXPORT_COLORS[status] ?? TOOL_ENTRY_STATUS_EXPORT_COLORS.pending
   const label = status.charAt(0).toUpperCase() + status.slice(1)
   return `<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:${sc.bg};border:1px solid ${sc.border};color:${sc.text};text-transform:capitalize;">${escapeHtml(label)}</span>`
 }
@@ -492,6 +503,7 @@ const BOARD_NODE_COLORS: Record<string, { bg: string; border: string; text: stri
   action:     { bg: '#fff7ed', border: '#fb923c', text: '#9a3412', badge: '#fb923c', badgeText: '#431407' },
   finding:    { bg: '#f0fdfa', border: '#2dd4bf', text: '#134e4a', badge: '#2dd4bf', badgeText: '#042f2e' },
   hypothesis: { bg: '#f5f3ff', border: '#a78bfa', text: '#5b21b6', badge: '#8b5cf6', badgeText: '#faf5ff' },
+  tool:       { bg: '#f0f9ff', border: '#38bdf8', text: '#0c4a6e', badge: '#38bdf8', badgeText: '#f0f9ff' },
 }
 
 function boardNodeHtml(node: BoardNode, allEntries: JournalEntry[], offsetX: number, offsetY: number): string {
@@ -647,7 +659,9 @@ export function buildExportHtml(
       ${entries.map((entry) => {
         const c = getEntryTypeDefinition(entry.type).exportColors
         const isHypothesis = entry.type === 'hypothesis'
+        const isToolEntry = entry.type === 'tool'
         const status = entry.hypothesis_status ?? 'open'
+        const toolStatus = entry.tool_status ?? 'pending'
         const images = entry.image_paths
           .map((p) => {
             try {
@@ -664,6 +678,7 @@ export function buildExportHtml(
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                 <span style="font-size:12px;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:0.06em;">${entryTypeLabel(entry.type)}</span>
                 ${isHypothesis ? hypothesisStatusBadgeHtml(status) : ''}
+                ${isToolEntry ? toolEntryStatusBadgeHtml(toolStatus) : ''}
                 ${entry.flagged ? '<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:#fef3c7;border:1px solid #f59e0b;color:#92400e;">⚑ Flagged</span>' : ''}
                 <span style="font-size:14px;color:#6b7280;">${formatDate(entry.created_at)}</span>
               </div>

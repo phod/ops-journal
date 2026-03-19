@@ -30,14 +30,21 @@ describe('getEntryTypeDefinition', () => {
     expect(def.command).toBe('/hypothesis')
   })
 
+  it('returns the tool definition', () => {
+    const def = getEntryTypeDefinition('tool')
+    expect(def.type).toBe('tool')
+    expect(def.label).toBe('Tool')
+    expect(def.command).toBe('/tool')
+  })
+
   it('falls back to note for an unknown type', () => {
     // @ts-expect-error testing runtime fallback
     const def = getEntryTypeDefinition('unknown')
     expect(def.type).toBe('note')
   })
 
-  it('action, finding, and hypothesis have non-empty tag styling classes', () => {
-    for (const type of ['action', 'finding', 'hypothesis'] as const) {
+  it('action, finding, hypothesis, and tool have non-empty tag styling classes', () => {
+    for (const type of ['action', 'finding', 'hypothesis', 'tool'] as const) {
       const def = getEntryTypeDefinition(type)
       expect(def.tagBgClass).not.toBe('')
       expect(def.tagTextClass).not.toBe('')
@@ -50,11 +57,12 @@ describe('SLASH_COMMANDS', () => {
     expect(SLASH_COMMANDS.every((d) => d.type !== 'note')).toBe(true)
   })
 
-  it('includes action, finding, and hypothesis', () => {
+  it('includes action, finding, hypothesis, and tool', () => {
     const types = SLASH_COMMANDS.map((d) => d.type)
     expect(types).toContain('action')
     expect(types).toContain('finding')
     expect(types).toContain('hypothesis')
+    expect(types).toContain('tool')
   })
 
   it('all commands start with /', () => {
@@ -63,12 +71,13 @@ describe('SLASH_COMMANDS', () => {
 })
 
 describe('ENTRY_TYPES', () => {
-  it('contains note, action, finding, and hypothesis', () => {
+  it('contains note, action, finding, hypothesis, and tool', () => {
     const types = ENTRY_TYPES.map((d) => d.type)
     expect(types).toContain('note')
     expect(types).toContain('action')
     expect(types).toContain('finding')
     expect(types).toContain('hypothesis')
+    expect(types).toContain('tool')
   })
 
   it('note has a null command', () => {

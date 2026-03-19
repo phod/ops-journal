@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import type { JournalEntry, EntryType } from '@shared/ipc-types'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 import type { EntryTypeDefinition } from '@shared/entry-types'
-import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS } from '@shared/entry-types'
+import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, TOOL_ENTRY_STATUS_LABEL, TOOL_ENTRY_STATUS_CLASS } from '@shared/entry-types'
 import { parseSlashCommand, getCompletions } from '@shared/slash-commands'
 import { useEntryImages } from '@shared/useEntryImages'
 import { useEntryActions } from '@shared/useEntryActions'
@@ -15,6 +15,7 @@ import { AutocompleteDropdown } from '@shared/AutocompleteDropdown'
 import { extractPastedImages } from '@shared/image-paste'
 import { EntryTypeMenu } from '@shared/EntryTypeMenu'
 import { HypothesisStatusMenu } from '@shared/HypothesisStatusMenu'
+import { ToolEntryStatusMenu } from '@shared/ToolEntryStatusMenu'
 import { LinkFindingModal } from './LinkFindingModal'
 import { LinkHypothesisModal } from './LinkHypothesisModal'
 import { HighlightedText } from '@shared/HighlightedText'
@@ -131,7 +132,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   useClickOutside(typeMenuRef, showTypeMenu, () => setShowTypeMenu(false))
   useClickOutside(statusMenuRef, showStatusMenu, () => setShowStatusMenu(false))
 
-  const { changeType, changeHypothesisStatus, toggleCompleted, toggleFlagged } = useEntryActions({
+  const { changeType, changeHypothesisStatus, changeToolEntryStatus, toggleCompleted, toggleFlagged } = useEntryActions({
     entry,
     onUpdated,
     setShowTypeMenu,
@@ -312,7 +313,9 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   const isHypothesis = entry.type === 'hypothesis'
   const isFinding = entry.type === 'finding'
   const isAction = entry.type === 'action'
+  const isTool = entry.type === 'tool'
   const status = entry.hypothesis_status ?? 'open'
+  const toolStatus = entry.tool_status ?? 'pending'
 
   const { linkedFindings, linkedChildHypotheses, parentHypotheses, linkedHypotheses } = useEntryRelationships(entry, allEntries)
 
@@ -426,6 +429,21 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               )}
               {entry.action_completed ? 'DONE' : 'TODO'}
             </button>
+          )}
+          {/* Tool entry status badge */}
+          {isTool && (
+            <div className="relative" ref={statusMenuRef}>
+              <button
+                onClick={() => setShowStatusMenu((v) => !v)}
+                className={`no-drag px-1.5 py-0.5 rounded text-xs font-semibold cursor-pointer ${TOOL_ENTRY_STATUS_CLASS[toolStatus]}`}
+                title="Change tool status"
+              >
+                {TOOL_ENTRY_STATUS_LABEL[toolStatus]}
+              </button>
+              {showStatusMenu && (
+                <ToolEntryStatusMenu currentStatus={toolStatus} onSelect={changeToolEntryStatus} anchorRef={statusMenuRef} />
+              )}
+            </div>
           )}
           {/* Link button for hypotheses */}
           {isHypothesis && !isEditing && (

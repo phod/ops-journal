@@ -124,4 +124,7 @@ export const migrations: string[] = [
   );
   CREATE INDEX IF NOT EXISTS idx_tools_sort_order ON tools(sort_order);
   `,
+
+  // Migration 13 — tool entry status tracking
+  `ALTER TABLE journal_entries ADD COLUMN tool_status TEXT;`,
 ]

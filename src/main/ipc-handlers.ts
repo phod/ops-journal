@@ -10,7 +10,7 @@ import {
   getSummary,
   saveSummary
 } from './db/investigations'
-import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from './db/entries'
+import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, updateToolEntryStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { listTools, createTool, updateTool, deleteTool, reorderTools } from './db/tools'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, getPreviousFrontApp } from './windows'
@@ -137,6 +137,14 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('entry:toggleFlagged', (_event, { entryId }: { entryId: string }) => {
     const entry = toggleFlagged(entryId)
     if (entry) broadcastEntriesChanged(entry.investigation_id)
+    return entry
+  })
+
+  // --- Tool entries ---
+
+  ipcMain.handle('toolEntry:updateStatus', (_event, { entryId, status }: { entryId: string; status: import('@shared/ipc-types').ToolEntryStatus }) => {
+    const entry = updateToolEntryStatus(entryId, status)
+    broadcastEntriesChanged(entry.investigation_id)
     return entry
   })
 

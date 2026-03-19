@@ -4,7 +4,7 @@ import type { Node, Edge, NodeChange, EdgeChange, Connection, Viewport } from '@
 import { v4 as uuidv4 } from 'uuid'
 import type { JournalEntry } from '@shared/ipc-types'
 import type { BoardNode, BoardEdge, BoardViewport, ShapeKind, EdgeArrowDirection } from '@shared/board-types'
-import { resolveLinkedFindings, resolveChildHypotheses, resolveParentHypotheses } from '@shared/entry-types'
+import { resolveLinkedFindings, resolveLinkedActions, resolveChildHypotheses, resolveParentHypotheses } from '@shared/entry-types'
 
 function boardNodeToFlow(node: BoardNode): Node {
   const flowNode: Node = {
@@ -314,10 +314,13 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
       const hypothesesByDepth = new Map<number, JournalEntry[]>()
       hypothesesByDepth.set(0, [entry])
       const findingsByHypothesisId = new Map<string, JournalEntry[]>()
+      const actionsByHypothesisId = new Map<string, JournalEntry[]>()
       // Track parent→child edges (parentEntryId → childEntryId)
       const hierarchyEdges: Array<{ parentEntryId: string; childEntryId: string }> = []
       // Track hypothesis→finding edges
       const findingEdges: Array<{ hypothesisEntryId: string; findingEntryId: string }> = []
+      // Track hypothesis→action edges
+      const actionEdges: Array<{ hypothesisEntryId: string; actionEntryId: string }> = []
 
       while (queue.length > 0) {
         const { entry: current, depth } = queue.shift()!
@@ -336,6 +339,20 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
         }
         for (const f of findings) {
           findingEdges.push({ hypothesisEntryId: current.id, findingEntryId: f.id })
+        }
+
+        // Collect actions for this hypothesis
+        const actions = resolveLinkedActions(current, allEntries)
+        const newActions = actions.filter((a) => !visited.has(a.id))
+        newActions.forEach((a) => visited.add(a.id))
+        if (newActions.length > 0) {
+          actionsByHypothesisId.set(current.id, [
+            ...(actionsByHypothesisId.get(current.id) ?? []),
+            ...newActions
+          ])
+        }
+        for (const a of actions) {
+          actionEdges.push({ hypothesisEntryId: current.id, actionEntryId: a.id })
         }
 
         // Traverse children (deeper depth)
@@ -397,6 +414,19 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
         })
       }
 
+      // Position actions to the left of their hypothesis
+      for (const [hypId, actions] of actionsByHypothesisId) {
+        const hypPos = entryIdToPosition.get(hypId)
+        if (!hypPos) continue
+        const startY = hypPos.y - ((actions.length - 1) * spacingY) / 2
+        actions.forEach((a, i) => {
+          entryIdToPosition.set(a.id, {
+            x: hypPos.x - spacingX,
+            y: startY + i * spacingY
+          })
+        })
+      }
+
       // Create new nodes (skip entries already on the board)
       const newNodes: Node[] = []
       for (const [entryId, pos] of entryIdToPosition) {
@@ -442,6 +472,23 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
           target: targetId,
           sourceHandle: 'right-source',
           targetHandle: 'left-target',
+          data: { arrowDirection: 'forward' }
+        })
+      }
+
+      for (const { hypothesisEntryId, actionEntryId } of actionEdges) {
+        const sourceId = entryIdToNodeId.get(hypothesisEntryId)
+        const targetId = entryIdToNodeId.get(actionEntryId)
+        if (!sourceId || !targetId) continue
+        const key = `${sourceId}->${targetId}`
+        if (edgeSet.has(key)) continue
+        edgeSet.add(key)
+        newEdges.push({
+          id: uuidv4(),
+          source: sourceId,
+          target: targetId,
+          sourceHandle: 'left-source',
+          targetHandle: 'right-target',
           data: { arrowDirection: 'forward' }
         })
       }

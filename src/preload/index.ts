@@ -57,6 +57,10 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke('hypothesis:linkFinding', { hypothesisId, findingId }),
   unlinkHypothesisFinding: (hypothesisId: string, findingId: string) =>
     ipcRenderer.invoke('hypothesis:unlinkFinding', { hypothesisId, findingId }),
+  linkHypothesisAction: (hypothesisId: string, actionId: string) =>
+    ipcRenderer.invoke('hypothesis:linkAction', { hypothesisId, actionId }),
+  unlinkHypothesisAction: (hypothesisId: string, actionId: string) =>
+    ipcRenderer.invoke('hypothesis:unlinkAction', { hypothesisId, actionId }),
   getHypothesisFindings: (hypothesisId: string) =>
     ipcRenderer.invoke('hypothesis:getFindings', { hypothesisId }),
   getFindingHypotheses: (findingId: string) =>

@@ -52,6 +52,7 @@ export interface JournalEntry {
   type: EntryType
   hypothesis_status?: HypothesisStatus
   linked_finding_ids?: string[]
+  linked_action_ids?: string[]
   linked_child_hypothesis_ids?: string[]
   parent_hypothesis_ids?: string[]
   action_completed?: boolean
@@ -99,6 +100,8 @@ export interface ElectronAPI {
   updateHypothesisStatus: (entryId: string, status: HypothesisStatus) => Promise<JournalEntry>
   linkHypothesisFinding: (hypothesisId: string, findingId: string) => Promise<JournalEntry>
   unlinkHypothesisFinding: (hypothesisId: string, findingId: string) => Promise<JournalEntry>
+  linkHypothesisAction: (hypothesisId: string, actionId: string) => Promise<JournalEntry>
+  unlinkHypothesisAction: (hypothesisId: string, actionId: string) => Promise<JournalEntry>
   getHypothesisFindings: (hypothesisId: string) => Promise<JournalEntry[]>
   getFindingHypotheses: (findingId: string) => Promise<JournalEntry[]>
   linkHypothesisChild: (parentId: string, childId: string) => Promise<JournalEntry>

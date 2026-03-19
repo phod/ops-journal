@@ -7,6 +7,7 @@ const ENTRY_COLUMNS = `
   je.id, je.investigation_id, je.body, je.created_at, je.type, je.hypothesis_status, je.action_completed, je.tool_status, je.flagged,
   json_group_array(ei.image_path) FILTER (WHERE ei.image_path IS NOT NULL) as image_paths_json,
   (SELECT json_group_array(hf.finding_entry_id) FROM hypothesis_findings hf WHERE hf.hypothesis_entry_id = je.id) as linked_finding_ids_json,
+  (SELECT json_group_array(ha.action_entry_id) FROM hypothesis_actions ha WHERE ha.hypothesis_entry_id = je.id) as linked_action_ids_json,
   (SELECT json_group_array(hc.child_hypothesis_id) FROM hypothesis_children hc WHERE hc.parent_hypothesis_id = je.id) as linked_child_hypothesis_ids_json,
   (SELECT json_group_array(hc.parent_hypothesis_id) FROM hypothesis_children hc WHERE hc.child_hypothesis_id = je.id) as parent_hypothesis_ids_json
 `
@@ -50,6 +51,7 @@ function rowToEntry(row: Record<string, unknown>): JournalEntry {
   entry.flagged = (row.flagged as number) === 1
   if (type === 'hypothesis') {
     entry.linked_finding_ids = JSON.parse((row.linked_finding_ids_json as string) || '[]')
+    entry.linked_action_ids = JSON.parse((row.linked_action_ids_json as string) || '[]')
     entry.linked_child_hypothesis_ids = JSON.parse((row.linked_child_hypothesis_ids_json as string) || '[]')
     const parentIds = JSON.parse((row.parent_hypothesis_ids_json as string) || '[]')
     if (parentIds.length > 0) {
@@ -181,6 +183,18 @@ export function linkHypothesisFinding(hypothesisId: string, findingId: string): 
 export function unlinkHypothesisFinding(hypothesisId: string, findingId: string): JournalEntry {
   const db = getDb()
   db.prepare('DELETE FROM hypothesis_findings WHERE hypothesis_entry_id = ? AND finding_entry_id = ?').run(hypothesisId, findingId)
+  return getEntry(hypothesisId)!
+}
+
+export function linkHypothesisAction(hypothesisId: string, actionId: string): JournalEntry {
+  const db = getDb()
+  db.prepare('INSERT OR IGNORE INTO hypothesis_actions (hypothesis_entry_id, action_entry_id) VALUES (?, ?)').run(hypothesisId, actionId)
+  return getEntry(hypothesisId)!
+}
+
+export function unlinkHypothesisAction(hypothesisId: string, actionId: string): JournalEntry {
+  const db = getDb()
+  db.prepare('DELETE FROM hypothesis_actions WHERE hypothesis_entry_id = ? AND action_entry_id = ?').run(hypothesisId, actionId)
   return getEntry(hypothesisId)!
 }
 

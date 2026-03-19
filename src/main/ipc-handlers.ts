@@ -10,7 +10,7 @@ import {
   getSummary,
   saveSummary
 } from './db/investigations'
-import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, updateToolEntryStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth, listPendingToolEntries } from './db/entries'
+import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, updateToolEntryStatus, linkHypothesisFinding, unlinkHypothesisFinding, linkHypothesisAction, unlinkHypothesisAction, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth, listPendingToolEntries } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools, moveToolToFolder, reorderToolsInFolder } from './db/tools'
 import { listToolFolders, createToolFolder, renameToolFolder, deleteToolFolder, moveToolFolderToFolder, reorderToolFoldersInParent } from './db/tool-folders'
@@ -192,6 +192,18 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('hypothesis:unlinkFinding', (_event, { hypothesisId, findingId }: { hypothesisId: string; findingId: string }) => {
     const entry = unlinkHypothesisFinding(hypothesisId, findingId)
+    broadcastEntriesChanged(entry.investigation_id)
+    return entry
+  })
+
+  ipcMain.handle('hypothesis:linkAction', (_event, { hypothesisId, actionId }: { hypothesisId: string; actionId: string }) => {
+    const entry = linkHypothesisAction(hypothesisId, actionId)
+    broadcastEntriesChanged(entry.investigation_id)
+    return entry
+  })
+
+  ipcMain.handle('hypothesis:unlinkAction', (_event, { hypothesisId, actionId }: { hypothesisId: string; actionId: string }) => {
+    const entry = unlinkHypothesisAction(hypothesisId, actionId)
     broadcastEntriesChanged(entry.investigation_id)
     return entry
   })

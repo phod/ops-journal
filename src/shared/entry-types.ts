@@ -170,6 +170,11 @@ export function resolveLinkedFindings(entry: JournalEntry, allEntries: JournalEn
   return resolveEntriesByIds(entry.linked_finding_ids, allEntries)
 }
 
+export function resolveLinkedActions(entry: JournalEntry, allEntries: JournalEntry[]): JournalEntry[] {
+  if (entry.type !== 'hypothesis') return []
+  return resolveEntriesByIds(entry.linked_action_ids, allEntries)
+}
+
 export function resolveChildHypotheses(entry: JournalEntry, allEntries: JournalEntry[]): JournalEntry[] {
   if (entry.type !== 'hypothesis') return []
   return resolveEntriesByIds(entry.linked_child_hypothesis_ids, allEntries)

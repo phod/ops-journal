@@ -4,21 +4,23 @@ import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/e
 import type { HypothesisStatus } from '@shared/ipc-types'
 import { Modal } from '@shared/Modal'
 
-type Tab = 'findings' | 'hypotheses'
+type Tab = 'findings' | 'actions' | 'hypotheses'
 
 interface Props {
   hypothesis: JournalEntry
   findings: JournalEntry[]
+  actions: JournalEntry[]
   hypotheses: JournalEntry[]
   onClose: () => void
   onHypothesisUpdated: (entry: JournalEntry) => void
 }
 
-export function LinkFindingModal({ hypothesis, findings, hypotheses, onClose, onHypothesisUpdated }: Props) {
+export function LinkFindingModal({ hypothesis, findings, actions, hypotheses, onClose, onHypothesisUpdated }: Props) {
   const [current, setCurrent] = useState(hypothesis)
   const [tab, setTab] = useState<Tab>('findings')
   const [error, setError] = useState<string | null>(null)
   const linkedFindingIds = new Set(current.linked_finding_ids ?? [])
+  const linkedActionIds = new Set(current.linked_action_ids ?? [])
   const linkedChildIds = new Set(current.linked_child_hypothesis_ids ?? [])
 
   // Filter out self and any hypothesis that is a parent of this one (to avoid cycles shown in UI)
@@ -33,6 +35,18 @@ export function LinkFindingModal({ hypothesis, findings, hypotheses, onClose, on
       setCurrent(updated)
     } catch (err) {
       console.error('[overlay] Failed to toggle finding link:', err)
+    }
+  }
+
+  const toggleAction = async (actionId: string) => {
+    setError(null)
+    try {
+      const updated = linkedActionIds.has(actionId)
+        ? await window.electronAPI.unlinkHypothesisAction(current.id, actionId)
+        : await window.electronAPI.linkHypothesisAction(current.id, actionId)
+      setCurrent(updated)
+    } catch (err) {
+      console.error('[overlay] Failed to toggle action link:', err)
     }
   }
 
@@ -58,7 +72,7 @@ export function LinkFindingModal({ hypothesis, findings, hypotheses, onClose, on
     onClose()
   }
 
-  const hasBothTypes = findings.length > 0 || linkableHypotheses.length > 0
+  const hasBothTypes = findings.length > 0 || actions.length > 0 || linkableHypotheses.length > 0
 
   return (
     <Modal onClose={handleClose} className="p-4 w-80 max-h-[70vh] flex flex-col">
@@ -86,6 +100,16 @@ export function LinkFindingModal({ hypothesis, findings, hypotheses, onClose, on
               }`}
             >
               Findings{findings.length > 0 ? ` (${findings.length})` : ''}
+            </button>
+            <button
+              onClick={() => { setTab('actions'); setError(null) }}
+              className={`flex-1 text-xs font-mono py-1 rounded transition-colors ${
+                tab === 'actions'
+                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40'
+                  : 'bg-gray-700/50 text-gray-500 border border-gray-700/50 hover:text-gray-300'
+              }`}
+            >
+              Actions{actions.length > 0 ? ` (${actions.length})` : ''}
             </button>
             <button
               onClick={() => { setTab('hypotheses'); setError(null) }}
@@ -133,6 +157,40 @@ export function LinkFindingModal({ hypothesis, findings, hypotheses, onClose, on
                       {isLinked ? '✓' : ''}
                     </span>
                     <span className="line-clamp-2">{finding.body || '(no text)'}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )
+        )}
+        {/* Actions tab */}
+        {tab === 'actions' && (
+          actions.length === 0 ? (
+            <div className="text-center text-gray-500 text-sm py-6 font-mono">
+              No actions in this investigation yet.
+            </div>
+          ) : (
+            <div className="overflow-y-auto space-y-1.5">
+              {actions.map((action) => {
+                const isLinked = linkedActionIds.has(action.id)
+                return (
+                  <button
+                    key={action.id}
+                    onClick={() => toggleAction(action.id)}
+                    className={`no-drag w-full text-left px-3 py-2 rounded-lg text-xs font-mono transition-colors flex items-start gap-2 ${
+                      isLinked
+                        ? 'bg-orange-500/20 border border-orange-500/40 text-orange-200 hover:bg-orange-500/30'
+                        : 'bg-gray-700/50 border border-gray-700/50 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center text-xs leading-none ${
+                        isLinked ? 'bg-orange-500 border-orange-400 text-white' : 'border-gray-600'
+                      }`}
+                    >
+                      {isLinked ? '✓' : ''}
+                    </span>
+                    <span className="line-clamp-2">{action.body || '(no text)'}</span>
                   </button>
                 )
               })}

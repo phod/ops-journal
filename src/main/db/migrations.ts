@@ -143,4 +143,13 @@ export const migrations: string[] = [
 
   ALTER TABLE tools ADD COLUMN folder_id TEXT REFERENCES tool_folders(id) ON DELETE SET NULL;
   `,
+
+  // Migration 15 — hypothesis-to-action linking
+  `
+  CREATE TABLE hypothesis_actions (
+    hypothesis_entry_id TEXT NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    action_entry_id TEXT NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    PRIMARY KEY (hypothesis_entry_id, action_entry_id)
+  );
+  `,
 ]

@@ -7,7 +7,7 @@ import { formatDate, TIMESTAMP_OPTIONS_SHORT } from '@shared/format-date'
 import { useEntryImages } from '@shared/useEntryImages'
 import { FlagIcon } from '@shared/FlagIcon'
 
-interface LinkedFinding {
+interface LinkedEntry {
   id: string
   body: string
 }
@@ -16,13 +16,15 @@ interface LinkedHypothesis {
   id: string
   body: string
   status: string
-  findings?: LinkedFinding[]
+  findings?: LinkedEntry[]
+  actions?: LinkedEntry[]
   children?: LinkedHypothesis[]
 }
 
 function ChildHypothesisTree({ hypothesis, depth = 0 }: { hypothesis: LinkedHypothesis; depth?: number }) {
   const status = (hypothesis.status ?? 'open') as HypothesisStatus
   const findings = hypothesis.findings ?? []
+  const actions = hypothesis.actions ?? []
   const children = hypothesis.children ?? []
 
   return (
@@ -57,6 +59,23 @@ function ChildHypothesisTree({ hypothesis, depth = 0 }: { hypothesis: LinkedHypo
         </div>
       )}
 
+      {/* Actions */}
+      {actions.length > 0 && (
+        <div className="mt-1.5">
+          <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-0.5">Actions</div>
+          <div className="space-y-0.5">
+            {actions.map((a) => (
+              <div
+                key={a.id}
+                className="px-2 py-0.5 rounded text-xs font-mono bg-orange-500/10 border border-orange-500/25 text-orange-300"
+              >
+                {a.body || <span className="italic text-gray-500">(no text)</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Nested children */}
       {children.length > 0 && (
         <div className="mt-1.5">
@@ -71,12 +90,13 @@ function ChildHypothesisTree({ hypothesis, depth = 0 }: { hypothesis: LinkedHypo
 }
 
 function EntryRefNodeView({ node }: NodeViewProps) {
-  const { entryType, entryBody, entryTimestamp, entryImagePaths, entryHypothesisStatus, entryLinkedFindings, entryChildHypotheses, entryParentHypotheses, entryFlagged } = node.attrs
+  const { entryType, entryBody, entryTimestamp, entryImagePaths, entryHypothesisStatus, entryLinkedFindings, entryLinkedActions, entryChildHypotheses, entryParentHypotheses, entryFlagged } = node.attrs
   const typeDef = getEntryTypeDefinition(entryType ?? 'note')
   const isTyped = entryType !== 'note'
   const isHypothesis = entryType === 'hypothesis'
   const imagePaths: string[] = Array.isArray(entryImagePaths) ? entryImagePaths : []
-  const linkedFindings: LinkedFinding[] = Array.isArray(entryLinkedFindings) ? entryLinkedFindings : []
+  const linkedFindings: LinkedEntry[] = Array.isArray(entryLinkedFindings) ? entryLinkedFindings : []
+  const linkedActions: LinkedEntry[] = Array.isArray(entryLinkedActions) ? entryLinkedActions : []
   const childHypotheses: LinkedHypothesis[] = Array.isArray(entryChildHypotheses) ? entryChildHypotheses : []
   const parentHypotheses: LinkedHypothesis[] = Array.isArray(entryParentHypotheses) ? entryParentHypotheses : []
   const status = (entryHypothesisStatus ?? 'open') as HypothesisStatus
@@ -85,7 +105,7 @@ function EntryRefNodeView({ node }: NodeViewProps) {
   const [expandChildren, setExpandChildren] = useState(false)
 
   const hasNestedContent = childHypotheses.some(
-    (ch) => (ch.findings && ch.findings.length > 0) || (ch.children && ch.children.length > 0)
+    (ch) => (ch.findings && ch.findings.length > 0) || (ch.actions && ch.actions.length > 0) || (ch.children && ch.children.length > 0)
   )
 
   return (
@@ -185,6 +205,23 @@ function EntryRefNodeView({ node }: NodeViewProps) {
           </div>
         )}
 
+        {/* Linked actions for hypothesis entries */}
+        {isHypothesis && linkedActions.length > 0 && (
+          <div className="mt-2">
+            <div className="text-xs text-gray-600 font-mono uppercase tracking-wider mb-1">Actions</div>
+            <div className="space-y-1">
+              {linkedActions.map((a) => (
+                <div
+                  key={a.id}
+                  className="px-2 py-1 rounded text-xs font-mono bg-orange-500/10 border border-orange-500/25 text-orange-300"
+                >
+                  {a.body || <span className="italic text-gray-500">(no text)</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Child hypotheses */}
         {isHypothesis && childHypotheses.length > 0 && (
           <div className="mt-2">
@@ -241,6 +278,7 @@ export const EntryRefNode = Node.create({
       entryImagePaths: { default: [] },
       entryHypothesisStatus: { default: null },
       entryLinkedFindings: { default: [] },
+      entryLinkedActions: { default: [] },
       entryChildHypotheses: { default: [] },
       entryParentHypotheses: { default: [] },
       entryFlagged: { default: false }

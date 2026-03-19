@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { JournalEntry, HypothesisStatus } from '@shared/ipc-types'
-import { getEntryTypeDefinition, filterEntries, resolveLinkedFindings, resolveChildHypotheses, resolveParentHypotheses, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
+import { getEntryTypeDefinition, filterEntries, resolveLinkedFindings, resolveLinkedActions, resolveChildHypotheses, resolveParentHypotheses, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import type { Filter } from '@shared/entry-types'
 import { formatDate, TIMESTAMP_OPTIONS_SHORT } from '@shared/format-date'
 import { useEntryImages } from '@shared/useEntryImages'
@@ -79,6 +79,7 @@ function PanelEntry({
   const isHypothesis = entry.type === 'hypothesis'
   const status = (entry.hypothesis_status ?? 'open') as HypothesisStatus
   const linkedFindings = resolveLinkedFindings(entry, allEntries)
+  const linkedActions = resolveLinkedActions(entry, allEntries)
   const childHypotheses = resolveChildHypotheses(entry, allEntries)
   const parentHypotheses = resolveParentHypotheses(entry, allEntries)
 
@@ -153,6 +154,18 @@ function PanelEntry({
             {linkedFindings.map((f) => (
               <div key={f.id} className="px-1.5 py-0.5 rounded text-xs font-mono bg-teal-500/10 border border-teal-500/25 text-teal-300 truncate">
                 {f.body || '(no text)'}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {isHypothesis && linkedActions.length > 0 && (
+        <div className="mt-1.5">
+          <div className="text-gray-600 text-xs font-mono uppercase tracking-wider mb-0.5">Actions</div>
+          <div className="space-y-0.5">
+            {linkedActions.map((a) => (
+              <div key={a.id} className="px-1.5 py-0.5 rounded text-xs font-mono bg-orange-500/10 border border-orange-500/25 text-orange-300 truncate">
+                {a.body || '(no text)'}
               </div>
             ))}
           </div>

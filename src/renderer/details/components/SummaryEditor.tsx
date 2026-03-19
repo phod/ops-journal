@@ -4,7 +4,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import DropCursor from '@tiptap/extension-dropcursor'
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
-import { resolveLinkedFindings, resolveChildHypotheses, resolveParentHypotheses } from '@shared/entry-types'
+import { resolveLinkedFindings, resolveLinkedActions, resolveChildHypotheses, resolveParentHypotheses } from '@shared/entry-types'
 import { EntryRefNode } from './editor/EntryRefNode'
 import { SummaryImageNode } from './editor/SummaryImageNode'
 
@@ -34,6 +34,7 @@ function buildChildHypothesisTree(entry: JournalEntry, allEntries: JournalEntry[
         body: h.body,
         status: h.hypothesis_status ?? 'open',
         findings: resolveLinkedFindings(h, allEntries).map((f) => ({ id: f.id, body: f.body })),
+        actions: resolveLinkedActions(h, allEntries).map((a) => ({ id: a.id, body: a.body })),
         children: buildChildHypothesisTree(h, allEntries, nextVisited)
       }
     })
@@ -48,6 +49,7 @@ function entryRefAttrs(entry: JournalEntry, allEntries: JournalEntry[]) {
     entryImagePaths: entry.image_paths,
     entryHypothesisStatus: entry.hypothesis_status ?? null,
     entryLinkedFindings: resolveLinkedFindings(entry, allEntries).map((f) => ({ id: f.id, body: f.body })),
+    entryLinkedActions: resolveLinkedActions(entry, allEntries).map((a) => ({ id: a.id, body: a.body })),
     entryChildHypotheses: buildChildHypothesisTree(entry, allEntries),
     entryParentHypotheses: resolveParentHypotheses(entry, allEntries).map((h) => ({ id: h.id, body: h.body, status: h.hypothesis_status ?? 'open' })),
     entryFlagged: entry.flagged ?? false

@@ -31,6 +31,7 @@ export function HypothesisPanel({ entries, onClose }: Props) {
           {hypotheses.map((h) => {
             const status = h.hypothesis_status ?? 'open'
             const findingCount = h.linked_finding_ids?.length ?? 0
+            const actionCount = h.linked_action_ids?.length ?? 0
             const childCount = h.linked_child_hypothesis_ids?.length ?? 0
             return (
               <button
@@ -44,6 +45,9 @@ export function HypothesisPanel({ entries, onClose }: Props) {
                   </span>
                   {findingCount > 0 && (
                     <span className="text-xs text-gray-600">· {findingCount}f</span>
+                  )}
+                  {actionCount > 0 && (
+                    <span className="text-xs text-gray-600">· {actionCount}a</span>
                   )}
                   {childCount > 0 && (
                     <span className="text-xs text-gray-600">· {childCount}h</span>

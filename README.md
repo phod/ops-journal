@@ -11,7 +11,7 @@ As a result, contributions are currently not being
 accepted, as the author hasn't yet taken the time
 to understand the codebase itself.
 
-Feel free to fork.
+Planning on stabilising and opening up eventually.
 
 ## Attribution
 

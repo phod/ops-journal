@@ -9,10 +9,22 @@ export interface Tool {
   tool_type: ToolType
   value: string
   tags: string[]
+  folder_id: string | null
   sort_order: number
   created_at: string
   updated_at: string
 }
+
+export interface ToolFolder {
+  id: string
+  name: string
+  parent_id: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export const MAX_TOOL_FOLDER_DEPTH = 4
 
 export type EntryType = 'note' | 'action' | 'finding' | 'hypothesis' | 'tool'
 export type ExportFormat = 'markdown' | 'pdf' | 'clipboard' | 'rich-clipboard'
@@ -153,11 +165,13 @@ export interface ElectronAPI {
 
   // Toolkit
   listTools: () => Promise<Tool[]>
-  createTool: (name: string, toolType: ToolType, value: string, tags: string[]) => Promise<Tool>
-  createToolsBulk: (tools: { name: string; toolType: ToolType; value: string; tags: string[] }[]) => Promise<Tool[]>
+  createTool: (name: string, toolType: ToolType, value: string, tags: string[], folderId?: string | null) => Promise<Tool>
+  createToolsBulk: (tools: { name: string; toolType: ToolType; value: string; tags: string[] }[], folderId?: string | null) => Promise<Tool[]>
   updateTool: (id: string, name: string, toolType: ToolType, value: string, tags: string[]) => Promise<Tool>
   deleteTool: (id: string) => Promise<void>
   reorderTools: (orderedIds: string[]) => Promise<void>
+  moveToolToFolder: (toolId: string, folderId: string | null) => Promise<void>
+  reorderToolsInFolder: (folderId: string | null, orderedIds: string[]) => Promise<void>
   executeTool: (id: string) => Promise<void>
   getToolkitHotkey: () => Promise<string>
   setToolkitHotkey: (accelerator: string) => Promise<boolean>
@@ -166,6 +180,15 @@ export interface ElectronAPI {
   showToolkitOverlay: () => Promise<void>
   hideToolkitOverlay: () => Promise<void>
   onToolsChanged: (callback: (tools: Tool[]) => void) => () => void
+
+  // Tool Folders
+  listToolFolders: () => Promise<ToolFolder[]>
+  createToolFolder: (name: string, parentId?: string | null) => Promise<ToolFolder>
+  renameToolFolder: (id: string, name: string) => Promise<ToolFolder>
+  deleteToolFolder: (id: string) => Promise<void>
+  moveToolFolderToFolder: (folderId: string, parentId: string | null) => Promise<void>
+  reorderToolFoldersInParent: (parentId: string | null, orderedIds: string[]) => Promise<void>
+  onToolFoldersChanged: (callback: (folders: ToolFolder[]) => void) => () => void
 
   // Boards
   listBoards: (investigationId: string) => Promise<RumourBoard[]>

@@ -12,13 +12,14 @@ import {
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, updateToolEntryStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth, listPendingToolEntries } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
-import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools } from './db/tools'
+import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools, moveToolToFolder, reorderToolsInFolder } from './db/tools'
+import { listToolFolders, createToolFolder, renameToolFolder, deleteToolFolder, moveToolFolderToFolder, reorderToolFoldersInParent } from './db/tool-folders'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, getPreviousFrontApp } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, reregisterToolkitHotkey, reregisterManagerHotkey } from './hotkey'
 import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getManagerHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
-import type { Investigation, Tool, ToolType } from '@shared/ipc-types'
+import type { Investigation, Tool, ToolFolder, ToolType } from '@shared/ipc-types'
 import { exportAsMarkdown, exportAsPdf, buildExportHtml } from './export'
 
 function broadcastInvestigationChanged(investigations: Investigation[]): void {
@@ -36,6 +37,16 @@ function broadcastToolsChanged(): void {
   for (const win of windows) {
     if (!win.isDestroyed()) {
       win.webContents.send('tools:changed', tools)
+    }
+  }
+}
+
+function broadcastToolFoldersChanged(): void {
+  const folders = listToolFolders()
+  const windows = BrowserWindow.getAllWindows()
+  for (const win of windows) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('toolFolders:changed', folders)
     }
   }
 }
@@ -370,14 +381,14 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('tool:list', () => listTools())
 
-  ipcMain.handle('tool:create', (_event, { name, toolType, value, tags }: { name: string; toolType: ToolType; value: string; tags: string[] }) => {
-    const tool = createTool(name, toolType, value, tags)
+  ipcMain.handle('tool:create', (_event, { name, toolType, value, tags, folderId }: { name: string; toolType: ToolType; value: string; tags: string[]; folderId?: string | null }) => {
+    const tool = createTool(name, toolType, value, tags, folderId)
     broadcastToolsChanged()
     return tool
   })
 
-  ipcMain.handle('tool:createBulk', (_event, { tools }: { tools: { name: string; toolType: ToolType; value: string; tags: string[] }[] }) => {
-    const created = createToolsBulk(tools)
+  ipcMain.handle('tool:createBulk', (_event, { tools, folderId }: { tools: { name: string; toolType: ToolType; value: string; tags: string[] }[]; folderId?: string | null }) => {
+    const created = createToolsBulk(tools, folderId)
     broadcastToolsChanged()
     return created
   })
@@ -395,6 +406,16 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('tool:reorder', (_event, { orderedIds }: { orderedIds: string[] }) => {
     reorderTools(orderedIds)
+    broadcastToolsChanged()
+  })
+
+  ipcMain.handle('tool:moveToFolder', (_event, { toolId, folderId }: { toolId: string; folderId: string | null }) => {
+    moveToolToFolder(toolId, folderId)
+    broadcastToolsChanged()
+  })
+
+  ipcMain.handle('tool:reorderInFolder', (_event, { folderId, orderedIds }: { folderId: string | null; orderedIds: string[] }) => {
+    reorderToolsInFolder(folderId, orderedIds)
     broadcastToolsChanged()
   })
 
@@ -424,6 +445,38 @@ export function registerIpcHandlers(): void {
         // Paste simulation failed — text is still on clipboard
       }
     }
+  })
+
+  // --- Tool Folders ---
+
+  ipcMain.handle('toolFolder:list', () => listToolFolders())
+
+  ipcMain.handle('toolFolder:create', (_event, { name, parentId }: { name: string; parentId?: string | null }) => {
+    const folder = createToolFolder(name, parentId)
+    broadcastToolFoldersChanged()
+    return folder
+  })
+
+  ipcMain.handle('toolFolder:rename', (_event, { id, name }: { id: string; name: string }) => {
+    const folder = renameToolFolder(id, name)
+    broadcastToolFoldersChanged()
+    return folder
+  })
+
+  ipcMain.handle('toolFolder:delete', (_event, { id }: { id: string }) => {
+    deleteToolFolder(id)
+    broadcastToolFoldersChanged()
+    broadcastToolsChanged()
+  })
+
+  ipcMain.handle('toolFolder:moveToFolder', (_event, { folderId, parentId }: { folderId: string; parentId: string | null }) => {
+    moveToolFolderToFolder(folderId, parentId)
+    broadcastToolFoldersChanged()
+  })
+
+  ipcMain.handle('toolFolder:reorderInParent', (_event, { parentId, orderedIds }: { parentId: string | null; orderedIds: string[] }) => {
+    reorderToolFoldersInParent(parentId, orderedIds)
+    broadcastToolFoldersChanged()
   })
 
   // --- Toolkit overlay ---

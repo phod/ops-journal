@@ -127,4 +127,20 @@ export const migrations: string[] = [
 
   // Migration 13 — tool entry status tracking
   `ALTER TABLE journal_entries ADD COLUMN tool_status TEXT;`,
+
+  // Migration 14 — tool folders + folder_id on tools
+  `
+  CREATE TABLE IF NOT EXISTS tool_folders (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    parent_id TEXT REFERENCES tool_folders(id) ON DELETE SET NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_tool_folders_parent_id ON tool_folders(parent_id);
+  CREATE INDEX IF NOT EXISTS idx_tool_folders_sort_order ON tool_folders(sort_order);
+
+  ALTER TABLE tools ADD COLUMN folder_id TEXT REFERENCES tool_folders(id) ON DELETE SET NULL;
+  `,
 ]

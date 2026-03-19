@@ -16,6 +16,7 @@ function makeTool(overrides: Partial<Tool> = {}): Tool {
     value: 'https://grafana.example.com',
     tags: ['monitoring'],
     sort_order: 0,
+    folder_id: null,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     ...overrides

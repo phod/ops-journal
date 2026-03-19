@@ -4,10 +4,11 @@ import type { Tool, ToolType } from '@shared/ipc-types'
 
 interface Props {
   tool: Tool | null
+  folderId?: string | null
   onClose: () => void
 }
 
-export function ToolForm({ tool, onClose }: Props) {
+export function ToolForm({ tool, folderId, onClose }: Props) {
   const isEditing = !!tool
   const [name, setName] = useState(tool?.name ?? '')
   const [toolType, setToolType] = useState<ToolType>(tool?.tool_type ?? 'link')
@@ -25,7 +26,7 @@ export function ToolForm({ tool, onClose }: Props) {
       if (isEditing) {
         await window.electronAPI.updateTool(tool.id, name.trim(), toolType, value.trim(), tags)
       } else {
-        await window.electronAPI.createTool(name.trim(), toolType, value.trim(), tags)
+        await window.electronAPI.createTool(name.trim(), toolType, value.trim(), tags, folderId)
       }
       onClose()
     } finally {

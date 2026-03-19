@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ElectronAPI, ExportFormat, HypothesisStatus, ToolEntryStatus, Investigation, Tool, ToolType, PendingToolEntry, BoardNode, BoardEdge, BoardViewport } from '../shared/ipc-types'
+import type { ElectronAPI, ExportFormat, HypothesisStatus, ToolEntryStatus, Investigation, Tool, ToolFolder, ToolType, PendingToolEntry, BoardNode, BoardEdge, BoardViewport } from '../shared/ipc-types'
 
 /**
  * Creates a listener for an IPC channel that forwards arguments to a callback,
@@ -126,13 +126,17 @@ const electronAPI: ElectronAPI = {
 
   // Toolkit
   listTools: () => ipcRenderer.invoke('tool:list'),
-  createTool: (name: string, toolType: ToolType, value: string, tags: string[]) =>
-    ipcRenderer.invoke('tool:create', { name, toolType, value, tags }),
-  createToolsBulk: (tools) => ipcRenderer.invoke('tool:createBulk', { tools }),
+  createTool: (name: string, toolType: ToolType, value: string, tags: string[], folderId?: string | null) =>
+    ipcRenderer.invoke('tool:create', { name, toolType, value, tags, folderId }),
+  createToolsBulk: (tools, folderId?: string | null) => ipcRenderer.invoke('tool:createBulk', { tools, folderId }),
   updateTool: (id: string, name: string, toolType: ToolType, value: string, tags: string[]) =>
     ipcRenderer.invoke('tool:update', { id, name, toolType, value, tags }),
   deleteTool: (id: string) => ipcRenderer.invoke('tool:delete', { id }),
   reorderTools: (orderedIds: string[]) => ipcRenderer.invoke('tool:reorder', { orderedIds }),
+  moveToolToFolder: (toolId: string, folderId: string | null) =>
+    ipcRenderer.invoke('tool:moveToFolder', { toolId, folderId }),
+  reorderToolsInFolder: (folderId: string | null, orderedIds: string[]) =>
+    ipcRenderer.invoke('tool:reorderInFolder', { folderId, orderedIds }),
   executeTool: (id: string) => ipcRenderer.invoke('tool:execute', { id }),
   getToolkitHotkey: () => ipcRenderer.invoke('settings:getToolkitHotkey'),
   setToolkitHotkey: (accelerator: string) => ipcRenderer.invoke('settings:setToolkitHotkey', { accelerator }),
@@ -142,6 +146,20 @@ const electronAPI: ElectronAPI = {
   hideToolkitOverlay: () => ipcRenderer.invoke('toolkitOverlay:hide'),
   onToolsChanged: (callback: (tools: Tool[]) => void) =>
     onIpcEvent<[Tool[]]>('tools:changed', callback),
+
+  // Tool Folders
+  listToolFolders: () => ipcRenderer.invoke('toolFolder:list'),
+  createToolFolder: (name: string, parentId?: string | null) =>
+    ipcRenderer.invoke('toolFolder:create', { name, parentId }),
+  renameToolFolder: (id: string, name: string) =>
+    ipcRenderer.invoke('toolFolder:rename', { id, name }),
+  deleteToolFolder: (id: string) => ipcRenderer.invoke('toolFolder:delete', { id }),
+  moveToolFolderToFolder: (folderId: string, parentId: string | null) =>
+    ipcRenderer.invoke('toolFolder:moveToFolder', { folderId, parentId }),
+  reorderToolFoldersInParent: (parentId: string | null, orderedIds: string[]) =>
+    ipcRenderer.invoke('toolFolder:reorderInParent', { parentId, orderedIds }),
+  onToolFoldersChanged: (callback: (folders: ToolFolder[]) => void) =>
+    onIpcEvent<[ToolFolder[]]>('toolFolders:changed', callback),
 
   // Boards
   listBoards: (investigationId) => ipcRenderer.invoke('board:list', { investigationId }),

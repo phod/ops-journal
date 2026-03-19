@@ -80,9 +80,18 @@ const DEFAULT_MOCKS = {
   hideToolkitOverlay: vi.fn(),
   onToolsChanged: vi.fn().mockReturnValue(() => {}),
   createToolsBulk: vi.fn().mockResolvedValue([]),
+  moveToolToFolder: vi.fn().mockResolvedValue(undefined),
+  reorderToolsInFolder: vi.fn().mockResolvedValue(undefined),
   listPendingToolEntries: vi.fn().mockResolvedValue([]),
   createToolFromEntry: vi.fn(),
-  abandonToolEntry: vi.fn()
+  abandonToolEntry: vi.fn(),
+  listToolFolders: vi.fn().mockResolvedValue([]),
+  createToolFolder: vi.fn(),
+  renameToolFolder: vi.fn(),
+  deleteToolFolder: vi.fn(),
+  moveToolFolderToFolder: vi.fn(),
+  reorderToolFoldersInParent: vi.fn(),
+  onToolFoldersChanged: vi.fn().mockReturnValue(() => {})
 } as const
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
@@ -139,4 +148,6 @@ beforeEach(() => {
   DEFAULT_MOCKS.setManagerHotkey.mockResolvedValue(true)
   DEFAULT_MOCKS.onToolsChanged.mockReturnValue(() => {})
   DEFAULT_MOCKS.listPendingToolEntries.mockResolvedValue([])
+  DEFAULT_MOCKS.listToolFolders.mockResolvedValue([])
+  DEFAULT_MOCKS.onToolFoldersChanged.mockReturnValue(() => {})
 })

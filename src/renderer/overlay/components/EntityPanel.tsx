@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
-import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
+import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS, TOOL_ENTRY_STATUS_LABEL, TOOL_ENTRY_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import { scrollToEntry } from '@shared/scroll-to-entry'
 import { FlagIcon } from '@shared/FlagIcon'
 
-type PanelTab = 'flagged' | 'finding' | 'hypothesis' | 'action'
+type PanelTab = 'flagged' | 'finding' | 'hypothesis' | 'action' | 'tool'
 
 interface Props {
   entries: JournalEntry[]
@@ -15,7 +15,8 @@ const TABS: { type: PanelTab; label: string; icon: string }[] = [
   { type: 'flagged', label: 'Flagged', icon: '⚑' },
   { type: 'finding', label: 'Findings', icon: '◆' },
   { type: 'hypothesis', label: 'Hypotheses', icon: '⬡' },
-  { type: 'action', label: 'Actions', icon: '☐' }
+  { type: 'action', label: 'Actions', icon: '☐' },
+  { type: 'tool', label: 'Tools', icon: '⚙' }
 ]
 
 const TAB_COLORS: Record<PanelTab, { active: string; inactive: string; border: string; bg: string; headerText: string }> = {
@@ -46,6 +47,13 @@ const TAB_COLORS: Record<PanelTab, { active: string; inactive: string; border: s
     border: 'border-orange-500/40',
     bg: 'bg-orange-950/30',
     headerText: 'text-orange-300'
+  },
+  tool: {
+    active: 'text-sky-300 bg-sky-500/25',
+    inactive: 'text-gray-500 hover:text-sky-400',
+    border: 'border-sky-500/40',
+    bg: 'bg-sky-950/30',
+    headerText: 'text-sky-300'
   }
 }
 
@@ -53,7 +61,8 @@ const CARD_COLORS: Record<PanelTab, { bg: string; border: string; hover: string 
   flagged: { bg: 'bg-amber-500/10', border: 'border-amber-500/20', hover: 'hover:bg-amber-500/25' },
   finding: { bg: 'bg-teal-500/10', border: 'border-teal-500/20', hover: 'hover:bg-teal-500/25' },
   hypothesis: { bg: 'bg-violet-500/10', border: 'border-violet-500/20', hover: 'hover:bg-violet-500/25' },
-  action: { bg: 'bg-orange-500/10', border: 'border-orange-500/20', hover: 'hover:bg-orange-500/25' }
+  action: { bg: 'bg-orange-500/10', border: 'border-orange-500/20', hover: 'hover:bg-orange-500/25' },
+  tool: { bg: 'bg-sky-500/10', border: 'border-sky-500/20', hover: 'hover:bg-sky-500/25' }
 }
 
 
@@ -124,6 +133,27 @@ function ActionCard({ entry }: { entry: JournalEntry }) {
   )
 }
 
+function ToolCard({ entry }: { entry: JournalEntry }) {
+  const toolStatus = entry.tool_status ?? 'pending'
+  const colors = CARD_COLORS.tool
+  return (
+    <button
+      onClick={() => scrollToEntry(entry.id)}
+      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-colors`}
+    >
+      <div className="flex items-center gap-1 mb-0.5">
+        <span className={`text-xs font-semibold ${TOOL_ENTRY_STATUS_TEXT_CLASS[toolStatus]}`}>
+          {TOOL_ENTRY_STATUS_LABEL[toolStatus]}
+        </span>
+        {entry.flagged && <FlagIcon size={10} className="text-amber-400 flex-shrink-0" />}
+      </div>
+      <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
+        {entry.body || '(no text)'}
+      </div>
+    </button>
+  )
+}
+
 function FlaggedCard({ entry }: { entry: JournalEntry }) {
   const colors = CARD_COLORS.flagged
   const typeDef = entry.type !== 'note' ? entry.type.charAt(0).toUpperCase() + entry.type.slice(1) : null
@@ -131,6 +161,8 @@ function FlaggedCard({ entry }: { entry: JournalEntry }) {
   const status = entry.hypothesis_status ?? 'open'
   const isAction = entry.type === 'action'
   const completed = entry.action_completed ?? false
+  const isToolEntry = entry.type === 'tool'
+  const toolStatus = entry.tool_status ?? 'pending'
   return (
     <button
       onClick={() => scrollToEntry(entry.id)}
@@ -151,6 +183,11 @@ function FlaggedCard({ entry }: { entry: JournalEntry }) {
             {completed ? '✓' : '○'}
           </span>
         )}
+        {isToolEntry && (
+          <span className={`text-xs font-semibold ${TOOL_ENTRY_STATUS_TEXT_CLASS[toolStatus]}`}>
+            {TOOL_ENTRY_STATUS_LABEL[toolStatus]}
+          </span>
+        )}
       </div>
       <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
         {entry.body || '(no text)'}
@@ -163,14 +200,16 @@ const CARD_COMPONENT: Record<PanelTab, React.ComponentType<{ entry: JournalEntry
   flagged: FlaggedCard,
   finding: FindingCard,
   hypothesis: HypothesisCard,
-  action: ActionCard
+  action: ActionCard,
+  tool: ToolCard
 }
 
 const EMPTY_HINT: Record<PanelTab, string> = {
   flagged: 'No flagged entries.\nFlag important entries with the flag icon.',
   finding: 'No findings yet.\nUse /finding to add one.',
   hypothesis: 'No hypotheses yet.\nUse /hypothesis to add one.',
-  action: 'No actions yet.\nUse /action to add one.'
+  action: 'No actions yet.\nUse /action to add one.',
+  tool: 'No tools yet.\nUse /tool to add one.'
 }
 
 export function EntityPanel({ entries, onClose }: Props) {

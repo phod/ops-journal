@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ElectronAPI, ExportFormat, HypothesisStatus, Investigation, Tool, ToolType, BoardNode, BoardEdge, BoardViewport } from '../shared/ipc-types'
+import type { ElectronAPI, ExportFormat, HypothesisStatus, ToolEntryStatus, Investigation, Tool, ToolType, BoardNode, BoardEdge, BoardViewport } from '../shared/ipc-types'
 
 /**
  * Creates a listener for an IPC channel that forwards arguments to a callback,
@@ -39,6 +39,10 @@ const electronAPI: ElectronAPI = {
   // Flagging
   toggleFlagged: (entryId: string) =>
     ipcRenderer.invoke('entry:toggleFlagged', { entryId }),
+
+  // Tool entries
+  updateToolEntryStatus: (entryId: string, status: ToolEntryStatus) =>
+    ipcRenderer.invoke('toolEntry:updateStatus', { entryId, status }),
 
   // Hypotheses
   updateHypothesisStatus: (entryId: string, status: HypothesisStatus) =>

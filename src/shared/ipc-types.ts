@@ -14,9 +14,10 @@ export interface Tool {
   updated_at: string
 }
 
-export type EntryType = 'note' | 'action' | 'finding' | 'hypothesis'
+export type EntryType = 'note' | 'action' | 'finding' | 'hypothesis' | 'tool'
 export type ExportFormat = 'markdown' | 'pdf' | 'clipboard' | 'rich-clipboard'
 export type HypothesisStatus = 'open' | 'true' | 'false' | 'abandoned'
+export type ToolEntryStatus = 'pending' | 'done' | 'abandoned'
 
 export interface Investigation {
   id: string
@@ -42,6 +43,7 @@ export interface JournalEntry {
   linked_child_hypothesis_ids?: string[]
   parent_hypothesis_ids?: string[]
   action_completed?: boolean
+  tool_status?: ToolEntryStatus
   flagged?: boolean
 }
 
@@ -66,6 +68,9 @@ export interface ElectronAPI {
 
   // Flagging
   toggleFlagged: (entryId: string) => Promise<JournalEntry>
+
+  // Tool entries
+  updateToolEntryStatus: (entryId: string, status: ToolEntryStatus) => Promise<JournalEntry>
 
   // Hypotheses
   updateHypothesisStatus: (entryId: string, status: HypothesisStatus) => Promise<JournalEntry>

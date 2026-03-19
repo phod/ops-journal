@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import type { JournalEntry, HypothesisStatus } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
-import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
+import { getEntryTypeDefinition, HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_CLASS, HYPOTHESIS_STATUS_TEXT_CLASS, TOOL_ENTRY_STATUS_LABEL, TOOL_ENTRY_STATUS_CLASS } from '@shared/entry-types'
 import { useEntryImages } from '@shared/useEntryImages'
 import { useEntryActions } from '@shared/useEntryActions'
 import { useEntryRelationships } from '@shared/useEntryRelationships'
@@ -9,6 +9,7 @@ import { FlagIcon } from '@shared/FlagIcon'
 import { useClickOutside } from '@shared/useClickOutside'
 import { EntryTypeMenu } from '@shared/EntryTypeMenu'
 import { HypothesisStatusMenu } from '@shared/HypothesisStatusMenu'
+import { ToolEntryStatusMenu } from '@shared/ToolEntryStatusMenu'
 import { scrollToEntry } from '@shared/scroll-to-entry'
 import { HighlightedText } from '@shared/HighlightedText'
 
@@ -77,7 +78,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
   useClickOutside(typeMenuRef, showTypeMenu, () => setShowTypeMenu(false))
   useClickOutside(statusMenuRef, showStatusMenu, () => setShowStatusMenu(false))
 
-  const { changeType, changeHypothesisStatus, toggleCompleted, toggleFlagged } = useEntryActions({
+  const { changeType, changeHypothesisStatus, changeToolEntryStatus, toggleCompleted, toggleFlagged } = useEntryActions({
     entry,
     onUpdated: onEntryUpdated ?? (() => {}),
     setShowTypeMenu,
@@ -98,7 +99,9 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
   const isHypothesis = entry.type === 'hypothesis'
   const isFinding = entry.type === 'finding'
   const isAction = entry.type === 'action'
+  const isTool = entry.type === 'tool'
   const status = entry.hypothesis_status ?? 'open'
+  const toolStatus = entry.tool_status ?? 'pending'
 
   const { linkedFindings, linkedChildHypotheses, parentHypotheses, linkedHypotheses } = useEntryRelationships(entry, allEntries ?? [])
 
@@ -190,6 +193,21 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
             )}
             {entry.action_completed ? 'DONE' : 'TODO'}
           </button>
+        )}
+        {/* Tool entry status badge */}
+        {isTool && (
+          <div className="relative" ref={statusMenuRef}>
+            <button
+              onClick={() => setShowStatusMenu((v) => !v)}
+              className={`no-drag px-1.5 py-0.5 rounded text-xs font-semibold cursor-pointer ${TOOL_ENTRY_STATUS_CLASS[toolStatus]}`}
+              title="Change tool status"
+            >
+              {TOOL_ENTRY_STATUS_LABEL[toolStatus]}
+            </button>
+            {showStatusMenu && (
+              <ToolEntryStatusMenu currentStatus={toolStatus} onSelect={changeToolEntryStatus} anchorRef={statusMenuRef} />
+            )}
+          </div>
         )}
         {/* Flag toggle */}
         <button

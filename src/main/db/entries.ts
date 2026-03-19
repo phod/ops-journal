@@ -1,10 +1,10 @@
 import { v4 as uuidv4 } from 'uuid'
 import { getDb } from './index'
-import type { JournalEntry, EntryType, HypothesisStatus } from '@shared/ipc-types'
+import type { JournalEntry, EntryType, HypothesisStatus, ToolEntryStatus } from '@shared/ipc-types'
 import { MAX_HYPOTHESIS_NESTING_DEPTH } from '@shared/ipc-types'
 
 const ENTRY_COLUMNS = `
-  je.id, je.investigation_id, je.body, je.created_at, je.type, je.hypothesis_status, je.action_completed, je.flagged,
+  je.id, je.investigation_id, je.body, je.created_at, je.type, je.hypothesis_status, je.action_completed, je.tool_status, je.flagged,
   json_group_array(ei.image_path) FILTER (WHERE ei.image_path IS NOT NULL) as image_paths_json,
   (SELECT json_group_array(hf.finding_entry_id) FROM hypothesis_findings hf WHERE hf.hypothesis_entry_id = je.id) as linked_finding_ids_json,
   (SELECT json_group_array(hc.child_hypothesis_id) FROM hypothesis_children hc WHERE hc.parent_hypothesis_id = je.id) as linked_child_hypothesis_ids_json,
@@ -41,6 +41,9 @@ function rowToEntry(row: Record<string, unknown>): JournalEntry {
   if (row.hypothesis_status != null) {
     entry.hypothesis_status = row.hypothesis_status as HypothesisStatus
   }
+  if (row.tool_status != null) {
+    entry.tool_status = row.tool_status as ToolEntryStatus
+  }
   if (type === 'action') {
     entry.action_completed = (row.action_completed as number) === 1
   }
@@ -73,6 +76,8 @@ export function createEntry(investigationId: string, body: string, imagePaths?: 
   const id = uuidv4()
   if (type === 'hypothesis') {
     db.prepare('INSERT INTO journal_entries (id, investigation_id, body, type, hypothesis_status) VALUES (?, ?, ?, ?, ?)').run(id, investigationId, body, type, 'open')
+  } else if (type === 'tool') {
+    db.prepare('INSERT INTO journal_entries (id, investigation_id, body, type, tool_status) VALUES (?, ?, ?, ?, ?)').run(id, investigationId, body, type, 'pending')
   } else {
     db.prepare('INSERT INTO journal_entries (id, investigation_id, body, type) VALUES (?, ?, ?, ?)').run(id, investigationId, body, type)
   }
@@ -91,6 +96,9 @@ export function updateEntry(id: string, body: string, keepImagePaths?: string[] 
     db.prepare('UPDATE journal_entries SET body = ?, type = ? WHERE id = ?').run(body, type, id)
     if (type === 'hypothesis') {
       db.prepare("UPDATE journal_entries SET hypothesis_status = 'open' WHERE id = ? AND hypothesis_status IS NULL").run(id)
+    }
+    if (type === 'tool') {
+      db.prepare("UPDATE journal_entries SET tool_status = 'pending' WHERE id = ? AND tool_status IS NULL").run(id)
     }
   } else {
     db.prepare('UPDATE journal_entries SET body = ? WHERE id = ?').run(body, id)
@@ -141,6 +149,12 @@ export function toggleFlagged(id: string): JournalEntry {
 export function updateHypothesisStatus(id: string, status: HypothesisStatus): JournalEntry {
   const db = getDb()
   db.prepare('UPDATE journal_entries SET hypothesis_status = ? WHERE id = ?').run(status, id)
+  return getEntry(id)!
+}
+
+export function updateToolEntryStatus(id: string, status: ToolEntryStatus): JournalEntry {
+  const db = getDb()
+  db.prepare('UPDATE journal_entries SET tool_status = ? WHERE id = ?').run(status, id)
   return getEntry(id)!
 }
 

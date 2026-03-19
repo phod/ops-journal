@@ -9,7 +9,7 @@ vi.mock('../index', () => ({
 }))
 
 import { createInvestigation } from '../investigations'
-import { createEntry, listEntries, updateEntry, deleteEntry, getEntry, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from '../entries'
+import { createEntry, listEntries, updateEntry, deleteEntry, getEntry, updateHypothesisStatus, updateToolEntryStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from '../entries'
 
 let investigationId: string
 
@@ -53,6 +53,12 @@ describe('createEntry', () => {
     expect(entry.type).toBe('hypothesis')
     expect(entry.hypothesis_status).toBe('open')
     expect(entry.linked_finding_ids).toEqual([])
+  })
+
+  it('stores tool type with pending status', () => {
+    const entry = createEntry(investigationId, 'kubectl get pods', [], 'tool')
+    expect(entry.type).toBe('tool')
+    expect(entry.tool_status).toBe('pending')
   })
 
   it('creates an entry with image paths', () => {
@@ -303,6 +309,21 @@ describe('hypothesis-child linking', () => {
     testDb.prepare('DELETE FROM journal_entries WHERE id = ?').run(parent.id)
     const childEntry = getEntry(child.id)!
     expect(childEntry.parent_hypothesis_ids ?? []).toHaveLength(0)
+  })
+})
+
+describe('tool entry operations', () => {
+  it('updateToolEntryStatus changes the status', () => {
+    const entry = createEntry(investigationId, 'kubectl get pods', [], 'tool')
+    expect(entry.tool_status).toBe('pending')
+    const updated = updateToolEntryStatus(entry.id, 'done')
+    expect(updated.tool_status).toBe('done')
+  })
+
+  it('updateToolEntryStatus can set abandoned', () => {
+    const entry = createEntry(investigationId, 'some command', [], 'tool')
+    const updated = updateToolEntryStatus(entry.id, 'abandoned')
+    expect(updated.tool_status).toBe('abandoned')
   })
 })
 

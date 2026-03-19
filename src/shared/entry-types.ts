@@ -1,4 +1,4 @@
-import type { EntryType, HypothesisStatus, JournalEntry } from './ipc-types'
+import type { EntryType, HypothesisStatus, ToolEntryStatus, JournalEntry } from './ipc-types'
 
 export interface ExportColors {
   bg: string
@@ -62,6 +62,17 @@ export const ENTRY_TYPES: EntryTypeDefinition[] = [
     tagBgClass: 'bg-violet-500',
     tagTextClass: 'text-violet-50 font-bold',
     exportColors: { bg: '#fffbeb', border: '#fcd34d', text: '#92400e' }
+  },
+  {
+    type: 'tool',
+    command: '/tool',
+    label: 'Tool',
+    leftBorderClass: 'border-l-sky-400',
+    cardBgClass: 'bg-sky-400/10',
+    cardBorderClass: 'border-sky-500/40',
+    tagBgClass: 'bg-sky-500',
+    tagTextClass: 'text-sky-50 font-bold',
+    exportColors: { bg: '#f0f9ff', border: '#7dd3fc', text: '#0c4a6e' }
   }
 ]
 
@@ -99,7 +110,31 @@ export const HYPOTHESIS_STATUS_EXPORT_COLORS: Record<HypothesisStatus, ExportCol
   abandoned: { bg: '#f3f4f6', border: '#d1d5db', text: '#6b7280' },
 }
 
-export type Filter = 'all' | 'images' | 'finding' | 'action' | 'hypothesis' | 'flagged'
+export const TOOL_ENTRY_STATUS_LABEL: Record<ToolEntryStatus, string> = {
+  pending: 'Pending',
+  done: 'Done',
+  abandoned: 'Abandoned'
+}
+
+export const TOOL_ENTRY_STATUS_CLASS: Record<ToolEntryStatus, string> = {
+  pending: 'bg-sky-500/20 text-sky-300 border border-sky-500/30',
+  done: 'bg-green-500/20 text-green-300 border border-green-500/30',
+  abandoned: 'bg-gray-500/20 text-gray-400 border border-gray-600/30'
+}
+
+export const TOOL_ENTRY_STATUS_TEXT_CLASS: Record<ToolEntryStatus, string> = {
+  pending: 'text-sky-300',
+  done: 'text-green-300',
+  abandoned: 'text-gray-400'
+}
+
+export const TOOL_ENTRY_STATUS_EXPORT_COLORS: Record<ToolEntryStatus, ExportColors> = {
+  pending:   { bg: '#e0f2fe', border: '#7dd3fc', text: '#0c4a6e' },
+  done:      { bg: '#dcfce7', border: '#86efac', text: '#166534' },
+  abandoned: { bg: '#f3f4f6', border: '#d1d5db', text: '#6b7280' },
+}
+
+export type Filter = 'all' | 'images' | 'finding' | 'action' | 'hypothesis' | 'tool' | 'flagged'
 
 export function countEntries(entries: JournalEntry[]) {
   return entries.reduce(
@@ -109,10 +144,11 @@ export function countEntries(entries: JournalEntry[]) {
       if (e.type === 'finding') acc.finding++
       if (e.type === 'action') acc.action++
       if (e.type === 'hypothesis') acc.hypothesis++
+      if (e.type === 'tool') acc.tool++
       if (e.flagged) acc.flagged++
       return acc
     },
-    { all: 0, images: 0, finding: 0, action: 0, hypothesis: 0, flagged: 0 }
+    { all: 0, images: 0, finding: 0, action: 0, hypothesis: 0, tool: 0, flagged: 0 }
   )
 }
 

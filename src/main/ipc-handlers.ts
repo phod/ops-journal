@@ -12,12 +12,13 @@ import {
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
-import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard } from './windows'
-import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
-import { getHotkey, getScreenshotHotkey, getUploadHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed } from './settings'
+import { listTools, createTool, updateTool, deleteTool, reorderTools } from './db/tools'
+import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow } from './windows'
+import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, reregisterToolkitHotkey } from './hotkey'
+import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
-import type { Investigation } from '@shared/ipc-types'
+import type { Investigation, Tool, ToolType } from '@shared/ipc-types'
 import { exportAsMarkdown, exportAsPdf, buildExportHtml } from './export'
 
 function broadcastInvestigationChanged(investigations: Investigation[]): void {
@@ -25,6 +26,16 @@ function broadcastInvestigationChanged(investigations: Investigation[]): void {
   for (const win of windows) {
     if (!win.isDestroyed()) {
       win.webContents.send('investigation:changed', investigations)
+    }
+  }
+}
+
+function broadcastToolsChanged(): void {
+  const tools = listTools()
+  const windows = BrowserWindow.getAllWindows()
+  for (const win of windows) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('tools:changed', tools)
     }
   }
 }
@@ -329,6 +340,61 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('settings:getOnboardingDismissed', () => getOnboardingDismissed())
   ipcMain.handle('settings:setOnboardingDismissed', (_event, { dismissed }: { dismissed: boolean }) => setOnboardingDismissed(dismissed))
   ipcMain.handle('app:getVersion', () => app.getVersion())
+
+  // --- Tools ---
+
+  ipcMain.handle('tool:list', () => listTools())
+
+  ipcMain.handle('tool:create', (_event, { name, toolType, value, tags }: { name: string; toolType: ToolType; value: string; tags: string[] }) => {
+    const tool = createTool(name, toolType, value, tags)
+    broadcastToolsChanged()
+    return tool
+  })
+
+  ipcMain.handle('tool:update', (_event, { id, name, toolType, value, tags }: { id: string; name: string; toolType: ToolType; value: string; tags: string[] }) => {
+    const tool = updateTool(id, name, toolType, value, tags)
+    broadcastToolsChanged()
+    return tool
+  })
+
+  ipcMain.handle('tool:delete', (_event, { id }: { id: string }) => {
+    deleteTool(id)
+    broadcastToolsChanged()
+  })
+
+  ipcMain.handle('tool:reorder', (_event, { orderedIds }: { orderedIds: string[] }) => {
+    reorderTools(orderedIds)
+    broadcastToolsChanged()
+  })
+
+  ipcMain.handle('tool:execute', async (_event, { id }: { id: string }) => {
+    const tools = listTools()
+    const tool = tools.find((t) => t.id === id)
+    if (!tool) return
+
+    if (tool.tool_type === 'link') {
+      shell.openExternal(tool.value)
+    } else {
+      clipboard.writeText(tool.value)
+      hideToolkitOverlay()
+      // Wait briefly then simulate paste via AppleScript
+      await new Promise((r) => setTimeout(r, 150))
+      try {
+        const { execSync } = require('child_process')
+        execSync('osascript -e \'tell application "System Events" to keystroke "v" using command down\'')
+      } catch {
+        // Paste simulation failed — text is still on clipboard
+      }
+    }
+  })
+
+  // --- Toolkit overlay ---
+
+  ipcMain.handle('settings:getToolkitHotkey', () => getToolkitHotkey())
+  ipcMain.handle('settings:setToolkitHotkey', (_event, { accelerator }: { accelerator: string }) => reregisterToolkitHotkey(accelerator))
+
+  ipcMain.handle('toolkitOverlay:show', () => showToolkitOverlay())
+  ipcMain.handle('toolkitOverlay:hide', () => hideToolkitOverlay())
 
   // --- Window management ---
 

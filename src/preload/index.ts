@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ElectronAPI, ExportFormat, HypothesisStatus, Investigation, BoardNode, BoardEdge, BoardViewport } from '../shared/ipc-types'
+import type { ElectronAPI, ExportFormat, HypothesisStatus, Investigation, Tool, ToolType, BoardNode, BoardEdge, BoardViewport } from '../shared/ipc-types'
 
 /**
  * Creates a listener for an IPC channel that forwards arguments to a callback,
@@ -113,6 +113,22 @@ const electronAPI: ElectronAPI = {
   // Screenshot window helpers
   onScreenshotData: (callback) => onIpcEvent<[string]>('screenshot:data', callback),
   sendScreenshotSelection: (rect) => ipcRenderer.send('screenshot:selection', rect),
+
+  // Toolkit
+  listTools: () => ipcRenderer.invoke('tool:list'),
+  createTool: (name: string, toolType: ToolType, value: string, tags: string[]) =>
+    ipcRenderer.invoke('tool:create', { name, toolType, value, tags }),
+  updateTool: (id: string, name: string, toolType: ToolType, value: string, tags: string[]) =>
+    ipcRenderer.invoke('tool:update', { id, name, toolType, value, tags }),
+  deleteTool: (id: string) => ipcRenderer.invoke('tool:delete', { id }),
+  reorderTools: (orderedIds: string[]) => ipcRenderer.invoke('tool:reorder', { orderedIds }),
+  executeTool: (id: string) => ipcRenderer.invoke('tool:execute', { id }),
+  getToolkitHotkey: () => ipcRenderer.invoke('settings:getToolkitHotkey'),
+  setToolkitHotkey: (accelerator: string) => ipcRenderer.invoke('settings:setToolkitHotkey', { accelerator }),
+  showToolkitOverlay: () => ipcRenderer.invoke('toolkitOverlay:show'),
+  hideToolkitOverlay: () => ipcRenderer.invoke('toolkitOverlay:hide'),
+  onToolsChanged: (callback: (tools: Tool[]) => void) =>
+    onIpcEvent<[Tool[]]>('tools:changed', callback),
 
   // Boards
   listBoards: (investigationId) => ipcRenderer.invoke('board:list', { investigationId }),

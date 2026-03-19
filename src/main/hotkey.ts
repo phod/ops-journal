@@ -1,9 +1,10 @@
 import { globalShortcut } from 'electron'
-import { toggleOverlay, showOverlay, getOverlayWindow } from './windows'
+import { toggleOverlay, showOverlay, getOverlayWindow, toggleToolkitOverlay } from './windows'
 import {
   getHotkey, setHotkey,
   getScreenshotHotkey, setScreenshotHotkey,
-  getUploadHotkey, setUploadHotkey
+  getUploadHotkey, setUploadHotkey,
+  getToolkitHotkey, setToolkitHotkey
 } from './settings'
 import { captureScreenshot } from './screenshot'
 
@@ -46,6 +47,13 @@ const uploadSlot: HotkeySlot = {
   callback: handleUploadTrigger,
   label: 'upload hotkey',
   persist: setUploadHotkey
+}
+
+const toolkitSlot: HotkeySlot = {
+  current: null,
+  callback: toggleToolkitOverlay,
+  label: 'toolkit hotkey',
+  persist: setToolkitHotkey
 }
 
 function registerShortcut(
@@ -108,9 +116,18 @@ export function reregisterUploadHotkey(newHotkey: string): boolean {
   return reregisterSlot(uploadSlot, newHotkey)
 }
 
+export function registerToolkitHotkey(): void {
+  registerSlot(toolkitSlot, getToolkitHotkey())
+}
+
+export function reregisterToolkitHotkey(newHotkey: string): boolean {
+  return reregisterSlot(toolkitSlot, newHotkey)
+}
+
 export function unregisterAllHotkeys(): void {
   globalShortcut.unregisterAll()
   overlaySlot.current = null
   screenshotSlot.current = null
   uploadSlot.current = null
+  toolkitSlot.current = null
 }

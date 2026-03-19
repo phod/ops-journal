@@ -1,6 +1,19 @@
 import type { RumourBoard, BoardState, BoardViewport, BoardNode, BoardEdge } from './board-types'
 export type { RumourBoard, BoardState, BoardViewport, BoardNode, BoardEdge }
 
+export type ToolType = 'link' | 'string'
+
+export interface Tool {
+  id: string
+  name: string
+  tool_type: ToolType
+  value: string
+  tags: string[]
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
 export type EntryType = 'note' | 'action' | 'finding' | 'hypothesis'
 export type ExportFormat = 'markdown' | 'pdf' | 'clipboard' | 'rich-clipboard'
 export type HypothesisStatus = 'open' | 'true' | 'false' | 'abandoned'
@@ -121,6 +134,19 @@ export interface ElectronAPI {
   // Screenshot window helpers (used by screenshot renderer)
   onScreenshotData: (callback: (dataUrl: string) => void) => () => void
   sendScreenshotSelection: (rect: { x: number; y: number; width: number; height: number } | null) => void
+
+  // Toolkit
+  listTools: () => Promise<Tool[]>
+  createTool: (name: string, toolType: ToolType, value: string, tags: string[]) => Promise<Tool>
+  updateTool: (id: string, name: string, toolType: ToolType, value: string, tags: string[]) => Promise<Tool>
+  deleteTool: (id: string) => Promise<void>
+  reorderTools: (orderedIds: string[]) => Promise<void>
+  executeTool: (id: string) => Promise<void>
+  getToolkitHotkey: () => Promise<string>
+  setToolkitHotkey: (accelerator: string) => Promise<boolean>
+  showToolkitOverlay: () => Promise<void>
+  hideToolkitOverlay: () => Promise<void>
+  onToolsChanged: (callback: (tools: Tool[]) => void) => () => void
 
   // Boards
   listBoards: (investigationId: string) => Promise<RumourBoard[]>

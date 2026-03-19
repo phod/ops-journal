@@ -109,4 +109,19 @@ export const migrations: string[] = [
 
   // Migration 11 — z-index for board nodes (layer ordering)
   `ALTER TABLE board_nodes ADD COLUMN z_index INTEGER NOT NULL DEFAULT 0;`,
+
+  // Migration 12 — tools (toolkit)
+  `
+  CREATE TABLE IF NOT EXISTS tools (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    tool_type TEXT NOT NULL CHECK(tool_type IN ('link', 'string')),
+    value TEXT NOT NULL,
+    tags TEXT NOT NULL DEFAULT '[]',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_tools_sort_order ON tools(sort_order);
+  `,
 ]

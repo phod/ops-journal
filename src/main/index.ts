@@ -1,7 +1,7 @@
 import { app } from 'electron'
-import { createOverlayWindow, createManagerWindow, getOverlayWindow, setAppQuitting } from './windows'
+import { createOverlayWindow, createManagerWindow, createToolkitOverlayWindow, getOverlayWindow, getToolkitOverlayWindow, setAppQuitting } from './windows'
 import { createTray, updateTrayMenu } from './tray'
-import { registerHotkey, registerImageHotkeys, unregisterAllHotkeys } from './hotkey'
+import { registerHotkey, registerImageHotkeys, registerToolkitHotkey, unregisterAllHotkeys } from './hotkey'
 import { registerIpcHandlers } from './ipc-handlers'
 import { getDb, closeDb } from './db/index'
 
@@ -35,9 +35,10 @@ if (!gotLock) {
     // Register IPC handlers before creating windows
     registerIpcHandlers()
 
-    // Create windows (both hidden initially)
+    // Create windows (all hidden initially)
     createOverlayWindow()
     createManagerWindow()
+    createToolkitOverlayWindow()
 
     // Create tray
     createTray()
@@ -49,9 +50,16 @@ if (!gotLock) {
       overlayWin.on('hide', () => updateTrayMenu())
     }
 
+    const toolkitWin = getToolkitOverlayWindow()
+    if (toolkitWin) {
+      toolkitWin.on('show', () => updateTrayMenu())
+      toolkitWin.on('hide', () => updateTrayMenu())
+    }
+
     // Register global hotkeys
     registerHotkey()
     registerImageHotkeys()
+    registerToolkitHotkey()
 
     // macOS: re-apply accessory policy after ready (belt and suspenders)
     if (process.platform === 'darwin') {

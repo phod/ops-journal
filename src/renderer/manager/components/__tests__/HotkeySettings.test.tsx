@@ -14,33 +14,36 @@ describe('HotkeySettings', () => {
     window.electronAPI.setUploadHotkey = vi.fn().mockResolvedValue(true)
   })
 
-  it('loads and displays all three hotkeys', async () => {
+  it('loads and displays all four hotkeys', async () => {
     render(<HotkeySettings />)
     await waitFor(() => {
       expect(window.electronAPI.getHotkey).toHaveBeenCalled()
       expect(window.electronAPI.getScreenshotHotkey).toHaveBeenCalled()
       expect(window.electronAPI.getUploadHotkey).toHaveBeenCalled()
+      expect(window.electronAPI.getToolkitHotkey).toHaveBeenCalled()
     })
     // Each shortcut key character should appear — use getAllBy since keys repeat across rows
-    expect(screen.getAllByText('⌘').length).toBeGreaterThanOrEqual(3)
-    expect(screen.getAllByText('⇧').length).toBeGreaterThanOrEqual(3)
+    expect(screen.getAllByText('⌘').length).toBeGreaterThanOrEqual(4)
+    expect(screen.getAllByText('⇧').length).toBeGreaterThanOrEqual(4)
     expect(screen.getByText('J')).toBeInTheDocument()
     expect(screen.getByText('S')).toBeInTheDocument()
     expect(screen.getByText('U')).toBeInTheDocument()
+    expect(screen.getByText('K')).toBeInTheDocument()
   })
 
-  it('renders all three hotkey section labels', async () => {
+  it('renders all four hotkey section labels', async () => {
     render(<HotkeySettings />)
     expect(await screen.findByText('Open Journal')).toBeInTheDocument()
     expect(screen.getByText('Capture Screenshot')).toBeInTheDocument()
     expect(screen.getByText('Upload Image')).toBeInTheDocument()
+    expect(screen.getByText('Open Toolkit')).toBeInTheDocument()
   })
 
   it('shows a "Change shortcut" button for each row', async () => {
     render(<HotkeySettings />)
     await waitFor(() => expect(window.electronAPI.getHotkey).toHaveBeenCalled())
     const buttons = await screen.findAllByText(/change shortcut/i)
-    expect(buttons).toHaveLength(3)
+    expect(buttons).toHaveLength(4)
   })
 
   it('enters capture mode when "Change shortcut" is clicked on the first row', async () => {

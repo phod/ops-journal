@@ -7,6 +7,7 @@ const devServerUrl = process.env['ELECTRON_RENDERER_URL']
 
 let overlayWindow: BrowserWindow | null = null
 let managerWindow: BrowserWindow | null = null
+let toolkitOverlayWindow: BrowserWindow | null = null
 let appIsQuitting = false
 
 export function setAppQuitting(): void {
@@ -209,4 +210,99 @@ export function restoreOverlayFromBoard(): void {
   if (!win || !preBoardBounds) return
   win.setBounds(preBoardBounds)
   preBoardBounds = null
+}
+
+// --- Toolkit overlay ---
+
+function toolkitBoundsFilePath(): string {
+  return path.join(app.getPath('userData'), 'toolkit-overlay-bounds.json')
+}
+
+function loadToolkitBounds(): OverlayBounds | null {
+  try {
+    const raw = fs.readFileSync(toolkitBoundsFilePath(), 'utf-8')
+    return JSON.parse(raw) as OverlayBounds
+  } catch {
+    return null
+  }
+}
+
+function saveToolkitBounds(win: BrowserWindow): void {
+  try {
+    const [x, y] = win.getPosition()
+    const [width, height] = win.getSize()
+    fs.writeFileSync(toolkitBoundsFilePath(), JSON.stringify({ x, y, width, height }))
+  } catch {
+    // ignore
+  }
+}
+
+export function createToolkitOverlayWindow(): BrowserWindow {
+  const saved = loadToolkitBounds()
+  const win = new BrowserWindow({
+    width: saved?.width ?? 500,
+    height: saved?.height ?? 400,
+    x: saved?.x,
+    y: saved?.y,
+    frame: false,
+    alwaysOnTop: true,
+    transparent: true,
+    skipTaskbar: true,
+    show: false,
+    resizable: true,
+    hasShadow: true,
+    webPreferences: sharedWebPreferences()
+  })
+
+  win.on('move', () => saveToolkitBounds(win))
+  win.on('resize', () => saveToolkitBounds(win))
+
+  win.setAlwaysOnTop(true, 'floating')
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+
+  loadWindowUrl(win, 'toolkit.html')
+
+  toolkitOverlayWindow = win
+  return win
+}
+
+export function getToolkitOverlayWindow(): BrowserWindow | null {
+  return toolkitOverlayWindow
+}
+
+export function toggleToolkitOverlay(): void {
+  const win = toolkitOverlayWindow
+  if (!win) return
+
+  if (win.isVisible()) {
+    win.hide()
+  } else {
+    if (!loadToolkitBounds()) {
+      const { workAreaSize } = screen.getPrimaryDisplay()
+      const [width] = win.getSize()
+      const x = Math.round((workAreaSize.width - width) / 2)
+      win.setPosition(x, 80)
+    }
+    win.show()
+    win.focus()
+  }
+}
+
+export function showToolkitOverlay(): void {
+  const win = toolkitOverlayWindow
+  if (!win) return
+  if (!loadToolkitBounds()) {
+    const { workAreaSize } = screen.getPrimaryDisplay()
+    const [width] = win.getSize()
+    const x = Math.round((workAreaSize.width - width) / 2)
+    win.setPosition(x, 80)
+  }
+  win.show()
+  win.focus()
+}
+
+export function hideToolkitOverlay(): void {
+  const win = toolkitOverlayWindow
+  if (!win) return
+  win.hide()
 }

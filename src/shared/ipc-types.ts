@@ -40,6 +40,7 @@ export interface ElectronAPI {
   deleteInvestigation: (id: string) => Promise<void>
   setActiveInvestigation: (id: string) => Promise<Investigation>
   deactivateInvestigation: (id: string) => Promise<void>
+  renameInvestigation: (id: string, name: string) => Promise<Investigation>
 
   // Entries
   listEntries: (investigationId: string) => Promise<JournalEntry[]>

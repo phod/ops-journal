@@ -53,6 +53,12 @@ export function setActiveInvestigation(id: string): Investigation {
   return getInvestigation(id)
 }
 
+export function renameInvestigation(id: string, name: string): Investigation {
+  const db = getDb()
+  db.prepare('UPDATE investigations SET name = ? WHERE id = ?').run(name, id)
+  return getInvestigation(id)
+}
+
 export function deactivateInvestigation(id: string): void {
   const db = getDb()
   db.prepare('UPDATE investigations SET is_active = 0 WHERE id = ?').run(id)

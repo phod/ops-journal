@@ -286,6 +286,7 @@ export default function App() {
         onSelect={switchToInvestigation}
         onDeactivate={(id) => window.electronAPI.deactivateInvestigation(id)}
         onCreate={handleCreateInvestigation}
+        onRename={(id, name) => window.electronAPI.renameInvestigation(id, name)}
       />
 
       {/* Drag overlay */}

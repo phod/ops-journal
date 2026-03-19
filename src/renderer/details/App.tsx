@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { formatDate } from '@shared/format-date'
 import { countEntries, filterEntries, type Filter } from '@shared/entry-types'
@@ -17,7 +17,38 @@ export default function App(): JSX.Element {
   const [filter, setFilter] = useState<Filter>('all')
   const [view, setView] = useState<'entries' | 'summary' | 'export' | 'board' | null>(null)
   const [preExportView, setPreExportView] = useState<'entries' | 'summary' | null>(null)
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
+  const renameInputRef = useRef<HTMLInputElement>(null)
   const summaryRef = useRef<SummaryViewHandle>(null)
+
+  const startRenaming = useCallback(() => {
+    if (!investigation) return
+    setRenameValue(investigation.name)
+    setIsRenaming(true)
+    setTimeout(() => renameInputRef.current?.select(), 0)
+  }, [investigation])
+
+  const commitRename = useCallback(async () => {
+    if (investigation && renameValue.trim() && renameValue.trim() !== investigation.name) {
+      const updated = await window.electronAPI.renameInvestigation(investigation.id, renameValue.trim())
+      setInvestigation(updated)
+    }
+    setIsRenaming(false)
+    setRenameValue('')
+  }, [investigation, renameValue])
+
+  const handleRenameKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        commitRename()
+      } else if (e.key === 'Escape') {
+        setIsRenaming(false)
+        setRenameValue('')
+      }
+    },
+    [commitRename]
+  )
 
   function openExport(): void {
     if (view === 'summary' && !summaryRef.current?.confirmIfDirty()) return
@@ -119,9 +150,24 @@ export default function App(): JSX.Element {
     <div className="w-full h-full flex flex-col">
       <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-gray-700/50 bg-gray-800/40">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold text-gray-100 truncate">
-            {investigation.name}
-          </h1>
+          {isRenaming ? (
+            <input
+              ref={renameInputRef}
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={handleRenameKeyDown}
+              onBlur={commitRename}
+              className="text-xl font-semibold text-gray-100 bg-gray-700/60 rounded px-2 py-0.5 outline-none border border-indigo-500/50 w-full"
+            />
+          ) : (
+            <h1
+              className="text-xl font-semibold text-gray-100 truncate cursor-pointer hover:text-indigo-300 transition-colors"
+              onClick={startRenaming}
+              title="Click to rename"
+            >
+              {investigation.name}
+            </h1>
+          )}
           <div className="flex items-center gap-2 mt-1.5">
             <span className={`text-xs px-2 py-0.5 rounded font-medium ${statusClass}`}>
               {isActive ? 'active' : 'inactive'}

@@ -7,20 +7,24 @@ interface Props {
   onSelect: (id: string) => void
   onDeactivate: (id: string) => void
   onCreate: (name: string) => void
+  onRename: (id: string, name: string) => void
 }
 
 // Shared tab sizing classes (must match both visible tabs and measurement tabs)
 const TAB_CLASS = 'flex items-center gap-1 px-2 py-1 rounded text-xs font-mono flex-shrink-0 max-w-[140px]'
 
-export function TabBar({ investigations, currentId, onSelect, onDeactivate, onCreate }: Props) {
+export function TabBar({ investigations, currentId, onSelect, onDeactivate, onCreate, onRename }: Props) {
   const [creatingNew, setCreatingNew] = useState(false)
   const [newName, setNewName] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(investigations.length)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
 
   const containerRef = useRef<HTMLDivElement>(null)
   const measureRef = useRef<HTMLDivElement>(null)
   const newInputRef = useRef<HTMLInputElement>(null)
+  const renameInputRef = useRef<HTMLInputElement>(null)
 
   // Measure how many tabs fit by querying the hidden measurement div,
   // which always renders all tabs regardless of visibleCount.
@@ -53,6 +57,33 @@ export function TabBar({ investigations, currentId, onSelect, onDeactivate, onCr
     observer.observe(container)
     return () => observer.disconnect()
   }, [investigations.length])
+
+  const startRenaming = useCallback((inv: Investigation) => {
+    setRenamingId(inv.id)
+    setRenameValue(inv.name)
+    setTimeout(() => renameInputRef.current?.select(), 0)
+  }, [])
+
+  const commitRename = useCallback(() => {
+    if (renamingId && renameValue.trim() && renameValue.trim() !== investigations.find((i) => i.id === renamingId)?.name) {
+      onRename(renamingId, renameValue.trim())
+    }
+    setRenamingId(null)
+    setRenameValue('')
+  }, [renamingId, renameValue, investigations, onRename])
+
+  const handleRenameKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      e.stopPropagation()
+      if (e.key === 'Enter') {
+        commitRename()
+      } else if (e.key === 'Escape') {
+        setRenamingId(null)
+        setRenameValue('')
+      }
+    },
+    [commitRename]
+  )
 
   const handleNewKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -102,6 +133,22 @@ export function TabBar({ investigations, currentId, onSelect, onDeactivate, onCr
       >
         {visibleTabs.map((inv) => {
           const isSelected = inv.id === currentId
+          const isRenaming = inv.id === renamingId
+
+          if (isRenaming) {
+            return (
+              <input
+                key={inv.id}
+                ref={renameInputRef}
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={handleRenameKeyDown}
+                onBlur={commitRename}
+                className="no-drag flex-shrink-0 bg-gray-700/60 text-gray-100 text-xs font-mono px-2 py-1 rounded outline-none border border-indigo-500/50 w-40"
+              />
+            )
+          }
+
           return (
             <div
               key={inv.id}
@@ -110,7 +157,13 @@ export function TabBar({ investigations, currentId, onSelect, onDeactivate, onCr
                   ? 'bg-gray-700/60 text-gray-100'
                   : 'text-gray-400 hover:bg-gray-700/40 hover:text-gray-200'
               }`}
-              onClick={() => onSelect(inv.id)}
+              onClick={() => {
+                if (isSelected) {
+                  startRenaming(inv)
+                } else {
+                  onSelect(inv.id)
+                }
+              }}
             >
               <span className="truncate">{inv.name}</span>
               <button

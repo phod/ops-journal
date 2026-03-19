@@ -22,6 +22,7 @@ const electronAPI: ElectronAPI = {
   deleteInvestigation: (id) => ipcRenderer.invoke('investigation:delete', { id }),
   setActiveInvestigation: (id) => ipcRenderer.invoke('investigation:setActive', { id }),
   deactivateInvestigation: (id) => ipcRenderer.invoke('investigation:deactivate', { id }),
+  renameInvestigation: (id, name) => ipcRenderer.invoke('investigation:rename', { id, name }),
 
   // Entries
   listEntries: (investigationId) => ipcRenderer.invoke('entry:list', { investigationId }),

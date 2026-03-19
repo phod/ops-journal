@@ -6,6 +6,7 @@ import {
   deleteInvestigation,
   setActiveInvestigation,
   deactivateInvestigation,
+  renameInvestigation,
   getSummary,
   saveSummary
 } from './db/investigations'
@@ -66,6 +67,12 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('investigation:deactivate', (_event, { id }: { id: string }) => {
     deactivateInvestigation(id)
     broadcastInvestigationChanged(getActiveInvestigations())
+  })
+
+  ipcMain.handle('investigation:rename', (_event, { id, name }: { id: string; name: string }) => {
+    const investigation = renameInvestigation(id, name)
+    broadcastInvestigationChanged(getActiveInvestigations())
+    return investigation
   })
 
   // --- Entries ---

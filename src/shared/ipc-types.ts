@@ -47,6 +47,14 @@ export interface JournalEntry {
   flagged?: boolean
 }
 
+export interface PendingToolEntry {
+  id: string
+  investigation_id: string
+  investigation_name: string
+  body: string
+  created_at: string
+}
+
 export interface ElectronAPI {
   // Investigations
   getActiveInvestigations: () => Promise<Investigation[]>
@@ -71,6 +79,9 @@ export interface ElectronAPI {
 
   // Tool entries
   updateToolEntryStatus: (entryId: string, status: ToolEntryStatus) => Promise<JournalEntry>
+  listPendingToolEntries: (investigationId?: string) => Promise<PendingToolEntry[]>
+  createToolFromEntry: (entryId: string, name: string, toolType: ToolType, value: string, tags: string[]) => Promise<Tool>
+  abandonToolEntry: (entryId: string) => Promise<void>
 
   // Hypotheses
   updateHypothesisStatus: (entryId: string, status: HypothesisStatus) => Promise<JournalEntry>

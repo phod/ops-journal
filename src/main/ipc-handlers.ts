@@ -10,7 +10,7 @@ import {
   getSummary,
   saveSummary
 } from './db/investigations'
-import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, updateToolEntryStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from './db/entries'
+import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, updateToolEntryStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth, listPendingToolEntries } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools } from './db/tools'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, getPreviousFrontApp } from './windows'
@@ -146,6 +146,23 @@ export function registerIpcHandlers(): void {
     const entry = updateToolEntryStatus(entryId, status)
     broadcastEntriesChanged(entry.investigation_id)
     return entry
+  })
+
+  ipcMain.handle('toolEntry:listPending', (_event, { investigationId }: { investigationId?: string }) => {
+    return listPendingToolEntries(investigationId)
+  })
+
+  ipcMain.handle('toolEntry:createFromEntry', (_event, { entryId, name, toolType, value, tags }: { entryId: string; name: string; toolType: ToolType; value: string; tags: string[] }) => {
+    const tool = createTool(name, toolType, value, tags)
+    const entry = updateToolEntryStatus(entryId, 'done')
+    broadcastToolsChanged()
+    broadcastEntriesChanged(entry.investigation_id)
+    return tool
+  })
+
+  ipcMain.handle('toolEntry:abandon', (_event, { entryId }: { entryId: string }) => {
+    const entry = updateToolEntryStatus(entryId, 'abandoned')
+    broadcastEntriesChanged(entry.investigation_id)
   })
 
   // --- Hypotheses ---

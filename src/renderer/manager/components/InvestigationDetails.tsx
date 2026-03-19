@@ -130,7 +130,8 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
     { key: 'images', label: 'Images' },
     { key: 'finding', label: 'Findings' },
     { key: 'action', label: 'Actions' },
-    { key: 'hypothesis', label: 'Hypotheses' }
+    { key: 'hypothesis', label: 'Hypotheses' },
+    { key: 'tool', label: 'Tools' }
   ]
 
   return (

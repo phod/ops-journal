@@ -17,7 +17,8 @@ const PANEL_FILTERS: { label: string; value: Filter }[] = [
   { label: 'Flagged', value: 'flagged' },
   { label: 'Findings', value: 'finding' },
   { label: 'Actions', value: 'action' },
-  { label: 'Hypotheses', value: 'hypothesis' }
+  { label: 'Hypotheses', value: 'hypothesis' },
+  { label: 'Tools', value: 'tool' }
 ]
 
 export function SummaryEntryPanel({ entries, onInsert, onInsertImage }: Props) {

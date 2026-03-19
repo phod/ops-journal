@@ -374,7 +374,14 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('settings:setMinimapOpen', (_event, { open }: { open: boolean }) => setMinimapOpen(open))
 
   ipcMain.handle('settings:getOnboardingDismissed', () => getOnboardingDismissed())
-  ipcMain.handle('settings:setOnboardingDismissed', (_event, { dismissed }: { dismissed: boolean }) => setOnboardingDismissed(dismissed))
+  ipcMain.handle('settings:setOnboardingDismissed', (_event, { dismissed }: { dismissed: boolean }) => {
+    setOnboardingDismissed(dismissed)
+    if (!dismissed) {
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send('onboarding:reset')
+      }
+    }
+  })
   ipcMain.handle('app:getVersion', () => app.getVersion())
 
   // --- Tools ---

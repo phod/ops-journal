@@ -114,20 +114,12 @@ export default function App() {
               </section>
               <section className="border-t border-gray-800 pt-6">
                 <h3 className="text-gray-400 text-sm font-semibold mb-3">About</h3>
-                <div className="space-y-2 text-sm text-gray-400 font-mono">
+                <div className="space-y-3 text-sm text-gray-400 font-mono">
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500">Ops Journal</span>
                     {appVersion && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-300">v{appVersion}</span>}
                   </div>
-                  <div>
-                    <a
-                      href="#"
-                      onClick={(e) => { e.preventDefault(); window.open('https://github.com/anthropics/ops-journal/issues', '_blank') }}
-                      className="text-indigo-400 hover:text-indigo-300 transition-colors text-xs"
-                    >
-                      Report an issue
-                    </a>
-                  </div>
+                  <ResetOnboardingButton />
                 </div>
               </section>
             </>
@@ -160,5 +152,24 @@ export default function App() {
         )}
       </div>
     </div>
+  )
+}
+
+function ResetOnboardingButton() {
+  const [done, setDone] = useState(false)
+
+  const handleClick = async () => {
+    await window.electronAPI.setOnboardingDismissed(false)
+    setDone(true)
+    setTimeout(() => setDone(false), 2000)
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className="text-xs px-2.5 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-gray-200 transition-colors"
+    >
+      {done ? 'Done!' : 'Reset onboarding'}
+    </button>
   )
 }

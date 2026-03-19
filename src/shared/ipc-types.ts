@@ -158,6 +158,7 @@ export interface ElectronAPI {
   onEntriesChanged: (callback: (investigationId: string, entries: JournalEntry[]) => void) => () => void
   onTriggerScreenshot: (callback: (dataUrl: string) => void) => () => void
   onTriggerUpload: (callback: () => void) => () => void
+  onOnboardingReset: (callback: () => void) => () => void
 
   // Screenshot window helpers (used by screenshot renderer)
   onScreenshotData: (callback: (dataUrl: string) => void) => () => void

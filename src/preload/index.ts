@@ -119,6 +119,7 @@ const electronAPI: ElectronAPI = {
   onTriggerScreenshot: (callback) =>
     onIpcEvent<[string]>('overlay:screenshotCaptured', callback),
   onTriggerUpload: (callback) => onIpcEvent<[]>('overlay:triggerUpload', callback),
+  onOnboardingReset: (callback) => onIpcEvent<[]>('onboarding:reset', callback),
 
   // Screenshot window helpers
   onScreenshotData: (callback) => onIpcEvent<[string]>('screenshot:data', callback),

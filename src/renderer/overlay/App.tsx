@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useOverlayState } from './hooks/useOverlayState'
 import { TabBar } from './components/TabBar'
 import { EntryList } from './components/EntryList'
@@ -33,6 +33,48 @@ export default function App() {
   const [showEntryStream, setShowEntryStream] = useState(true)
   const [entryStreamWidth, setEntryStreamWidth] = useState(DEFAULT_ENTRY_STREAM_WIDTH)
   const [entityPanelWidth, setEntityPanelWidth] = useState(DEFAULT_ENTITY_PANEL_WIDTH)
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const onboardingCheckedRef = useRef(false)
+
+  // Cmd+F to toggle search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault()
+        setShowSearch(true)
+        setTimeout(() => searchInputRef.current?.focus(), 0)
+      }
+      if (e.key === 'Escape' && showSearch) {
+        setShowSearch(false)
+        setSearchTerm('')
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showSearch])
+
+  // Check onboarding on first investigation
+  useEffect(() => {
+    if (onboardingCheckedRef.current || activeInvestigations.length === 0) return
+    onboardingCheckedRef.current = true
+    window.electronAPI.getOnboardingDismissed().then((dismissed) => {
+      if (!dismissed) setShowOnboarding(true)
+    })
+  }, [activeInvestigations])
+
+  const dismissOnboarding = useCallback(() => {
+    setShowOnboarding(false)
+    window.electronAPI.setOnboardingDismissed(true)
+  }, [])
+
+  const filteredEntries = useMemo(() => {
+    if (!searchTerm) return entries
+    const term = searchTerm.toLowerCase()
+    return entries.filter((e) => e.body.toLowerCase().includes(term))
+  }, [entries, searchTerm])
 
   const handleEntryStreamResize = useCallback((delta: number) => {
     setEntryStreamWidth((w) => Math.max(MIN_ENTRY_STREAM_WIDTH, w - delta))
@@ -119,17 +161,49 @@ export default function App() {
       )
     }
 
+    const searchBar = showSearch && (
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-gray-700/50 bg-gray-800/40">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 flex-shrink-0">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          ref={searchInputRef}
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setShowSearch(false); setSearchTerm('') } }}
+          placeholder="Search entries…"
+          className="flex-1 text-xs bg-transparent text-gray-200 outline-none font-mono placeholder-gray-600"
+        />
+        {searchTerm && (
+          <span className="text-xs text-gray-500 font-mono whitespace-nowrap">
+            {filteredEntries.length} {filteredEntries.length === 1 ? 'result' : 'results'}
+          </span>
+        )}
+        <button
+          onClick={() => { setShowSearch(false); setSearchTerm('') }}
+          className="text-gray-500 hover:text-gray-300 text-xs px-0.5"
+          title="Close search (Esc)"
+        >
+          ✕
+        </button>
+      </div>
+    )
+
     const entryStream = (
       <div
         className="flex flex-col overflow-hidden flex-shrink-0"
         style={showRumourBoard ? { width: entryStreamWidth } : undefined}
       >
+        {searchBar}
         <EntryList
-          entries={entries}
+          entries={filteredEntries}
           editingEntryId={editingEntryId}
           onEditingEntryIdChange={setEditingEntryId}
           onEntryUpdated={updateEntry}
           onEntryDeleted={deleteEntry}
+          searchTerm={searchTerm}
         />
         <EntryInput
           activeInvestigation={currentInvestigation}
@@ -175,12 +249,28 @@ export default function App() {
     return (
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1 overflow-hidden">
+          {searchBar}
+          {showOnboarding && (
+            <div className="mx-3 mt-2 p-3 rounded-lg bg-indigo-950/50 border border-indigo-500/30">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">Quick Tips</span>
+                <button onClick={dismissOnboarding} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">Don't show again</button>
+              </div>
+              <ul className="space-y-1.5 text-xs text-gray-300 font-mono">
+                <li><span className="text-indigo-400">/action</span>, <span className="text-indigo-400">/finding</span>, <span className="text-indigo-400">/hypothesis</span> — categorize entries with slash commands</li>
+                <li>Click the <span className="text-amber-400">flag icon</span> to mark important entries</li>
+                <li>Use the <span className="text-indigo-400">↗</span> button to open the details view for summaries and export</li>
+                <li>Configure your hotkeys in <span className="text-indigo-400">⚙ Settings</span></li>
+              </ul>
+            </div>
+          )}
           <EntryList
-            entries={entries}
+            entries={filteredEntries}
             editingEntryId={editingEntryId}
             onEditingEntryIdChange={setEditingEntryId}
             onEntryUpdated={updateEntry}
             onEntryDeleted={deleteEntry}
+            searchTerm={searchTerm}
           />
           <EntryInput
             activeInvestigation={currentInvestigation}

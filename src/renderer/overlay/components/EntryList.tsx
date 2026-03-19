@@ -17,6 +17,7 @@ import { EntryTypeMenu } from '@shared/EntryTypeMenu'
 import { HypothesisStatusMenu } from '@shared/HypothesisStatusMenu'
 import { LinkFindingModal } from './LinkFindingModal'
 import { LinkHypothesisModal } from './LinkHypothesisModal'
+import { HighlightedText } from '@shared/HighlightedText'
 
 interface Props {
   entries: JournalEntry[]
@@ -24,6 +25,7 @@ interface Props {
   onEditingEntryIdChange: (id: string | null) => void
   onEntryUpdated: (entry: JournalEntry) => void
   onEntryDeleted: (id: string) => void
+  searchTerm?: string
 }
 
 function getCaretOffsetTop(textarea: HTMLTextAreaElement, position: number): number {
@@ -62,9 +64,10 @@ interface EntryRowProps {
   onNavigateDown: () => void
   onUpdated: (entry: JournalEntry) => void
   onDeleted: (id: string) => void
+  searchTerm?: string
 }
 
-function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavigateUp, onNavigateDown, onUpdated, onDeleted }: EntryRowProps) {
+function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavigateUp, onNavigateDown, onUpdated, onDeleted, searchTerm }: EntryRowProps) {
   const [draft, setDraft] = useState(entry.body)
   const [saving, setSaving] = useState(false)
   const imageDataUrls = useEntryImages(entry.image_paths)
@@ -596,7 +599,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   : 'text-gray-100'
               }`}
             >
-              {entry.body}
+              {searchTerm ? <HighlightedText text={entry.body} searchTerm={searchTerm} /> : entry.body}
             </div>
           )}
           {visiblePaths.length > 0 && (
@@ -725,7 +728,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   )
 }
 
-export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onEntryUpdated, onEntryDeleted }: Props) {
+export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onEntryUpdated, onEntryDeleted, searchTerm }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const prevEntriesLengthRef = useRef(entries.length)
@@ -778,6 +781,7 @@ export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onE
           onNavigateDown={() => i < entries.length - 1 ? onEditingEntryIdChange(entries[i + 1].id) : onEditingEntryIdChange(null)}
           onUpdated={onEntryUpdated}
           onDeleted={onEntryDeleted}
+          searchTerm={searchTerm}
         />
       ))}
     </div>

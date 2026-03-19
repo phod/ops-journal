@@ -98,6 +98,9 @@ export interface ElectronAPI {
   setLastViewedInvestigationId: (id: string | null) => Promise<void>
   getMinimapOpen: () => Promise<boolean>
   setMinimapOpen: (open: boolean) => Promise<void>
+  getOnboardingDismissed: () => Promise<boolean>
+  setOnboardingDismissed: (dismissed: boolean) => Promise<void>
+  getAppVersion: () => Promise<string>
 
   // Window management
   openManager: () => Promise<void>

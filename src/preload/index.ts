@@ -87,6 +87,9 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke('settings:setLastViewedInvestigationId', { id }),
   getMinimapOpen: () => ipcRenderer.invoke('settings:getMinimapOpen'),
   setMinimapOpen: (open) => ipcRenderer.invoke('settings:setMinimapOpen', { open }),
+  getOnboardingDismissed: () => ipcRenderer.invoke('settings:getOnboardingDismissed'),
+  setOnboardingDismissed: (dismissed) => ipcRenderer.invoke('settings:setOnboardingDismissed', { dismissed }),
+  getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
 
   // Window management
   openManager: () => ipcRenderer.invoke('window:openManager'),

@@ -12,6 +12,7 @@ interface Settings {
   uploadHotkey: string
   lastViewedInvestigationId: string | null
   minimapOpen: boolean
+  onboardingDismissed: boolean
 }
 
 const DEFAULTS: Settings = {
@@ -19,7 +20,8 @@ const DEFAULTS: Settings = {
   screenshotHotkey: DEFAULT_SCREENSHOT_HOTKEY,
   uploadHotkey: DEFAULT_UPLOAD_HOTKEY,
   lastViewedInvestigationId: null,
-  minimapOpen: false
+  minimapOpen: false,
+  onboardingDismissed: false
 }
 
 function settingsPath(): string {
@@ -77,4 +79,12 @@ export function getMinimapOpen(): boolean {
 
 export function setMinimapOpen(open: boolean): void {
   save({ ...load(), minimapOpen: open })
+}
+
+export function getOnboardingDismissed(): boolean {
+  return load().onboardingDismissed
+}
+
+export function setOnboardingDismissed(dismissed: boolean): void {
+  save({ ...load(), onboardingDismissed: dismissed })
 }

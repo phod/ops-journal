@@ -19,8 +19,28 @@ export default function App(): JSX.Element {
   const [preExportView, setPreExportView] = useState<'entries' | 'summary' | null>(null)
   const [isRenaming, setIsRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showSearch, setShowSearch] = useState(false)
   const renameInputRef = useRef<HTMLInputElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const summaryRef = useRef<SummaryViewHandle>(null)
+
+  // Cmd+F to open search
+  useEffect(() => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent): void => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault()
+        setShowSearch(true)
+        setTimeout(() => searchInputRef.current?.focus(), 0)
+      }
+      if (e.key === 'Escape' && showSearch) {
+        setShowSearch(false)
+        setSearchTerm('')
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showSearch])
 
   const startRenaming = useCallback(() => {
     if (!investigation) return
@@ -114,7 +134,13 @@ export default function App(): JSX.Element {
   }, [investigationId])
 
   const counts = useMemo(() => countEntries(entries), [entries])
-  const filteredEntries = useMemo(() => filterEntries(entries, filter), [entries, filter])
+  const typeFilteredEntries = useMemo(() => filterEntries(entries, filter), [entries, filter])
+  const filteredEntries = useMemo(() => {
+    if (!searchTerm) return typeFilteredEntries
+    const term = searchTerm.toLowerCase()
+    return typeFilteredEntries.filter((e) => e.body.toLowerCase().includes(term))
+  }, [typeFilteredEntries, searchTerm])
+  const searchResultCount = searchTerm ? filteredEntries.length : null
 
   if (loading) {
     return (
@@ -198,7 +224,7 @@ export default function App(): JSX.Element {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 px-6 pt-3 pb-0 border-b border-gray-700/50 bg-gray-800/20">
+      <div className="flex items-center gap-1 px-6 pt-3 pb-0 border-b border-gray-700/50 bg-gray-800/20 flex-wrap">
         <button
           onClick={() => navigateTo('summary')}
           className={`text-xs px-3 py-1.5 rounded-t font-medium transition-colors ${
@@ -235,6 +261,46 @@ export default function App(): JSX.Element {
         >
           Rumour Board
         </button>
+        {/* Search bar */}
+        <div className="ml-auto flex items-center gap-1.5">
+          {showSearch && (
+            <>
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Escape') { setShowSearch(false); setSearchTerm('') } }}
+                placeholder="Search entries…"
+                className="text-xs bg-gray-700/80 text-gray-200 rounded px-2 py-1 border border-gray-600 focus:border-indigo-500 outline-none w-40 font-mono"
+              />
+              {searchResultCount !== null && (
+                <span className="text-xs text-gray-500 font-mono whitespace-nowrap">
+                  {searchResultCount} {searchResultCount === 1 ? 'result' : 'results'}
+                </span>
+              )}
+              <button
+                onClick={() => { setShowSearch(false); setSearchTerm('') }}
+                className="text-gray-500 hover:text-gray-300 text-xs px-1"
+                title="Close search"
+              >
+                ✕
+              </button>
+            </>
+          )}
+          {!showSearch && (
+            <button
+              onClick={() => { setShowSearch(true); setTimeout(() => searchInputRef.current?.focus(), 0) }}
+              className="text-gray-500 hover:text-gray-300 text-xs px-1.5 py-1"
+              title="Search entries (⌘F)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {view === 'board' ? (
@@ -257,7 +323,7 @@ export default function App(): JSX.Element {
               <div className="text-xs text-gray-500 font-mono mb-3 uppercase tracking-wider">
                 {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
               </div>
-              <DetailsEntryList entries={filteredEntries} allEntries={entries} onEntryUpdated={(updated) => setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))} />
+              <DetailsEntryList entries={filteredEntries} allEntries={entries} searchTerm={searchTerm} onEntryUpdated={(updated) => setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))} />
             </div>
           )}
         </div>

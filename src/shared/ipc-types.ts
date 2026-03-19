@@ -143,6 +143,7 @@ export interface ElectronAPI {
   // Toolkit
   listTools: () => Promise<Tool[]>
   createTool: (name: string, toolType: ToolType, value: string, tags: string[]) => Promise<Tool>
+  createToolsBulk: (tools: { name: string; toolType: ToolType; value: string; tags: string[] }[]) => Promise<Tool[]>
   updateTool: (id: string, name: string, toolType: ToolType, value: string, tags: string[]) => Promise<Tool>
   deleteTool: (id: string) => Promise<void>
   reorderTools: (orderedIds: string[]) => Promise<void>

@@ -12,7 +12,7 @@ import {
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, updateToolEntryStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
-import { listTools, createTool, updateTool, deleteTool, reorderTools } from './db/tools'
+import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools } from './db/tools'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, getPreviousFrontApp } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, reregisterToolkitHotkey, reregisterManagerHotkey } from './hotkey'
 import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getManagerHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed } from './settings'
@@ -357,6 +357,12 @@ export function registerIpcHandlers(): void {
     const tool = createTool(name, toolType, value, tags)
     broadcastToolsChanged()
     return tool
+  })
+
+  ipcMain.handle('tool:createBulk', (_event, { tools }: { tools: { name: string; toolType: ToolType; value: string; tags: string[] }[] }) => {
+    const created = createToolsBulk(tools)
+    broadcastToolsChanged()
+    return created
   })
 
   ipcMain.handle('tool:update', (_event, { id, name, toolType, value, tags }: { id: string; name: string; toolType: ToolType; value: string; tags: string[] }) => {

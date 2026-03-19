@@ -8,7 +8,7 @@ vi.mock('../index', () => ({
   getDb: () => testDb
 }))
 
-import { listTools, createTool, updateTool, deleteTool, reorderTools } from '../tools'
+import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools } from '../tools'
 
 beforeEach(() => {
   testDb = createTestDb()
@@ -108,6 +108,53 @@ describe('deleteTool', () => {
     const remaining = listTools()
     expect(remaining).toHaveLength(1)
     expect(remaining[0].id).toBe(keep.id)
+  })
+})
+
+describe('createToolsBulk', () => {
+  it('creates multiple tools with correct names, values, and types', () => {
+    const tools = createToolsBulk([
+      { name: 'Grafana', toolType: 'link', value: 'https://grafana.example.com', tags: [] },
+      { name: 'kubectl pods', toolType: 'string', value: 'kubectl get pods', tags: [] }
+    ])
+    expect(tools).toHaveLength(2)
+    expect(tools[0].name).toBe('Grafana')
+    expect(tools[0].tool_type).toBe('link')
+    expect(tools[0].value).toBe('https://grafana.example.com')
+    expect(tools[1].name).toBe('kubectl pods')
+    expect(tools[1].tool_type).toBe('string')
+    expect(tools[1].value).toBe('kubectl get pods')
+  })
+
+  it('assigns sequential sort_order values', () => {
+    const tools = createToolsBulk([
+      { name: 'A', toolType: 'link', value: 'https://a.com', tags: [] },
+      { name: 'B', toolType: 'link', value: 'https://b.com', tags: [] },
+      { name: 'C', toolType: 'link', value: 'https://c.com', tags: [] }
+    ])
+    expect(tools[0].sort_order).toBe(0)
+    expect(tools[1].sort_order).toBe(1)
+    expect(tools[2].sort_order).toBe(2)
+  })
+
+  it('continues sort_order after existing tools', () => {
+    createTool('Existing', 'link', 'https://existing.com', [])
+    const tools = createToolsBulk([
+      { name: 'New', toolType: 'link', value: 'https://new.com', tags: [] }
+    ])
+    expect(tools[0].sort_order).toBe(1)
+  })
+
+  it('stores tags faithfully', () => {
+    const tools = createToolsBulk([
+      { name: 'Tagged', toolType: 'link', value: 'https://x.com', tags: ['prod', 'monitoring', 'runbook'] }
+    ])
+    expect(tools[0].tags).toEqual(['prod', 'monitoring', 'runbook'])
+  })
+
+  it('returns empty array for empty input without error', () => {
+    expect(createToolsBulk([])).toEqual([])
+    expect(listTools()).toHaveLength(0)
   })
 })
 

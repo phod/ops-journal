@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react'
 import type { Tool } from '@shared/ipc-types'
 import { ToolCard } from './ToolCard'
 import { ToolForm } from './ToolForm'
+import { BulkToolForm } from './BulkToolForm'
 
 export function ToolkitManager() {
   const [tools, setTools] = useState<Tool[]>([])
   const [showForm, setShowForm] = useState(false)
+  const [showBulkForm, setShowBulkForm] = useState(false)
   const [editingTool, setEditingTool] = useState<Tool | null>(null)
 
   const loadTools = useCallback(async () => {
@@ -41,14 +43,23 @@ export function ToolkitManager() {
     <>
       <div className="flex items-center justify-between">
         <h2 className="text-gray-200 font-semibold text-sm">Your Tools</h2>
-        <button
-          onClick={() => { setEditingTool(null); setShowForm(true) }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
-            bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
-        >
-          <span className="text-sm leading-none">+</span>
-          New Tool
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowBulkForm(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
+              bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
+          >
+            Bulk Create
+          </button>
+          <button
+            onClick={() => { setEditingTool(null); setShowForm(true) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
+              bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+          >
+            <span className="text-sm leading-none">+</span>
+            New Tool
+          </button>
+        </div>
       </div>
 
       {tools.length === 0 ? (
@@ -74,6 +85,10 @@ export function ToolkitManager() {
           tool={editingTool}
           onClose={handleCloseForm}
         />
+      )}
+
+      {showBulkForm && (
+        <BulkToolForm onClose={() => setShowBulkForm(false)} />
       )}
     </>
   )

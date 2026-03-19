@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { CreateInvestigationForm } from './components/CreateInvestigationForm'
 import { HotkeySettings } from './components/HotkeySettings'
 import { InvestigationDetails } from './components/InvestigationDetails'
@@ -11,6 +11,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [detailsId, setDetailsId] = useState<string | null>(null)
   const [tab, setTab] = useState<'investigations' | 'settings'>('investigations')
+  const [appVersion, setAppVersion] = useState<string | null>(null)
+  const versionFetchedRef = useRef(false)
 
   const fetchInvestigations = useCallback(async () => {
     try {
@@ -27,6 +29,13 @@ export default function App() {
   useEffect(() => {
     fetchInvestigations().finally(() => setLoading(false))
   }, [fetchInvestigations])
+
+  useEffect(() => {
+    if (tab === 'settings' && !versionFetchedRef.current) {
+      versionFetchedRef.current = true
+      window.electronAPI.getAppVersion().then(setAppVersion)
+    }
+  }, [tab])
 
   useEffect(() => {
     return window.electronAPI.onInvestigationChanged(() => fetchInvestigations())
@@ -98,9 +107,29 @@ export default function App() {
         ) : (
         <div className={`mx-auto px-6 py-6 flex flex-col gap-6 ${tab === 'settings' ? 'max-w-2xl' : 'max-w-4xl'}`}>
           {tab === 'settings' ? (
-            <section>
-              <HotkeySettings />
-            </section>
+            <>
+              <section>
+                <HotkeySettings />
+              </section>
+              <section className="border-t border-gray-800 pt-6">
+                <h3 className="text-gray-400 text-sm font-semibold mb-3">About</h3>
+                <div className="space-y-2 text-sm text-gray-400 font-mono">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500">Ops Journal</span>
+                    {appVersion && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-300">v{appVersion}</span>}
+                  </div>
+                  <div>
+                    <a
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); window.open('https://github.com/anthropics/ops-journal/issues', '_blank') }}
+                      className="text-indigo-400 hover:text-indigo-300 transition-colors text-xs"
+                    >
+                      Report an issue
+                    </a>
+                  </div>
+                </div>
+              </section>
+            </>
           ) : (
             <>
               {/* Header with create button */}

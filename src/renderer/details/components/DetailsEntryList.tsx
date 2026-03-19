@@ -10,10 +10,12 @@ import { useClickOutside } from '@shared/useClickOutside'
 import { EntryTypeMenu } from '@shared/EntryTypeMenu'
 import { HypothesisStatusMenu } from '@shared/HypothesisStatusMenu'
 import { scrollToEntry } from '@shared/scroll-to-entry'
+import { HighlightedText } from '@shared/HighlightedText'
 
 interface Props {
   entries: JournalEntry[]
   allEntries?: JournalEntry[]
+  searchTerm?: string
   onEntryUpdated?: (entry: JournalEntry) => void
 }
 
@@ -63,7 +65,7 @@ function FindingDetailCard({ finding }: { finding: JournalEntry }) {
   )
 }
 
-function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: JournalEntry; allEntries?: JournalEntry[]; onEntryUpdated?: (entry: JournalEntry) => void }): JSX.Element {
+function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { entry: JournalEntry; allEntries?: JournalEntry[]; searchTerm?: string; onEntryUpdated?: (entry: JournalEntry) => void }): JSX.Element {
   const imageDataUrls = useEntryImages(entry.image_paths)
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
   const [showTypeMenu, setShowTypeMenu] = useState(false)
@@ -206,7 +208,7 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
         <div className={`text-sm font-mono whitespace-pre-wrap break-words leading-relaxed ${
           isAction && entry.action_completed ? 'line-through text-gray-500' : 'text-gray-100'
         }`}>
-          {entry.body}
+          {searchTerm ? <HighlightedText text={entry.body} searchTerm={searchTerm} /> : entry.body}
         </div>
       )}
       {entry.image_paths.length > 0 && (
@@ -324,7 +326,7 @@ function DetailsEntryRow({ entry, allEntries, onEntryUpdated }: { entry: Journal
   )
 }
 
-export function DetailsEntryList({ entries, allEntries, onEntryUpdated }: Props): JSX.Element {
+export function DetailsEntryList({ entries, allEntries, searchTerm, onEntryUpdated }: Props): JSX.Element {
   if (entries.length === 0) {
     return (
       <div className="flex items-center justify-center py-12 text-gray-500 text-sm font-mono">
@@ -336,7 +338,7 @@ export function DetailsEntryList({ entries, allEntries, onEntryUpdated }: Props)
   return (
     <div className="space-y-2">
       {entries.map((entry) => (
-        <DetailsEntryRow key={entry.id} entry={entry} allEntries={allEntries ?? entries} onEntryUpdated={onEntryUpdated} />
+        <DetailsEntryRow key={entry.id} entry={entry} allEntries={allEntries ?? entries} searchTerm={searchTerm} onEntryUpdated={onEntryUpdated} />
       ))}
     </div>
   )

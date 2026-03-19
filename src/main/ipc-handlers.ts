@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog, clipboard, shell, Menu, nativeImage } from 'electron'
+import { app, ipcMain, BrowserWindow, dialog, clipboard, shell, Menu, nativeImage } from 'electron'
 import {
   getActiveInvestigations,
   listInvestigations,
@@ -14,7 +14,7 @@ import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleAct
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey } from './hotkey'
-import { getHotkey, getScreenshotHotkey, getUploadHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen } from './settings'
+import { getHotkey, getScreenshotHotkey, getUploadHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
 import type { Investigation } from '@shared/ipc-types'
@@ -325,6 +325,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('settings:getMinimapOpen', () => getMinimapOpen())
   ipcMain.handle('settings:setMinimapOpen', (_event, { open }: { open: boolean }) => setMinimapOpen(open))
+
+  ipcMain.handle('settings:getOnboardingDismissed', () => getOnboardingDismissed())
+  ipcMain.handle('settings:setOnboardingDismissed', (_event, { dismissed }: { dismissed: boolean }) => setOnboardingDismissed(dismissed))
+  ipcMain.handle('app:getVersion', () => app.getVersion())
 
   // --- Window management ---
 

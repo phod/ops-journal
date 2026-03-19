@@ -73,6 +73,8 @@ const DEFAULT_MOCKS = {
   executeTool: vi.fn(),
   getToolkitHotkey: vi.fn().mockResolvedValue('CommandOrControl+Shift+K'),
   setToolkitHotkey: vi.fn().mockResolvedValue(true),
+  getManagerHotkey: vi.fn().mockResolvedValue('CommandOrControl+Shift+M'),
+  setManagerHotkey: vi.fn().mockResolvedValue(true),
   showToolkitOverlay: vi.fn(),
   hideToolkitOverlay: vi.fn(),
   onToolsChanged: vi.fn().mockReturnValue(() => {})
@@ -128,5 +130,7 @@ beforeEach(() => {
   DEFAULT_MOCKS.listTools.mockResolvedValue([])
   DEFAULT_MOCKS.getToolkitHotkey.mockResolvedValue('CommandOrControl+Shift+K')
   DEFAULT_MOCKS.setToolkitHotkey.mockResolvedValue(true)
+  DEFAULT_MOCKS.getManagerHotkey.mockResolvedValue('CommandOrControl+Shift+M')
+  DEFAULT_MOCKS.setManagerHotkey.mockResolvedValue(true)
   DEFAULT_MOCKS.onToolsChanged.mockReturnValue(() => {})
 })

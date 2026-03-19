@@ -125,6 +125,8 @@ const electronAPI: ElectronAPI = {
   executeTool: (id: string) => ipcRenderer.invoke('tool:execute', { id }),
   getToolkitHotkey: () => ipcRenderer.invoke('settings:getToolkitHotkey'),
   setToolkitHotkey: (accelerator: string) => ipcRenderer.invoke('settings:setToolkitHotkey', { accelerator }),
+  getManagerHotkey: () => ipcRenderer.invoke('settings:getManagerHotkey'),
+  setManagerHotkey: (accelerator: string) => ipcRenderer.invoke('settings:setManagerHotkey', { accelerator }),
   showToolkitOverlay: () => ipcRenderer.invoke('toolkitOverlay:show'),
   hideToolkitOverlay: () => ipcRenderer.invoke('toolkitOverlay:hide'),
   onToolsChanged: (callback: (tools: Tool[]) => void) =>

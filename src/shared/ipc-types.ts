@@ -144,6 +144,8 @@ export interface ElectronAPI {
   executeTool: (id: string) => Promise<void>
   getToolkitHotkey: () => Promise<string>
   setToolkitHotkey: (accelerator: string) => Promise<boolean>
+  getManagerHotkey: () => Promise<string>
+  setManagerHotkey: (accelerator: string) => Promise<boolean>
   showToolkitOverlay: () => Promise<void>
   hideToolkitOverlay: () => Promise<void>
   onToolsChanged: (callback: (tools: Tool[]) => void) => () => void

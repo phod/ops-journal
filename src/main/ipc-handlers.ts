@@ -14,8 +14,8 @@ import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleAct
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { listTools, createTool, updateTool, deleteTool, reorderTools } from './db/tools'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, getPreviousFrontApp } from './windows'
-import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, reregisterToolkitHotkey } from './hotkey'
-import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed } from './settings'
+import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, reregisterToolkitHotkey, reregisterManagerHotkey } from './hotkey'
+import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getManagerHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
 import type { Investigation, Tool, ToolType } from '@shared/ipc-types'
@@ -399,6 +399,9 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('settings:getToolkitHotkey', () => getToolkitHotkey())
   ipcMain.handle('settings:setToolkitHotkey', (_event, { accelerator }: { accelerator: string }) => reregisterToolkitHotkey(accelerator))
+
+  ipcMain.handle('settings:getManagerHotkey', () => getManagerHotkey())
+  ipcMain.handle('settings:setManagerHotkey', (_event, { accelerator }: { accelerator: string }) => reregisterManagerHotkey(accelerator))
 
   ipcMain.handle('toolkitOverlay:show', () => showToolkitOverlay())
   ipcMain.handle('toolkitOverlay:hide', () => hideToolkitOverlay())

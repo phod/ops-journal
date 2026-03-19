@@ -185,6 +185,15 @@ export function showManager(): void {
   win.focus()
 }
 
+export function toggleManager(): void {
+  const win = managerWindow
+  if (win?.isVisible()) {
+    hideManager()
+  } else {
+    showManager()
+  }
+}
+
 export function hideManager(): void {
   const win = managerWindow
   if (!win) return

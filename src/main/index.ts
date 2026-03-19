@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { createOverlayWindow, createManagerWindow, createToolkitOverlayWindow, getOverlayWindow, getToolkitOverlayWindow, setAppQuitting } from './windows'
 import { createTray, updateTrayMenu } from './tray'
-import { registerHotkey, registerImageHotkeys, registerToolkitHotkey, unregisterAllHotkeys } from './hotkey'
+import { registerHotkey, registerImageHotkeys, registerToolkitHotkey, registerManagerHotkey, unregisterAllHotkeys } from './hotkey'
 import { registerIpcHandlers } from './ipc-handlers'
 import { getDb, closeDb } from './db/index'
 
@@ -60,6 +60,7 @@ if (!gotLock) {
     registerHotkey()
     registerImageHotkeys()
     registerToolkitHotkey()
+    registerManagerHotkey()
 
     // macOS: re-apply accessory policy after ready (belt and suspenders)
     if (process.platform === 'darwin') {

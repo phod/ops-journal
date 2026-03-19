@@ -1,10 +1,11 @@
 import { globalShortcut } from 'electron'
-import { toggleOverlay, showOverlay, getOverlayWindow, toggleToolkitOverlay } from './windows'
+import { toggleOverlay, showOverlay, getOverlayWindow, toggleToolkitOverlay, toggleManager } from './windows'
 import {
   getHotkey, setHotkey,
   getScreenshotHotkey, setScreenshotHotkey,
   getUploadHotkey, setUploadHotkey,
-  getToolkitHotkey, setToolkitHotkey
+  getToolkitHotkey, setToolkitHotkey,
+  getManagerHotkey, setManagerHotkey
 } from './settings'
 import { captureScreenshot } from './screenshot'
 
@@ -54,6 +55,13 @@ const toolkitSlot: HotkeySlot = {
   callback: toggleToolkitOverlay,
   label: 'toolkit hotkey',
   persist: setToolkitHotkey
+}
+
+const managerSlot: HotkeySlot = {
+  current: null,
+  callback: toggleManager,
+  label: 'manager hotkey',
+  persist: setManagerHotkey
 }
 
 function registerShortcut(
@@ -124,10 +132,19 @@ export function reregisterToolkitHotkey(newHotkey: string): boolean {
   return reregisterSlot(toolkitSlot, newHotkey)
 }
 
+export function registerManagerHotkey(): void {
+  registerSlot(managerSlot, getManagerHotkey())
+}
+
+export function reregisterManagerHotkey(newHotkey: string): boolean {
+  return reregisterSlot(managerSlot, newHotkey)
+}
+
 export function unregisterAllHotkeys(): void {
   globalShortcut.unregisterAll()
   overlaySlot.current = null
   screenshotSlot.current = null
   uploadSlot.current = null
   toolkitSlot.current = null
+  managerSlot.current = null
 }

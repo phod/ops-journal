@@ -3,6 +3,7 @@ import { CreateInvestigationForm } from './components/CreateInvestigationForm'
 import { HotkeySettings } from './components/HotkeySettings'
 import { InvestigationDetails } from './components/InvestigationDetails'
 import { InvestigationList } from './components/InvestigationList'
+import { ToolkitManager } from './components/ToolkitManager'
 import type { Investigation } from '@shared/ipc-types'
 
 export default function App() {
@@ -10,7 +11,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [detailsId, setDetailsId] = useState<string | null>(null)
-  const [tab, setTab] = useState<'investigations' | 'settings'>('investigations')
+  const [tab, setTab] = useState<'investigations' | 'toolkits' | 'settings'>('investigations')
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const versionFetchedRef = useRef(false)
 
@@ -73,12 +74,12 @@ export default function App() {
           <h1 className="text-lg font-semibold text-gray-100">Ops Journal</h1>
           <span className="text-gray-600 text-sm">/</span>
           <span className="text-gray-400 text-sm">
-            {detailsId ? 'Investigation Details' : tab === 'settings' ? 'Settings' : 'Investigations'}
+            {detailsId ? 'Investigation Details' : tab === 'settings' ? 'Settings' : tab === 'toolkits' ? 'Toolkits' : 'Investigations'}
           </span>
         </div>
         {!detailsId && (
           <div className="flex gap-0">
-            {(['investigations', 'settings'] as const).map((t) => (
+            {(['investigations', 'toolkits', 'settings'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -130,6 +131,8 @@ export default function App() {
                 </div>
               </section>
             </>
+          ) : tab === 'toolkits' ? (
+            <ToolkitManager />
           ) : (
             <>
               {/* Header with create button */}

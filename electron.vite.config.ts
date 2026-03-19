@@ -38,7 +38,8 @@ export default defineConfig({
           overlay: resolve(__dirname, 'src/renderer/index.html'),
           manager: resolve(__dirname, 'src/renderer/manager.html'),
           details: resolve(__dirname, 'src/renderer/details.html'),
-          screenshot: resolve(__dirname, 'src/renderer/screenshot.html')
+          screenshot: resolve(__dirname, 'src/renderer/screenshot.html'),
+          toolkit: resolve(__dirname, 'src/renderer/toolkit.html')
         }
       }
     }

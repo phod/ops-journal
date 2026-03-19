@@ -60,7 +60,22 @@ const DEFAULT_MOCKS = {
   renameBoard: vi.fn(),
   getBoardState: vi.fn().mockResolvedValue({ board: {}, nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }),
   saveBoardState: vi.fn().mockResolvedValue(undefined),
-  saveBoardImage: vi.fn()
+  saveBoardImage: vi.fn(),
+  renameInvestigation: vi.fn(),
+  getOnboardingDismissed: vi.fn().mockResolvedValue(false),
+  setOnboardingDismissed: vi.fn(),
+  getAppVersion: vi.fn().mockResolvedValue('1.0.0'),
+  listTools: vi.fn().mockResolvedValue([]),
+  createTool: vi.fn(),
+  updateTool: vi.fn(),
+  deleteTool: vi.fn(),
+  reorderTools: vi.fn(),
+  executeTool: vi.fn(),
+  getToolkitHotkey: vi.fn().mockResolvedValue('CommandOrControl+Shift+K'),
+  setToolkitHotkey: vi.fn().mockResolvedValue(true),
+  showToolkitOverlay: vi.fn(),
+  hideToolkitOverlay: vi.fn(),
+  onToolsChanged: vi.fn().mockReturnValue(() => {})
 } as const
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
@@ -110,4 +125,8 @@ beforeEach(() => {
   DEFAULT_MOCKS.onScreenshotData.mockReturnValue(() => {})
   DEFAULT_MOCKS.getBoardState.mockResolvedValue({ board: {}, nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } })
   DEFAULT_MOCKS.listBoards.mockResolvedValue([])
+  DEFAULT_MOCKS.listTools.mockResolvedValue([])
+  DEFAULT_MOCKS.getToolkitHotkey.mockResolvedValue('CommandOrControl+Shift+K')
+  DEFAULT_MOCKS.setToolkitHotkey.mockResolvedValue(true)
+  DEFAULT_MOCKS.onToolsChanged.mockReturnValue(() => {})
 })

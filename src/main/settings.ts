@@ -5,11 +5,13 @@ import path from 'path'
 export const DEFAULT_HOTKEY = 'CommandOrControl+Shift+J'
 export const DEFAULT_SCREENSHOT_HOTKEY = 'CommandOrControl+Shift+S'
 export const DEFAULT_UPLOAD_HOTKEY = 'CommandOrControl+Shift+U'
+export const DEFAULT_TOOLKIT_HOTKEY = 'CommandOrControl+Shift+K'
 
 interface Settings {
   hotkey: string
   screenshotHotkey: string
   uploadHotkey: string
+  toolkitHotkey: string
   lastViewedInvestigationId: string | null
   minimapOpen: boolean
   onboardingDismissed: boolean
@@ -19,6 +21,7 @@ const DEFAULTS: Settings = {
   hotkey: DEFAULT_HOTKEY,
   screenshotHotkey: DEFAULT_SCREENSHOT_HOTKEY,
   uploadHotkey: DEFAULT_UPLOAD_HOTKEY,
+  toolkitHotkey: DEFAULT_TOOLKIT_HOTKEY,
   lastViewedInvestigationId: null,
   minimapOpen: false,
   onboardingDismissed: false
@@ -87,4 +90,12 @@ export function getOnboardingDismissed(): boolean {
 
 export function setOnboardingDismissed(dismissed: boolean): void {
   save({ ...load(), onboardingDismissed: dismissed })
+}
+
+export function getToolkitHotkey(): string {
+  return load().toolkitHotkey
+}
+
+export function setToolkitHotkey(hotkey: string): void {
+  save({ ...load(), toolkitHotkey: hotkey })
 }

@@ -176,6 +176,12 @@ export function HotkeySettings() {
           getter={window.electronAPI.getUploadHotkey}
           setter={window.electronAPI.setUploadHotkey}
         />
+        <HotkeyRow
+          label="Open Toolkit"
+          description="Global shortcut to toggle the toolkit overlay"
+          getter={window.electronAPI.getToolkitHotkey}
+          setter={window.electronAPI.setToolkitHotkey}
+        />
       </div>
     </div>
   )

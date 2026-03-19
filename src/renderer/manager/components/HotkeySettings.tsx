@@ -182,6 +182,12 @@ export function HotkeySettings() {
           getter={window.electronAPI.getToolkitHotkey}
           setter={window.electronAPI.setToolkitHotkey}
         />
+        <HotkeyRow
+          label="Open Manager"
+          description="Global shortcut to open the investigation manager"
+          getter={window.electronAPI.getManagerHotkey}
+          setter={window.electronAPI.setManagerHotkey}
+        />
       </div>
     </div>
   )

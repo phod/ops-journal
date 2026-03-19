@@ -43,7 +43,7 @@ describe('HotkeySettings', () => {
     render(<HotkeySettings />)
     await waitFor(() => expect(window.electronAPI.getHotkey).toHaveBeenCalled())
     const buttons = await screen.findAllByText(/change shortcut/i)
-    expect(buttons).toHaveLength(4)
+    expect(buttons).toHaveLength(5)
   })
 
   it('enters capture mode when "Change shortcut" is clicked on the first row', async () => {

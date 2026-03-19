@@ -116,7 +116,7 @@ export function ToolkitManager() {
               <div className="text-gray-500 text-xs">Add links and strings to access them instantly via the toolkit overlay.</div>
             </div>
           ) : (
-            <div className="grid gap-3">
+            <div className="grid gap-1.5">
               {tools.map((tool) => (
                 <ToolCard
                   key={tool.id}

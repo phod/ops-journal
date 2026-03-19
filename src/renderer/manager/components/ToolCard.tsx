@@ -26,46 +26,44 @@ export function ToolCard({ tool, onEdit, onDelete }: Props) {
 
   return (
     <>
-      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:border-gray-600/60 transition-colors group">
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700/50 hover:border-gray-600/60 transition-colors group">
         {/* Type icon */}
-        <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-700/60 border border-gray-600/40 flex items-center justify-center text-sm">
-          {tool.tool_type === 'link' ? (
-            <span className="text-blue-400">↗</span>
-          ) : (
-            <span className="text-amber-400">⌨</span>
-          )}
+        <span className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs ${
+          tool.tool_type === 'link' ? 'text-blue-400' : 'text-amber-400'
+        }`}>
+          {tool.tool_type === 'link' ? '↗' : '⌨'}
         </span>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-100 truncate">{tool.name}</span>
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded
-              ${tool.tool_type === 'link'
-                ? 'bg-blue-900/40 text-blue-400 border border-blue-800/40'
-                : 'bg-amber-900/30 text-amber-400 border border-amber-800/40'
-              }`}
-            >
-              {tool.tool_type}
-            </span>
+        {/* Content – single row */}
+        <span className="text-xs font-medium text-gray-100 truncate">{tool.name}</span>
+        <span className={`flex-shrink-0 text-[10px] font-medium px-1.5 py-0 rounded leading-4
+          ${tool.tool_type === 'link'
+            ? 'bg-blue-900/40 text-blue-400 border border-blue-800/40'
+            : 'bg-amber-900/30 text-amber-400 border border-amber-800/40'
+          }`}
+        >
+          {tool.tool_type}
+        </span>
+        <span className="text-[11px] text-gray-500 truncate">{tool.value}</span>
+
+        {tool.tags.length > 0 && (
+          <div className="flex gap-1 flex-shrink-0">
+            {tool.tags.map((tag) => (
+              <span key={tag} className="text-[10px] px-1.5 rounded bg-gray-700/60 text-gray-400 border border-gray-600/40 leading-4">
+                {tag}
+              </span>
+            ))}
           </div>
-          <div className="text-xs text-gray-500 truncate mt-0.5">{tool.value}</div>
-          {tool.tags.length > 0 && (
-            <div className="flex gap-1 mt-1.5 flex-wrap">
-              {tool.tags.map((tag) => (
-                <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/60 text-gray-400 border border-gray-600/40">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
+
+        {/* Spacer */}
+        <div className="flex-1" />
 
         {/* Overflow menu */}
         <div className="relative flex-shrink-0" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-gray-500 hover:text-gray-300 hover:bg-gray-700/60 transition-colors opacity-0 group-hover:opacity-100"
+            className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-gray-300 hover:bg-gray-700/60 transition-colors opacity-0 group-hover:opacity-100 text-xs"
           >
             ···
           </button>

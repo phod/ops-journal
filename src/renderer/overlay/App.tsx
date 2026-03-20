@@ -443,6 +443,28 @@ export default function App() {
               >
                 ↗
               </button>
+              <button
+                onClick={() => {
+                  if (!showSearch) {
+                    setShowSearch(true)
+                    if (!showRumourBoard && !showRelationshipMap) window.electronAPI.expandOverlayForSearch()
+                    setTimeout(() => searchInputRef.current?.focus(), 0)
+                  } else {
+                    closeSearch()
+                  }
+                }}
+                className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0 ${
+                  showSearch
+                    ? 'text-indigo-300 bg-indigo-500/20'
+                    : 'text-gray-600 hover:text-gray-400'
+                }`}
+                title="Search entries (⌘F)"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+              </button>
             </>
           )}
           <button

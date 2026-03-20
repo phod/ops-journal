@@ -19,6 +19,8 @@ import { ToolEntryStatusMenu } from '@shared/ToolEntryStatusMenu'
 import { LinkFindingModal } from './LinkFindingModal'
 import { LinkHypothesisModal } from './LinkHypothesisModal'
 import { HighlightedText } from '@shared/HighlightedText'
+import { useEntryDrag } from '../contexts/EntryDragContext'
+import { getLinkAction } from '@shared/link-drag-utils'
 
 interface Props {
   entries: JournalEntry[]
@@ -319,6 +321,61 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
 
   const { linkedFindings, linkedActions, linkedChildHypotheses, parentHypotheses, linkedHypotheses } = useEntryRelationships(entry, allEntries)
 
+  // Drag-and-drop linking
+  const { draggedEntry, validTargetIds, hoveredTargetId, startDrag, endDrag, setHoveredTarget } = useEntryDrag()
+  const isDragSource = draggedEntry?.id === entry.id
+  const isLinkable = entry.type === 'hypothesis' || entry.type === 'finding' || entry.type === 'action'
+  const isDragInProgress = draggedEntry !== null
+  const isValidTarget = isDragInProgress && validTargetIds.has(entry.id)
+  const isHoveredTarget = hoveredTargetId === entry.id && isValidTarget
+
+  const handleLinkDragStart = (e: React.DragEvent) => {
+    if (isEditing || !isLinkable) return
+    e.dataTransfer.effectAllowed = 'link'
+    e.dataTransfer.setData('application/x-ops-entry-link', entry.id)
+    startDrag(entry)
+  }
+
+  const handleLinkDragEnd = () => {
+    endDrag()
+  }
+
+  const handleLinkDragOver = (e: React.DragEvent) => {
+    if (!isValidTarget) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'link'
+    setHoveredTarget(entry.id)
+  }
+
+  const handleLinkDragLeave = () => {
+    if (hoveredTargetId === entry.id) setHoveredTarget(null)
+  }
+
+  const handleLinkDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    setHoveredTarget(null)
+    if (!draggedEntry) return
+    const action = getLinkAction(draggedEntry, entry)
+    if (!action) return
+    try {
+      let updated: JournalEntry
+      switch (action.type) {
+        case 'hypothesis-finding':
+          updated = await window.electronAPI.linkHypothesisFinding(action.hypothesisId, action.otherId)
+          break
+        case 'hypothesis-action':
+          updated = await window.electronAPI.linkHypothesisAction(action.hypothesisId, action.otherId)
+          break
+        case 'hypothesis-child':
+          updated = await window.electronAPI.linkHypothesisChild(action.hypothesisId, action.otherId)
+          break
+      }
+      onUpdated(updated)
+    } catch (err) {
+      console.error('[overlay] Failed to link entries via drag:', err)
+    }
+  }
+
   const unlinkAction = async (actionId: string) => {
     try {
       const updated = await window.electronAPI.unlinkHypothesisAction(entry.id, actionId)
@@ -364,12 +421,38 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     e.clipboardData.setData('text/html', wrapper.innerHTML)
   }, [])
 
-  const cardClass = isTyped
+  const baseCardClass = isTyped
     ? `group border-l-4 ${typeDef.leftBorderClass} ${typeDef.cardBgClass} ${typeDef.cardBorderClass} rounded-lg px-3 py-2 border`
     : 'group bg-gray-800/60 rounded-lg px-3 py-2 border border-gray-700/50'
 
+  let dragClass = ''
+  if (isDragInProgress) {
+    if (isDragSource) {
+      dragClass = 'opacity-50'
+    } else if (isHoveredTarget) {
+      dragClass = 'ring-2 ring-indigo-400 bg-indigo-500/20'
+    } else if (isValidTarget) {
+      dragClass = 'ring-2 ring-indigo-400/50'
+    } else {
+      dragClass = 'opacity-40'
+    }
+  }
+
+  const cardClass = `${baseCardClass} ${dragClass} transition-all`
+
   return (
-    <div id={`entry-${entry.id}`} className={cardClass} onCopy={handleCopy}>
+    <div
+      id={`entry-${entry.id}`}
+      className={cardClass}
+      onCopy={handleCopy}
+      draggable={!isEditing && isLinkable}
+      onDragStart={handleLinkDragStart}
+      onDragEnd={handleLinkDragEnd}
+      onDragOver={handleLinkDragOver}
+      onDragLeave={handleLinkDragLeave}
+      onDrop={handleLinkDrop}
+      style={!isEditing && isLinkable ? { cursor: 'grab' } : undefined}
+    >
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono select-none flex-wrap">
           {formatRelativeTime(entry.created_at)}

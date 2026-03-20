@@ -4,7 +4,7 @@ import { getEntryTypeDefinition } from '@shared/entry-types'
 import { HighlightedText } from '@shared/HighlightedText'
 import { formatRelativeTime } from '@shared/format-date'
 
-type TypeFilter = 'all' | 'finding' | 'hypothesis' | 'action'
+type TypeFilter = 'all' | 'finding' | 'hypothesis' | 'action' | 'tool'
 
 interface Props {
   entries: JournalEntry[]
@@ -19,7 +19,8 @@ const TYPE_FILTERS: { key: TypeFilter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'finding', label: 'Findings' },
   { key: 'hypothesis', label: 'Hypotheses' },
-  { key: 'action', label: 'Actions' }
+  { key: 'action', label: 'Actions' },
+  { key: 'tool', label: 'Tools' }
 ]
 
 const LEFT_BORDER_COLORS: Record<string, string> = {
@@ -76,7 +77,7 @@ export function SearchPanel({ entries, searchTerm, onSearchTermChange, onResultC
   }, [results, selectedIndex, onResultClick, onClose])
 
   return (
-    <div className="flex flex-col flex-shrink-0 border-r border-gray-700/35 bg-gray-800/15">
+    <div className="flex flex-col h-full overflow-hidden border-r border-gray-700/35 bg-gray-800/15">
       {/* Search input */}
       <div className="px-2.5 pt-2.5 pb-2 border-b border-gray-700/25">
         <div className="flex items-center gap-1.5 bg-gray-800/60 border border-indigo-500/35 rounded-lg px-2.5 py-1.5">
@@ -99,12 +100,12 @@ export function SearchPanel({ entries, searchTerm, onSearchTermChange, onResultC
         </div>
 
         {/* Type filters */}
-        <div className="flex gap-1 mt-1.5">
+        <div className="flex gap-1 mt-1.5 overflow-x-auto no-scrollbar">
           {TYPE_FILTERS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setTypeFilter(key)}
-              className={`no-drag text-[9px] px-2 py-0.5 rounded-full border transition-colors font-mono ${
+              className={`no-drag flex-shrink-0 text-[9px] px-2 py-0.5 rounded-full border transition-colors font-mono ${
                 typeFilter === key
                   ? 'bg-indigo-500/12 border-indigo-500/30 text-indigo-300'
                   : 'border-gray-700/30 text-gray-600 hover:text-gray-400'

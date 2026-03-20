@@ -12,7 +12,7 @@ import {
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, updateToolEntryStatus, linkHypothesisFinding, unlinkHypothesisFinding, linkHypothesisAction, unlinkHypothesisAction, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth, listPendingToolEntries } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
-import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools, moveToolToFolder, reorderToolsInFolder } from './db/tools'
+import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools, moveToolToFolder, moveToolsToFolder, reorderToolsInFolder } from './db/tools'
 import { listToolFolders, createToolFolder, renameToolFolder, deleteToolFolder, moveToolFolderToFolder, reorderToolFoldersInParent } from './db/tool-folders'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, expandOverlayForSearch, restoreOverlayFromSearch, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, getPreviousFrontApp } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, reregisterToolkitHotkey, reregisterManagerHotkey } from './hotkey'
@@ -438,6 +438,11 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('tool:moveToFolder', (_event, { toolId, folderId }: { toolId: string; folderId: string | null }) => {
     moveToolToFolder(toolId, folderId)
+    broadcastToolsChanged()
+  })
+
+  ipcMain.handle('tool:moveMultipleToFolder', (_event, { toolIds, folderId }: { toolIds: string[]; folderId: string | null }) => {
+    moveToolsToFolder(toolIds, folderId)
     broadcastToolsChanged()
   })
 

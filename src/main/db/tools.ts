@@ -86,6 +86,19 @@ export function moveToolToFolder(toolId: string, folderId: string | null): void 
   db.prepare("UPDATE tools SET folder_id = ?, sort_order = ?, updated_at = datetime('now') WHERE id = ?").run(folderId, sortOrder, toolId)
 }
 
+export function moveToolsToFolder(toolIds: string[], folderId: string | null): void {
+  if (toolIds.length === 0) return
+  const db = getDb()
+  db.transaction(() => {
+    const maxOrder = (db.prepare('SELECT MAX(sort_order) as m FROM tools WHERE folder_id IS ?').get(folderId) as Record<string, unknown>)?.m as number | null
+    let sortOrder = (maxOrder ?? -1) + 1
+    const stmt = db.prepare("UPDATE tools SET folder_id = ?, sort_order = ?, updated_at = datetime('now') WHERE id = ?")
+    for (const id of toolIds) {
+      stmt.run(folderId, sortOrder++, id)
+    }
+  })()
+}
+
 export function reorderToolsInFolder(folderId: string | null, orderedIds: string[]): void {
   const db = getDb()
   db.transaction(() => {

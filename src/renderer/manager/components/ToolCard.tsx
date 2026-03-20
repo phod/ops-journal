@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import type { Tool, ToolFolder } from '@shared/ipc-types'
 import { ConfirmDialog } from './ConfirmDialog'
 
@@ -17,11 +18,25 @@ export function ToolCard({ tool, depth = 0, folders = [], onEdit, onDelete, onMo
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showMoveMenu, setShowMoveMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
+
+  useLayoutEffect(() => {
+    if (!menuOpen || !btnRef.current) return
+    const rect = btnRef.current.getBoundingClientRect()
+    const menuHeight = menuRef.current?.offsetHeight ?? 120
+    const spaceBelow = window.innerHeight - rect.bottom
+    const top = spaceBelow >= menuHeight + 4 ? rect.bottom + 4 : rect.top - menuHeight - 4
+    setMenuPos({ top, left: rect.right - 160 })
+  }, [menuOpen])
 
   useEffect(() => {
     if (!menuOpen) return
     function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) {
         setMenuOpen(false)
         setShowMoveMenu(false)
       }
@@ -82,54 +97,60 @@ export function ToolCard({ tool, depth = 0, folders = [], onEdit, onDelete, onMo
         <div className="flex-1" />
 
         {/* Overflow menu */}
-        <div className="relative flex-shrink-0" ref={menuRef}>
+        <div className="flex-shrink-0">
           <button
+            ref={btnRef}
             onClick={() => setMenuOpen(!menuOpen)}
             className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-gray-300 hover:bg-gray-700/60 transition-colors opacity-0 group-hover:opacity-100 text-xs"
           >
             ···
           </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 z-20 w-40 py-1 rounded-lg bg-gray-700 border border-gray-600 shadow-xl">
-              <button
-                onClick={() => { setMenuOpen(false); onEdit() }}
-                className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-600 transition-colors"
-              >
-                Edit
-              </button>
-              {onMoveToFolder && moveOptions.length > 0 && (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowMoveMenu(!showMoveMenu)}
-                    className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-600 transition-colors flex items-center justify-between"
-                  >
-                    Move to…
-                    <span className="text-[10px] text-gray-500">▶</span>
-                  </button>
-                  {showMoveMenu && (
-                    <div className="absolute left-full top-0 ml-1 z-30 w-40 py-1 rounded-lg bg-gray-700 border border-gray-600 shadow-xl max-h-48 overflow-y-auto">
-                      {moveOptions.map((opt) => (
-                        <button
-                          key={opt.id ?? '__root__'}
-                          onClick={() => { setMenuOpen(false); setShowMoveMenu(false); onMoveToFolder(opt.id) }}
-                          className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-600 transition-colors truncate"
-                        >
-                          {opt.id === null ? '/ Root' : `📁 ${opt.name}`}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              <button
-                onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}
-                className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-gray-600 transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          )}
         </div>
+        {menuOpen && createPortal(
+          <div
+            ref={menuRef}
+            className="fixed z-[9999] w-40 py-1 rounded-lg bg-gray-700 border border-gray-600 shadow-xl"
+            style={menuPos ? { top: menuPos.top, left: menuPos.left } : { visibility: 'hidden', top: 0, left: 0 }}
+          >
+            <button
+              onClick={() => { setMenuOpen(false); onEdit() }}
+              className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-600 transition-colors"
+            >
+              Edit
+            </button>
+            {onMoveToFolder && moveOptions.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowMoveMenu(!showMoveMenu)}
+                  className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-600 transition-colors flex items-center justify-between"
+                >
+                  Move to…
+                  <span className="text-[10px] text-gray-500">▶</span>
+                </button>
+                {showMoveMenu && (
+                  <div className="absolute left-full top-0 ml-1 z-[9999] w-40 py-1 rounded-lg bg-gray-700 border border-gray-600 shadow-xl max-h-48 overflow-y-auto">
+                    {moveOptions.map((opt) => (
+                      <button
+                        key={opt.id ?? '__root__'}
+                        onClick={() => { setMenuOpen(false); setShowMoveMenu(false); onMoveToFolder(opt.id) }}
+                        className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-600 transition-colors truncate"
+                      >
+                        {opt.id === null ? '/ Root' : `📁 ${opt.name}`}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <button
+              onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}
+              className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-gray-600 transition-colors"
+            >
+              Delete
+            </button>
+          </div>,
+          document.body
+        )}
       </div>
 
       {confirmDelete && (

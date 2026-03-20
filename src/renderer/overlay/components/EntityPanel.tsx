@@ -1,14 +1,17 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
 import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS, TOOL_ENTRY_STATUS_LABEL, TOOL_ENTRY_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import { scrollToEntry } from '@shared/scroll-to-entry'
 import { FlagIcon } from '@shared/FlagIcon'
+import { useEntryDrag } from '../contexts/EntryDragContext'
+import { getLinkAction } from '@shared/link-drag-utils'
 
 type PanelTab = 'flagged' | 'finding' | 'hypothesis' | 'action' | 'tool'
 
 interface Props {
   entries: JournalEntry[]
   onClose: () => void
+  onEntryUpdated: (entry: JournalEntry) => void
 }
 
 const TABS: { type: PanelTab; label: string; icon: string }[] = [
@@ -66,15 +69,94 @@ const CARD_COLORS: Record<PanelTab, { bg: string; border: string; hover: string 
 }
 
 
-function HypothesisCard({ entry }: { entry: JournalEntry }) {
+interface CardDragProps {
+  entry: JournalEntry
+  onEntryUpdated: (entry: JournalEntry) => void
+}
+
+function useCardDrag({ entry, onEntryUpdated }: CardDragProps) {
+  const { draggedEntry, validTargetIds, hoveredTargetId, startDrag, endDrag, setHoveredTarget } = useEntryDrag()
+  const isLinkable = entry.type === 'hypothesis' || entry.type === 'finding' || entry.type === 'action'
+  const isDragInProgress = draggedEntry !== null
+  const isDragSource = draggedEntry?.id === entry.id
+  const isValidTarget = isDragInProgress && validTargetIds.has(entry.id)
+  const isHoveredTarget = hoveredTargetId === entry.id && isValidTarget
+
+  let dragClass = ''
+  if (isDragInProgress) {
+    if (isDragSource) {
+      dragClass = 'opacity-50'
+    } else if (isHoveredTarget) {
+      dragClass = 'ring-2 ring-indigo-400 bg-indigo-500/20'
+    } else if (isValidTarget) {
+      dragClass = 'ring-2 ring-indigo-400/50'
+    } else {
+      dragClass = 'opacity-40'
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!isValidTarget) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'link'
+    setHoveredTarget(entry.id)
+  }
+  const handleDragLeave = () => { if (hoveredTargetId === entry.id) setHoveredTarget(null) }
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    setHoveredTarget(null)
+    if (!draggedEntry) return
+    const action = getLinkAction(draggedEntry, entry)
+    if (!action) return
+    try {
+      let updated: JournalEntry
+      switch (action.type) {
+        case 'hypothesis-finding':
+          updated = await window.electronAPI.linkHypothesisFinding(action.hypothesisId, action.otherId)
+          break
+        case 'hypothesis-action':
+          updated = await window.electronAPI.linkHypothesisAction(action.hypothesisId, action.otherId)
+          break
+        case 'hypothesis-child':
+          updated = await window.electronAPI.linkHypothesisChild(action.hypothesisId, action.otherId)
+          break
+      }
+      onEntryUpdated(updated)
+    } catch (err) {
+      console.error('[overlay] Failed to link entries via drag:', err)
+    }
+  }
+
+  const dragProps: Record<string, unknown> = {
+    onDragOver: handleDragOver,
+    onDragLeave: handleDragLeave,
+    onDrop: handleDrop
+  }
+  if (isLinkable) {
+    dragProps.draggable = true
+    dragProps.style = { cursor: 'grab' }
+    dragProps.onDragStart = (e: React.DragEvent) => {
+      e.dataTransfer.effectAllowed = 'link'
+      e.dataTransfer.setData('application/x-ops-entry-link', entry.id)
+      startDrag(entry)
+    }
+    dragProps.onDragEnd = () => endDrag()
+  }
+
+  return { dragClass, dragProps }
+}
+
+function HypothesisCard({ entry, onEntryUpdated }: { entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }) {
   const status = entry.hypothesis_status ?? 'open'
   const findingCount = entry.linked_finding_ids?.length ?? 0
   const childCount = entry.linked_child_hypothesis_ids?.length ?? 0
   const colors = CARD_COLORS.hypothesis
+  const { dragClass, dragProps } = useCardDrag({ entry, onEntryUpdated })
   return (
     <button
       onClick={() => scrollToEntry(entry.id)}
-      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-colors`}
+      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-all ${dragClass}`}
+      {...dragProps}
     >
       <div className="flex items-center gap-1 mb-0.5">
         <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[status]}`}>
@@ -95,12 +177,14 @@ function HypothesisCard({ entry }: { entry: JournalEntry }) {
   )
 }
 
-function FindingCard({ entry }: { entry: JournalEntry }) {
+function FindingCard({ entry, onEntryUpdated }: { entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }) {
   const colors = CARD_COLORS.finding
+  const { dragClass, dragProps } = useCardDrag({ entry, onEntryUpdated })
   return (
     <button
       onClick={() => scrollToEntry(entry.id)}
-      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-colors`}
+      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-all ${dragClass}`}
+      {...dragProps}
     >
       {entry.flagged && (
         <div className="mb-0.5"><FlagIcon size={10} className="text-amber-400 flex-shrink-0" /></div>
@@ -112,13 +196,15 @@ function FindingCard({ entry }: { entry: JournalEntry }) {
   )
 }
 
-function ActionCard({ entry }: { entry: JournalEntry }) {
+function ActionCard({ entry, onEntryUpdated }: { entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }) {
   const colors = CARD_COLORS.action
   const completed = entry.action_completed ?? false
+  const { dragClass, dragProps } = useCardDrag({ entry, onEntryUpdated })
   return (
     <button
       onClick={() => scrollToEntry(entry.id)}
-      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-colors`}
+      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-all ${dragClass}`}
+      {...dragProps}
     >
       <div className="flex items-center gap-1 mb-0.5">
         <span className={`text-xs font-semibold ${completed ? 'text-green-300' : 'text-orange-300'}`}>
@@ -133,7 +219,7 @@ function ActionCard({ entry }: { entry: JournalEntry }) {
   )
 }
 
-function ToolCard({ entry }: { entry: JournalEntry }) {
+function ToolCard({ entry }: { entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }) {
   const toolStatus = entry.tool_status ?? 'pending'
   const colors = CARD_COLORS.tool
   return (
@@ -154,7 +240,7 @@ function ToolCard({ entry }: { entry: JournalEntry }) {
   )
 }
 
-function FlaggedCard({ entry }: { entry: JournalEntry }) {
+function FlaggedCard({ entry, onEntryUpdated }: { entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }) {
   const colors = CARD_COLORS.flagged
   const typeDef = entry.type !== 'note' ? entry.type.charAt(0).toUpperCase() + entry.type.slice(1) : null
   const isHypothesis = entry.type === 'hypothesis'
@@ -163,10 +249,12 @@ function FlaggedCard({ entry }: { entry: JournalEntry }) {
   const completed = entry.action_completed ?? false
   const isToolEntry = entry.type === 'tool'
   const toolStatus = entry.tool_status ?? 'pending'
+  const { dragClass, dragProps } = useCardDrag({ entry, onEntryUpdated })
   return (
     <button
       onClick={() => scrollToEntry(entry.id)}
-      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-colors`}
+      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-all ${dragClass}`}
+      {...dragProps}
     >
       <div className="flex items-center gap-1 mb-0.5">
         <FlagIcon size={10} className="text-amber-400 flex-shrink-0" />
@@ -196,7 +284,7 @@ function FlaggedCard({ entry }: { entry: JournalEntry }) {
   )
 }
 
-const CARD_COMPONENT: Record<PanelTab, React.ComponentType<{ entry: JournalEntry }>> = {
+const CARD_COMPONENT: Record<PanelTab, React.ComponentType<{ entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }>> = {
   flagged: FlaggedCard,
   finding: FindingCard,
   hypothesis: HypothesisCard,
@@ -212,7 +300,7 @@ const EMPTY_HINT: Record<PanelTab, string> = {
   tool: 'No tools yet.\nUse /tool to add one.'
 }
 
-export function EntityPanel({ entries, onClose }: Props) {
+export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
   const [activeTab, setActiveTab] = useState<PanelTab>('hypothesis')
   const colors = TAB_COLORS[activeTab]
   const filtered = activeTab === 'flagged'
@@ -265,7 +353,7 @@ export function EntityPanel({ entries, onClose }: Props) {
       ) : (
         <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1.5">
           {filtered.map((entry) => (
-            <Card key={entry.id} entry={entry} />
+            <Card key={entry.id} entry={entry} onEntryUpdated={onEntryUpdated} />
           ))}
         </div>
       )}

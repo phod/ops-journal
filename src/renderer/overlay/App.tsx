@@ -6,6 +6,7 @@ import { EntryInput } from './components/EntryInput'
 import { EntityPanel } from './components/EntityPanel'
 import { ResizeHandle } from './components/ResizeHandle'
 import { RumourBoardView } from '../details/components/board/RumourBoardView'
+import { EntryDragProvider } from './contexts/EntryDragContext'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 
 const MIN_ENTRY_STREAM_WIDTH = 200
@@ -231,6 +232,7 @@ export default function App() {
           <EntityPanel
             entries={entries}
             onClose={() => setShowEntityPanel(false)}
+            onEntryUpdated={updateEntry}
           />
         </div>
       </>
@@ -238,59 +240,63 @@ export default function App() {
 
     if (showRumourBoard) {
       return (
-        <div className="flex flex-1 overflow-hidden">
-          <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-            <RumourBoardView investigationId={currentInvestigation.id} entries={entries} />
+        <EntryDragProvider entries={entries}>
+          <div className="flex flex-1 overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+              <RumourBoardView investigationId={currentInvestigation.id} entries={entries} />
+            </div>
+            {showEntryStream && (
+              <>
+                <ResizeHandle onResize={handleEntryStreamResize} />
+                {entryStream}
+              </>
+            )}
+            {entityPanel}
           </div>
-          {showEntryStream && (
-            <>
-              <ResizeHandle onResize={handleEntryStreamResize} />
-              {entryStream}
-            </>
-          )}
-          {entityPanel}
-        </div>
+        </EntryDragProvider>
       )
     }
 
     return (
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {searchBar}
-          {showOnboarding && (
-            <div className="mx-3 mt-2 p-3 rounded-lg bg-indigo-950/50 border border-indigo-500/30">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">Quick Tips</span>
-                <button onClick={dismissOnboarding} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">Don't show again</button>
+      <EntryDragProvider entries={entries}>
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-col flex-1 overflow-hidden">
+            {searchBar}
+            {showOnboarding && (
+              <div className="mx-3 mt-2 p-3 rounded-lg bg-indigo-950/50 border border-indigo-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">Quick Tips</span>
+                  <button onClick={dismissOnboarding} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">Don't show again</button>
+                </div>
+                <ul className="space-y-1.5 text-xs text-gray-300 font-mono">
+                  <li><span className="text-indigo-400">/action</span>, <span className="text-indigo-400">/finding</span>, <span className="text-indigo-400">/hypothesis</span> — categorize entries with slash commands</li>
+                  <li>Click the <span className="text-amber-400">flag icon</span> to mark important entries</li>
+                  <li>Use the <span className="text-indigo-400">↗</span> button to open the details view for summaries and export</li>
+                  <li>Configure your hotkeys in <span className="text-indigo-400">⚙ Settings</span></li>
+                </ul>
               </div>
-              <ul className="space-y-1.5 text-xs text-gray-300 font-mono">
-                <li><span className="text-indigo-400">/action</span>, <span className="text-indigo-400">/finding</span>, <span className="text-indigo-400">/hypothesis</span> — categorize entries with slash commands</li>
-                <li>Click the <span className="text-amber-400">flag icon</span> to mark important entries</li>
-                <li>Use the <span className="text-indigo-400">↗</span> button to open the details view for summaries and export</li>
-                <li>Configure your hotkeys in <span className="text-indigo-400">⚙ Settings</span></li>
-              </ul>
-            </div>
-          )}
-          <EntryList
-            entries={filteredEntries}
-            editingEntryId={editingEntryId}
-            onEditingEntryIdChange={setEditingEntryId}
-            onEntryUpdated={updateEntry}
-            onEntryDeleted={deleteEntry}
-            searchTerm={searchTerm}
-          />
-          <EntryInput
-            activeInvestigation={currentInvestigation}
-            entries={entries}
-            editingEntryId={editingEntryId}
-            onSetEditingEntryId={setEditingEntryId}
-            onEntryCreated={addOptimisticEntry}
-            pendingImages={pendingImages}
-            onPendingImagesChange={setPendingImages}
-          />
+            )}
+            <EntryList
+              entries={filteredEntries}
+              editingEntryId={editingEntryId}
+              onEditingEntryIdChange={setEditingEntryId}
+              onEntryUpdated={updateEntry}
+              onEntryDeleted={deleteEntry}
+              searchTerm={searchTerm}
+            />
+            <EntryInput
+              activeInvestigation={currentInvestigation}
+              entries={entries}
+              editingEntryId={editingEntryId}
+              onSetEditingEntryId={setEditingEntryId}
+              onEntryCreated={addOptimisticEntry}
+              pendingImages={pendingImages}
+              onPendingImagesChange={setPendingImages}
+            />
+          </div>
+          {entityPanel}
         </div>
-        {entityPanel}
-      </div>
+      </EntryDragProvider>
     )
   }
 

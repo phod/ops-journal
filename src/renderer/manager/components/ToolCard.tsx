@@ -92,7 +92,7 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
         </span>
 
         {/* Content – single row */}
-        <span className="text-xs font-medium text-gray-100 truncate min-w-0">{tool.name}</span>
+        <span className="text-xs font-medium text-gray-100 truncate min-w-0 flex-shrink-0 max-w-[50%]">{tool.name}</span>
         <span className={`flex-shrink-0 text-[10px] font-medium px-1.5 py-0 rounded leading-4
           ${tool.tool_type === 'link'
             ? 'bg-blue-900/40 text-blue-400 border border-blue-800/40'

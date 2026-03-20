@@ -7,6 +7,7 @@ import { EntityPanel } from './components/EntityPanel'
 import { ResizeHandle } from './components/ResizeHandle'
 import { SearchPanel } from './components/SearchPanel'
 import { RumourBoardView } from '../details/components/board/RumourBoardView'
+import { RelationshipMapView } from '../details/components/relationships/RelationshipMapView'
 import { EntryDragProvider } from './contexts/EntryDragContext'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
 
@@ -32,6 +33,7 @@ export default function App() {
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [showEntityPanel, setShowEntityPanel] = useState(false)
   const [showRumourBoard, setShowRumourBoard] = useState(false)
+  const [showRelationshipMap, setShowRelationshipMap] = useState(false)
   const [showEntryStream, setShowEntryStream] = useState(true)
   const [entryStreamWidth, setEntryStreamWidth] = useState(DEFAULT_ENTRY_STREAM_WIDTH)
   const [entityPanelWidth, setEntityPanelWidth] = useState(DEFAULT_ENTITY_PANEL_WIDTH)
@@ -50,7 +52,7 @@ export default function App() {
         e.preventDefault()
         if (!showSearch) {
           setShowSearch(true)
-          if (!showRumourBoard) window.electronAPI.expandOverlayForSearch()
+          if (!showRumourBoard && !showRelationshipMap) window.electronAPI.expandOverlayForSearch()
           setTimeout(() => searchInputRef.current?.focus(), 0)
         }
       }
@@ -58,12 +60,12 @@ export default function App() {
         setShowSearch(false)
         setSearchTerm('')
         setHighlightedEntryId(null)
-        if (!showRumourBoard) window.electronAPI.restoreOverlayFromSearch()
+        if (!showRumourBoard && !showRelationshipMap) window.electronAPI.restoreOverlayFromSearch()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showSearch, showRumourBoard])
+  }, [showSearch, showRumourBoard, showRelationshipMap])
 
   // Check onboarding on first investigation
   useEffect(() => {
@@ -108,8 +110,8 @@ export default function App() {
     setShowSearch(false)
     setSearchTerm('')
     setHighlightedEntryId(null)
-    if (!showRumourBoard) window.electronAPI.restoreOverlayFromSearch()
-  }, [showRumourBoard])
+    if (!showRumourBoard && !showRelationshipMap) window.electronAPI.restoreOverlayFromSearch()
+  }, [showRumourBoard, showRelationshipMap])
 
   const handleSearchResultClick = useCallback((entryId: string) => {
     setHighlightedEntryId(entryId)
@@ -225,7 +227,7 @@ export default function App() {
     const entryStream = (
       <div
         className="flex flex-col overflow-hidden flex-shrink-0"
-        style={showRumourBoard ? { width: entryStreamWidth } : undefined}
+        style={showRumourBoard || showRelationshipMap ? { width: entryStreamWidth } : undefined}
       >
         {searchBar}
         <EntryList
@@ -260,6 +262,23 @@ export default function App() {
         </div>
       </>
     )
+
+    if (showRelationshipMap) {
+      return (
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+            <RelationshipMapView entries={entries} />
+          </div>
+          {showEntryStream && (
+            <>
+              <ResizeHandle onResize={handleEntryStreamResize} />
+              {entryStream}
+            </>
+          )}
+          {entityPanel}
+        </div>
+      )
+    }
 
     if (showRumourBoard) {
       return (
@@ -356,6 +375,7 @@ export default function App() {
                   const opening = !showRumourBoard
                   setShowRumourBoard(opening)
                   if (opening) {
+                    setShowRelationshipMap(false)
                     setShowEntryStream(true)
                     window.electronAPI.expandOverlayForBoard()
                   } else {
@@ -371,7 +391,28 @@ export default function App() {
               >
                 ⊞
               </button>
-              {showRumourBoard && (
+              <button
+                onClick={() => {
+                  const opening = !showRelationshipMap
+                  setShowRelationshipMap(opening)
+                  if (opening) {
+                    setShowRumourBoard(false)
+                    setShowEntryStream(true)
+                    window.electronAPI.expandOverlayForBoard()
+                  } else {
+                    window.electronAPI.restoreOverlayFromBoard()
+                  }
+                }}
+                className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0 font-bold ${
+                  showRelationshipMap
+                    ? 'text-indigo-300 bg-indigo-500/20'
+                    : 'text-gray-600 hover:text-gray-400'
+                }`}
+                title="Toggle Relationship Map"
+              >
+                ◈
+              </button>
+              {(showRumourBoard || showRelationshipMap) && (
                 <button
                   onClick={() => setShowEntryStream((v) => !v)}
                   className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0 ${

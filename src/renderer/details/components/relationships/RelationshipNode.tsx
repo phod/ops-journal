@@ -86,9 +86,11 @@ function RelationshipNodeComponent({ data }: NodeProps): JSX.Element {
         {entry.body}
       </p>
 
-      {/* Handles */}
+      {/* Handles — source+target on each side so edges can connect in either direction */}
       <Handle type="target" position={Position.Left} id="left" className="!w-1.5 !h-1.5 !bg-gray-500 !border-0" />
+      <Handle type="source" position={Position.Left} id="left-source" className="!w-1.5 !h-1.5 !bg-gray-500 !border-0" />
       <Handle type="source" position={Position.Right} id="right" className="!w-1.5 !h-1.5 !bg-gray-500 !border-0" />
+      <Handle type="target" position={Position.Right} id="right-target" className="!w-1.5 !h-1.5 !bg-gray-500 !border-0" />
       <Handle type="target" position={Position.Top} id="top" className="!w-1.5 !h-1.5 !bg-gray-500 !border-0" />
       <Handle type="source" position={Position.Bottom} id="bottom" className="!w-1.5 !h-1.5 !bg-gray-500 !border-0" />
     </div>

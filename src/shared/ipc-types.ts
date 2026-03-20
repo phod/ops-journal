@@ -144,6 +144,9 @@ export interface ElectronAPI {
   setMinimapOpen: (open: boolean) => Promise<void>
   getOnboardingDismissed: () => Promise<boolean>
   setOnboardingDismissed: (dismissed: boolean) => Promise<void>
+  getOpaqueOverlay: () => Promise<boolean>
+  setOpaqueOverlay: (opaque: boolean) => Promise<void>
+  onOpaqueOverlayChanged: (callback: (opaque: boolean) => void) => () => void
   getAppVersion: () => Promise<string>
 
   // Window management

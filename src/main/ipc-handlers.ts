@@ -16,7 +16,7 @@ import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorder
 import { listToolFolders, createToolFolder, renameToolFolder, deleteToolFolder, moveToolFolderToFolder, reorderToolFoldersInParent } from './db/tool-folders'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, expandOverlayForSearch, restoreOverlayFromSearch, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, getPreviousFrontApp } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, reregisterToolkitHotkey, reregisterManagerHotkey } from './hotkey'
-import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getManagerHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed } from './settings'
+import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getManagerHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed, getOpaqueOverlay, setOpaqueOverlay } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
 import type { Investigation, Tool, ToolFolder, ToolType } from '@shared/ipc-types'
@@ -394,6 +394,14 @@ export function registerIpcHandlers(): void {
       }
     }
   })
+  ipcMain.handle('settings:getOpaqueOverlay', () => getOpaqueOverlay())
+  ipcMain.handle('settings:setOpaqueOverlay', (_event, { opaque }: { opaque: boolean }) => {
+    setOpaqueOverlay(opaque)
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send('settings:opaqueOverlayChanged', opaque)
+    }
+  })
+
   ipcMain.handle('app:getVersion', () => app.getVersion())
 
   // --- Tools ---

@@ -103,6 +103,9 @@ const electronAPI: ElectronAPI = {
   setMinimapOpen: (open) => ipcRenderer.invoke('settings:setMinimapOpen', { open }),
   getOnboardingDismissed: () => ipcRenderer.invoke('settings:getOnboardingDismissed'),
   setOnboardingDismissed: (dismissed) => ipcRenderer.invoke('settings:setOnboardingDismissed', { dismissed }),
+  getOpaqueOverlay: () => ipcRenderer.invoke('settings:getOpaqueOverlay'),
+  setOpaqueOverlay: (opaque) => ipcRenderer.invoke('settings:setOpaqueOverlay', { opaque }),
+  onOpaqueOverlayChanged: (callback) => onIpcEvent<[boolean]>('settings:opaqueOverlayChanged', callback),
   getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
 
   // Window management

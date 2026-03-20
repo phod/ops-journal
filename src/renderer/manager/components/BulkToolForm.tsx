@@ -21,7 +21,7 @@ function makeRow(): BulkRow {
 }
 
 export function BulkToolForm({ onClose }: Props) {
-  const [toolType, setToolType] = useState<ToolType>('link')
+  const [toolType, setToolType] = useState<ToolType>('string')
   const [sharedTagsInput, setSharedTagsInput] = useState('')
   const [rows, setRows] = useState<BulkRow[]>(() => [makeRow()])
   const [saving, setSaving] = useState(false)

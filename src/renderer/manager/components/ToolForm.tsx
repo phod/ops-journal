@@ -11,7 +11,7 @@ interface Props {
 export function ToolForm({ tool, folderId, onClose }: Props) {
   const isEditing = !!tool
   const [name, setName] = useState(tool?.name ?? '')
-  const [toolType, setToolType] = useState<ToolType>(tool?.tool_type ?? 'link')
+  const [toolType, setToolType] = useState<ToolType>(tool?.tool_type ?? 'string')
   const [value, setValue] = useState(tool?.value ?? '')
   const [tagsInput, setTagsInput] = useState(tool?.tags.join(', ') ?? '')
   const [saving, setSaving] = useState(false)

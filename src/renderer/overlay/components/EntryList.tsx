@@ -193,6 +193,37 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     extractPastedImages(e, (dataUrl) => addNewImages([dataUrl]))
   }, [addNewImages])
 
+  const handlePickImage = useCallback(async () => {
+    if (editAtLimit) return
+    try {
+      const dataUrls = await window.electronAPI.pickImage()
+      if (dataUrls.length > 0) addNewImages(dataUrls)
+    } catch (err) {
+      console.error('[overlay] Failed to pick image:', err)
+    }
+  }, [editAtLimit, addNewImages])
+
+  const handleCaptureScreenshot = useCallback(async () => {
+    if (editAtLimit) return
+    try {
+      const dataUrl = await window.electronAPI.captureScreenshot()
+      if (dataUrl) addNewImages([dataUrl])
+    } catch (err) {
+      console.error('[overlay] Failed to capture screenshot:', err)
+    }
+  }, [editAtLimit, addNewImages])
+
+  // Listen for global hotkey triggers during edit mode
+  useEffect(() => {
+    if (!isEditing) return
+    return window.electronAPI.onTriggerScreenshot((dataUrl) => addNewImages([dataUrl]))
+  }, [isEditing, addNewImages])
+
+  useEffect(() => {
+    if (!isEditing) return
+    return window.electronAPI.onTriggerUpload(handlePickImage)
+  }, [isEditing, handlePickImage])
+
   const saveEdit = async () => {
     const trimmed = draft.trim()
     const hasImages = entry.image_paths.length > pendingRemovals.size || pendingNewImages.length > 0
@@ -709,7 +740,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               Image limit reached ({MAX_IMAGES_PER_ENTRY}/{MAX_IMAGES_PER_ENTRY})
             </div>
           )}
-          <div className="flex gap-2 mt-1.5">
+          <div className="flex items-center gap-2 mt-1.5">
             <button
               onClick={saveEdit}
               disabled={saving}
@@ -723,6 +754,34 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
             >
               Cancel
             </button>
+            <div className="ml-auto flex gap-1.5">
+              <button
+                onClick={handlePickImage}
+                disabled={saving || editAtLimit}
+                className="no-drag flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-40 px-1 py-0.5"
+                title={editAtLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Attach image'}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                </svg>
+                <span>Upload</span>
+              </button>
+              <button
+                onClick={handleCaptureScreenshot}
+                disabled={saving || editAtLimit}
+                className="no-drag flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-40 px-1 py-0.5"
+                title={editAtLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Capture screenshot region'}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="6" cy="6" r="3"/>
+                  <circle cx="6" cy="18" r="3"/>
+                  <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+                  <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                  <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+                </svg>
+                <span>Screenshot</span>
+              </button>
+            </div>
           </div>
         </div>
       ) : (

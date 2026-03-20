@@ -43,9 +43,11 @@ export function SearchPanel({ entries, searchTerm, onSearchTermChange, onResultC
   const [selectedIndex, setSelectedIndex] = useState(0)
 
   const results = useMemo(() => {
-    if (!searchTerm) return []
-    const term = searchTerm.toLowerCase()
-    let filtered = entries.filter((e) => e.body.toLowerCase().includes(term))
+    let filtered = entries
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter((e) => e.body.toLowerCase().includes(term))
+    }
     if (typeFilter !== 'all') {
       filtered = filtered.filter((e) => e.type === typeFilter)
     }
@@ -91,11 +93,9 @@ export function SearchPanel({ entries, searchTerm, onSearchTermChange, onResultC
             placeholder="Search entries..."
             className="flex-1 text-xs bg-transparent text-gray-200 outline-none font-mono placeholder-gray-600"
           />
-          {searchTerm && (
-            <span className="text-[10px] text-gray-500 font-mono whitespace-nowrap flex-shrink-0">
-              {results.length}
-            </span>
-          )}
+          <span className="text-[10px] text-gray-500 font-mono whitespace-nowrap flex-shrink-0">
+            {results.length}
+          </span>
         </div>
 
         {/* Type filters */}
@@ -118,7 +118,7 @@ export function SearchPanel({ entries, searchTerm, onSearchTermChange, onResultC
 
       {/* Results list */}
       <div className="flex-1 overflow-y-auto py-1.5 px-1.5 space-y-0.5">
-        {searchTerm && results.length === 0 && (
+        {results.length === 0 && (
           <div className="flex items-center justify-center py-8 text-xs text-gray-600 font-mono">
             No results
           </div>

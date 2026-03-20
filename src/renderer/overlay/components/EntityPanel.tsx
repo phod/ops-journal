@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
 import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS, TOOL_ENTRY_STATUS_LABEL, TOOL_ENTRY_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import { scrollToEntry } from '@shared/scroll-to-entry'
 import { FlagIcon } from '@shared/FlagIcon'
 import { useEntryDrag } from '../contexts/EntryDragContext'
 import { getLinkAction } from '@shared/link-drag-utils'
+import { PeekSection } from './PeekSection'
 
 type PanelTab = 'flagged' | 'finding' | 'hypothesis' | 'action' | 'tool'
 
@@ -60,14 +61,13 @@ const TAB_COLORS: Record<PanelTab, { active: string; inactive: string; border: s
   }
 }
 
-const CARD_COLORS: Record<PanelTab, { bg: string; border: string; hover: string }> = {
-  flagged: { bg: 'bg-amber-500/10', border: 'border-amber-500/20', hover: 'hover:bg-amber-500/25' },
-  finding: { bg: 'bg-teal-500/10', border: 'border-teal-500/20', hover: 'hover:bg-teal-500/25' },
-  hypothesis: { bg: 'bg-violet-500/10', border: 'border-violet-500/20', hover: 'hover:bg-violet-500/25' },
-  action: { bg: 'bg-orange-500/10', border: 'border-orange-500/20', hover: 'hover:bg-orange-500/25' },
-  tool: { bg: 'bg-sky-500/10', border: 'border-sky-500/20', hover: 'hover:bg-sky-500/25' }
+const LEFT_BORDER_COLORS: Record<PanelTab, string> = {
+  flagged: 'border-l-amber-500',
+  finding: 'border-l-teal-400',
+  hypothesis: 'border-l-violet-500',
+  action: 'border-l-orange-400',
+  tool: 'border-l-sky-400'
 }
-
 
 interface CardDragProps {
   entry: JournalEntry
@@ -146,150 +146,109 @@ function useCardDrag({ entry, onEntryUpdated }: CardDragProps) {
   return { dragClass, dragProps }
 }
 
-function HypothesisCard({ entry, onEntryUpdated }: { entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }) {
-  const status = entry.hypothesis_status ?? 'open'
-  const findingCount = entry.linked_finding_ids?.length ?? 0
-  const childCount = entry.linked_child_hypothesis_ids?.length ?? 0
-  const colors = CARD_COLORS.hypothesis
+// Compact single-line row card
+function CompactRow({ entry, onEntryUpdated, onClick, isPeeked, tab }: {
+  entry: JournalEntry
+  onEntryUpdated: (e: JournalEntry) => void
+  onClick: () => void
+  isPeeked: boolean
+  tab: PanelTab
+}) {
   const { dragClass, dragProps } = useCardDrag({ entry, onEntryUpdated })
+  const status = entry.hypothesis_status ?? 'open'
+  const toolStatus = entry.tool_status ?? 'pending'
+  const completed = entry.action_completed ?? false
+  const imageCount = entry.image_paths.length
+  const linkCount = (entry.linked_finding_ids?.length ?? 0) +
+    (entry.linked_action_ids?.length ?? 0) +
+    (entry.linked_child_hypothesis_ids?.length ?? 0)
+  const isAbandoned = (entry.type === 'hypothesis' && status === 'abandoned') ||
+    (entry.type === 'tool' && toolStatus === 'abandoned')
+
   return (
     <button
-      onClick={() => scrollToEntry(entry.id)}
-      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-all ${dragClass}`}
+      onClick={onClick}
+      className={`no-drag w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left border-l-[3px] ${LEFT_BORDER_COLORS[tab === 'flagged' ? (entry.type as PanelTab) || 'flagged' : tab]} hover:bg-gray-700/25 transition-all ${dragClass} ${isPeeked ? 'bg-gray-700/20' : ''} ${isAbandoned ? 'opacity-45' : ''}`}
       {...dragProps}
     >
-      <div className="flex items-center gap-1 mb-0.5">
-        <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[status]}`}>
+      {/* Status indicator for hypothesis/action/tool */}
+      {entry.type === 'hypothesis' && (
+        <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-medium flex-shrink-0 ${HYPOTHESIS_STATUS_TEXT_CLASS[status]}`}>
           {HYPOTHESIS_STATUS_LABEL[status]}
         </span>
-        {entry.flagged && <FlagIcon size={10} className="text-amber-400 flex-shrink-0" />}
-        {findingCount > 0 && (
-          <span className="text-xs text-gray-600">· {findingCount}f</span>
-        )}
-        {childCount > 0 && (
-          <span className="text-xs text-gray-600">· {childCount}h</span>
-        )}
-      </div>
-      <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
-        {entry.body || '(no text)'}
-      </div>
-    </button>
-  )
-}
-
-function FindingCard({ entry, onEntryUpdated }: { entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }) {
-  const colors = CARD_COLORS.finding
-  const { dragClass, dragProps } = useCardDrag({ entry, onEntryUpdated })
-  return (
-    <button
-      onClick={() => scrollToEntry(entry.id)}
-      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-all ${dragClass}`}
-      {...dragProps}
-    >
-      {entry.flagged && (
-        <div className="mb-0.5"><FlagIcon size={10} className="text-amber-400 flex-shrink-0" /></div>
       )}
-      <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
-        {entry.body || '(no text)'}
-      </div>
-    </button>
-  )
-}
-
-function ActionCard({ entry, onEntryUpdated }: { entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }) {
-  const colors = CARD_COLORS.action
-  const completed = entry.action_completed ?? false
-  const { dragClass, dragProps } = useCardDrag({ entry, onEntryUpdated })
-  return (
-    <button
-      onClick={() => scrollToEntry(entry.id)}
-      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-all ${dragClass}`}
-      {...dragProps}
-    >
-      <div className="flex items-center gap-1 mb-0.5">
-        <span className={`text-xs font-semibold ${completed ? 'text-green-300' : 'text-orange-300'}`}>
-          {completed ? '✓ Done' : '○ Open'}
+      {entry.type === 'action' && (
+        <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-medium flex-shrink-0 ${completed ? 'text-green-300' : 'text-orange-300'}`}>
+          {completed ? '✓' : '○'}
         </span>
-        {entry.flagged && <FlagIcon size={10} className="text-amber-400 flex-shrink-0" />}
-      </div>
-      <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
-        {entry.body || '(no text)'}
-      </div>
-    </button>
-  )
-}
-
-function ToolCard({ entry }: { entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }) {
-  const toolStatus = entry.tool_status ?? 'pending'
-  const colors = CARD_COLORS.tool
-  return (
-    <button
-      onClick={() => scrollToEntry(entry.id)}
-      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-colors`}
-    >
-      <div className="flex items-center gap-1 mb-0.5">
-        <span className={`text-xs font-semibold ${TOOL_ENTRY_STATUS_TEXT_CLASS[toolStatus]}`}>
+      )}
+      {entry.type === 'tool' && (
+        <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-medium flex-shrink-0 ${TOOL_ENTRY_STATUS_TEXT_CLASS[toolStatus]}`}>
           {TOOL_ENTRY_STATUS_LABEL[toolStatus]}
         </span>
-        {entry.flagged && <FlagIcon size={10} className="text-amber-400 flex-shrink-0" />}
-      </div>
-      <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
+      )}
+
+      {/* Truncated body */}
+      <span className="text-[11px] text-gray-300 font-mono truncate flex-1 min-w-0">
         {entry.body || '(no text)'}
+      </span>
+
+      {/* Right-aligned micro indicators */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {imageCount > 0 && (
+          <span className="flex items-center gap-0.5 text-[9px] text-gray-600">
+            <span className="inline-block w-3 h-2.5 border border-gray-600 rounded-sm" />
+            {imageCount}
+          </span>
+        )}
+        {linkCount > 0 && (
+          <span className="text-[9px] px-1.5 py-0 rounded-full bg-violet-500/10 text-violet-400">
+            ⬡{linkCount}
+          </span>
+        )}
+        {entry.flagged && <FlagIcon size={9} className="text-amber-400 flex-shrink-0" />}
       </div>
     </button>
   )
 }
 
-function FlaggedCard({ entry, onEntryUpdated }: { entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }) {
-  const colors = CARD_COLORS.flagged
-  const typeDef = entry.type !== 'note' ? entry.type.charAt(0).toUpperCase() + entry.type.slice(1) : null
-  const isHypothesis = entry.type === 'hypothesis'
-  const status = entry.hypothesis_status ?? 'open'
-  const isAction = entry.type === 'action'
-  const completed = entry.action_completed ?? false
-  const isToolEntry = entry.type === 'tool'
-  const toolStatus = entry.tool_status ?? 'pending'
-  const { dragClass, dragProps } = useCardDrag({ entry, onEntryUpdated })
-  return (
-    <button
-      onClick={() => scrollToEntry(entry.id)}
-      className={`no-drag w-full text-left px-2 py-1.5 rounded ${colors.bg} border ${colors.border} ${colors.hover} transition-all ${dragClass}`}
-      {...dragProps}
-    >
-      <div className="flex items-center gap-1 mb-0.5">
-        <FlagIcon size={10} className="text-amber-400 flex-shrink-0" />
-        {typeDef && (
-          <span className="text-xs text-gray-500 font-medium">{typeDef}</span>
-        )}
-        {isHypothesis && (
-          <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[status]}`}>
-            {HYPOTHESIS_STATUS_LABEL[status]}
-          </span>
-        )}
-        {isAction && (
-          <span className={`text-xs font-semibold ${completed ? 'text-green-300' : 'text-orange-300'}`}>
-            {completed ? '✓' : '○'}
-          </span>
-        )}
-        {isToolEntry && (
-          <span className={`text-xs font-semibold ${TOOL_ENTRY_STATUS_TEXT_CLASS[toolStatus]}`}>
-            {TOOL_ENTRY_STATUS_LABEL[toolStatus]}
-          </span>
-        )}
-      </div>
-      <div className="text-xs text-gray-300 line-clamp-2 font-mono leading-tight">
-        {entry.body || '(no text)'}
-      </div>
-    </button>
-  )
+// Build hypothesis tree for indentation
+interface TreeEntry {
+  entry: JournalEntry
+  depth: number
 }
 
-const CARD_COMPONENT: Record<PanelTab, React.ComponentType<{ entry: JournalEntry; onEntryUpdated: (e: JournalEntry) => void }>> = {
-  flagged: FlaggedCard,
-  finding: FindingCard,
-  hypothesis: HypothesisCard,
-  action: ActionCard,
-  tool: ToolCard
+function buildHypothesisTree(hypotheses: JournalEntry[]): TreeEntry[] {
+  const byId = new Map(hypotheses.map((h) => [h.id, h]))
+  const childIds = new Set<string>()
+  for (const h of hypotheses) {
+    for (const cid of h.linked_child_hypothesis_ids ?? []) {
+      childIds.add(cid)
+    }
+  }
+  // Roots: hypotheses that are not children of any other hypothesis in this list
+  const roots = hypotheses.filter((h) => !childIds.has(h.id))
+  const result: TreeEntry[] = []
+  const visited = new Set<string>()
+
+  function dfs(entry: JournalEntry, depth: number) {
+    if (visited.has(entry.id)) return
+    visited.add(entry.id)
+    result.push({ entry, depth })
+    for (const cid of entry.linked_child_hypothesis_ids ?? []) {
+      const child = byId.get(cid)
+      if (child) dfs(child, depth + 1)
+    }
+  }
+
+  for (const root of roots) dfs(root, 0)
+  // Add any remaining (in cycles or disconnected)
+  for (const h of hypotheses) {
+    if (!visited.has(h.id)) {
+      result.push({ entry: h, depth: 0 })
+    }
+  }
+  return result
 }
 
 const EMPTY_HINT: Record<PanelTab, string> = {
@@ -302,11 +261,87 @@ const EMPTY_HINT: Record<PanelTab, string> = {
 
 export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
   const [activeTab, setActiveTab] = useState<PanelTab>('hypothesis')
+  const [peekedEntryId, setPeekedEntryId] = useState<string | null>(null)
   const colors = TAB_COLORS[activeTab]
+
   const filtered = activeTab === 'flagged'
     ? entries.filter((e) => e.flagged)
     : entries.filter((e) => e.type === activeTab)
-  const Card = CARD_COMPONENT[activeTab]
+
+  // Build tree for hypothesis tab
+  const treeEntries = useMemo(() => {
+    if (activeTab !== 'hypothesis') return null
+    return buildHypothesisTree(filtered)
+  }, [activeTab, filtered])
+
+  const handleTabChange = (tab: PanelTab) => {
+    setActiveTab(tab)
+    setPeekedEntryId(null)
+  }
+
+  const handleCardClick = (entryId: string) => {
+    setPeekedEntryId((prev) => prev === entryId ? null : entryId)
+  }
+
+  const handleScrollToEntry = (id: string) => {
+    scrollToEntry(id)
+  }
+
+  const renderCards = () => {
+    if (activeTab === 'hypothesis' && treeEntries) {
+      return treeEntries.map(({ entry, depth }, i) => {
+        const prevDepth = i > 0 ? treeEntries[i - 1].depth : 0
+        const showConnector = depth > 0 && (i === 0 || depth > prevDepth || depth === treeEntries[i - 1].depth)
+        return (
+          <React.Fragment key={entry.id}>
+            {showConnector && depth > 0 && (
+              <div
+                className="bg-violet-500/20"
+                style={{ marginLeft: depth * 16 + 1, width: 1, height: 6 }}
+              />
+            )}
+            <div style={{ marginLeft: depth * 16 }}>
+              <CompactRow
+                entry={entry}
+                onEntryUpdated={onEntryUpdated}
+                onClick={() => handleCardClick(entry.id)}
+                isPeeked={peekedEntryId === entry.id}
+                tab={activeTab}
+              />
+            </div>
+            {peekedEntryId === entry.id && (
+              <div style={{ marginLeft: depth * 16 }}>
+                <PeekSection
+                  entry={entry}
+                  allEntries={entries}
+                  onScrollToEntry={handleScrollToEntry}
+                />
+              </div>
+            )}
+          </React.Fragment>
+        )
+      })
+    }
+
+    return filtered.map((entry) => (
+      <React.Fragment key={entry.id}>
+        <CompactRow
+          entry={entry}
+          onEntryUpdated={onEntryUpdated}
+          onClick={() => handleCardClick(entry.id)}
+          isPeeked={peekedEntryId === entry.id}
+          tab={activeTab}
+        />
+        {peekedEntryId === entry.id && (
+          <PeekSection
+            entry={entry}
+            allEntries={entries}
+            onScrollToEntry={handleScrollToEntry}
+          />
+        )}
+      </React.Fragment>
+    ))
+  }
 
   return (
     <div className={`w-full border-l-2 ${colors.border} ${colors.bg} flex flex-col flex-shrink-0`}>
@@ -322,7 +357,7 @@ export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
             return (
               <button
                 key={tab.type}
-                onClick={() => setActiveTab(tab.type)}
+                onClick={() => handleTabChange(tab.type)}
                 className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors font-medium ${
                   isActive ? tabColors.active : tabColors.inactive
                 }`}
@@ -351,10 +386,8 @@ export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
           {EMPTY_HINT[activeTab]}
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1.5">
-          {filtered.map((entry) => (
-            <Card key={entry.id} entry={entry} onEntryUpdated={onEntryUpdated} />
-          ))}
+        <div className="flex-1 overflow-y-auto py-1.5 px-1.5 space-y-0.5">
+          {renderCards()}
         </div>
       )}
     </div>

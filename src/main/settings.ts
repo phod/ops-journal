@@ -17,6 +17,7 @@ interface Settings {
   lastViewedInvestigationId: string | null
   minimapOpen: boolean
   onboardingDismissed: boolean
+  opaqueOverlay: boolean
 }
 
 const DEFAULTS: Settings = {
@@ -27,7 +28,8 @@ const DEFAULTS: Settings = {
   managerHotkey: DEFAULT_MANAGER_HOTKEY,
   lastViewedInvestigationId: null,
   minimapOpen: false,
-  onboardingDismissed: false
+  onboardingDismissed: false,
+  opaqueOverlay: true
 }
 
 function settingsPath(): string {
@@ -109,4 +111,12 @@ export function getManagerHotkey(): string {
 
 export function setManagerHotkey(hotkey: string): void {
   save({ ...load(), managerHotkey: hotkey })
+}
+
+export function getOpaqueOverlay(): boolean {
+  return load().opaqueOverlay
+}
+
+export function setOpaqueOverlay(opaque: boolean): void {
+  save({ ...load(), opaqueOverlay: opaque })
 }

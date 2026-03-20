@@ -151,11 +151,68 @@ function HotkeyRow({ label, description, getter, setter }: HotkeyRowProps) {
   )
 }
 
+function ToggleRow({ label, description, getter, setter }: {
+  label: string
+  description: string
+  getter: () => Promise<boolean>
+  setter: (value: boolean) => Promise<void>
+}) {
+  const [value, setValue] = useState(false)
+
+  useEffect(() => {
+    getter().then(setValue)
+  }, [getter])
+
+  async function toggle() {
+    const next = !value
+    await setter(next)
+    setValue(next)
+  }
+
+  return (
+    <div className="py-4 border-b border-gray-700/50 last:border-b-0">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <div className="text-sm text-gray-200 font-medium mb-1">{label}</div>
+          <div className="text-xs text-gray-500">{description}</div>
+        </div>
+        <button
+          onClick={toggle}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+            value ? 'bg-indigo-600' : 'bg-gray-600'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+              value ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function HotkeySettings() {
   return (
-    <div>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
+          Appearance
+        </h2>
+        <div className="bg-gray-800/50 rounded-xl px-5 border border-gray-700/50">
+          <ToggleRow
+            label="Opaque Overlay"
+            description="Add slight transparency to overlay windows"
+            getter={window.electronAPI.getOpaqueOverlay}
+            setter={window.electronAPI.setOpaqueOverlay}
+          />
+        </div>
+      </div>
+
+      <div>
       <h2 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
-        Settings
+        Keyboard Shortcuts
       </h2>
       <div className="bg-gray-800/50 rounded-xl px-5 border border-gray-700/50">
         <HotkeyRow
@@ -188,6 +245,7 @@ export function HotkeySettings() {
           getter={window.electronAPI.getManagerHotkey}
           setter={window.electronAPI.setManagerHotkey}
         />
+      </div>
       </div>
     </div>
   )

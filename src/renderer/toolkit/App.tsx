@@ -8,6 +8,7 @@ export default function App() {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const searchRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const [opaqueOverlay, setOpaqueOverlay] = useState(false)
 
   const loadTools = useCallback(async () => {
     const list = await window.electronAPI.listTools()
@@ -17,6 +18,11 @@ export default function App() {
   useEffect(() => {
     loadTools()
   }, [loadTools])
+
+  useEffect(() => {
+    window.electronAPI.getOpaqueOverlay().then(setOpaqueOverlay)
+    return window.electronAPI.onOpaqueOverlayChanged(setOpaqueOverlay)
+  }, [])
 
   useEffect(() => {
     return window.electronAPI.onToolsChanged((updatedTools) => {
@@ -86,7 +92,7 @@ export default function App() {
 
   return (
     <div
-      className="h-screen flex flex-col rounded-xl bg-gray-900/95 border border-gray-700/60 shadow-2xl overflow-hidden backdrop-blur-sm"
+      className={`h-screen flex flex-col rounded-xl ${opaqueOverlay ? 'bg-gray-900/95' : 'bg-gray-900'} border border-gray-700/60 shadow-2xl overflow-hidden backdrop-blur-sm`}
       onKeyDown={handleKeyDown}
     >
       {/* Drag handle header */}

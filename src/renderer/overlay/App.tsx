@@ -28,6 +28,12 @@ export default function App() {
     deleteEntry
   } = useOverlayState()
   const [isDragging, setIsDragging] = useState(false)
+  const [opaqueOverlay, setOpaqueOverlay] = useState(false)
+
+  useEffect(() => {
+    window.electronAPI.getOpaqueOverlay().then(setOpaqueOverlay)
+    return window.electronAPI.onOpaqueOverlayChanged(setOpaqueOverlay)
+  }, [])
   const [pendingImages, setPendingImages] = useState<string[]>([])
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [showEntityPanel, setShowEntityPanel] = useState(false)
@@ -158,7 +164,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-900/95 rounded-xl">
+      <div className={`w-full h-full flex items-center justify-center ${opaqueOverlay ? 'bg-gray-900/95' : 'bg-gray-900'} rounded-xl`}>
         <div className="text-gray-500 text-sm font-mono">Loading…</div>
       </div>
     )
@@ -356,7 +362,7 @@ export default function App() {
 
   return (
     <div
-      className="w-full h-full flex flex-col bg-gray-900/95 rounded-xl border border-gray-700/50 shadow-2xl overflow-hidden"
+      className={`w-full h-full flex flex-col ${opaqueOverlay ? 'bg-gray-900/95' : 'bg-gray-900'} rounded-xl border border-gray-700/50 shadow-2xl overflow-hidden`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

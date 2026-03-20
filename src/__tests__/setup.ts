@@ -65,6 +65,9 @@ const DEFAULT_MOCKS = {
   renameInvestigation: vi.fn(),
   getOnboardingDismissed: vi.fn().mockResolvedValue(false),
   setOnboardingDismissed: vi.fn(),
+  getOpaqueOverlay: vi.fn().mockResolvedValue(false),
+  setOpaqueOverlay: vi.fn(),
+  onOpaqueOverlayChanged: vi.fn().mockReturnValue(() => {}),
   getAppVersion: vi.fn().mockResolvedValue('1.0.0'),
   listTools: vi.fn().mockResolvedValue([]),
   createTool: vi.fn(),
@@ -147,6 +150,8 @@ beforeEach(() => {
   DEFAULT_MOCKS.getManagerHotkey.mockResolvedValue('CommandOrControl+Shift+M')
   DEFAULT_MOCKS.setManagerHotkey.mockResolvedValue(true)
   DEFAULT_MOCKS.onToolsChanged.mockReturnValue(() => {})
+  DEFAULT_MOCKS.getOpaqueOverlay.mockResolvedValue(false)
+  DEFAULT_MOCKS.onOpaqueOverlayChanged.mockReturnValue(() => {})
   DEFAULT_MOCKS.listPendingToolEntries.mockResolvedValue([])
   DEFAULT_MOCKS.listToolFolders.mockResolvedValue([])
   DEFAULT_MOCKS.onToolFoldersChanged.mockReturnValue(() => {})

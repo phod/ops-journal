@@ -120,25 +120,6 @@ describe('useOverlayState', () => {
     expect(window.electronAPI.setLastViewedInvestigationId).toHaveBeenCalledWith('inv-2')
   })
 
-  it('addOptimisticEntry appends to entries', async () => {
-    const { result } = renderHook(() => useOverlayState())
-    await waitFor(() => expect(result.current.loading).toBe(false))
-
-    const newEntry: JournalEntry = {
-      id: 'e3',
-      investigation_id: 'inv-1',
-      body: 'Optimistic',
-      image_paths: [],
-      created_at: '2024-01-01 10:03:00',
-      type: 'note'
-    }
-
-    act(() => result.current.addOptimisticEntry(newEntry))
-
-    expect(result.current.entries).toHaveLength(3)
-    expect(result.current.entries[2]).toEqual(newEntry)
-  })
-
   it('updateEntry replaces entry by ID', async () => {
     const { result } = renderHook(() => useOverlayState())
     await waitFor(() => expect(result.current.loading).toBe(false))

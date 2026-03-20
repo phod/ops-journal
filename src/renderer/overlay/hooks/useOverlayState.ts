@@ -8,7 +8,6 @@ interface OverlayState {
   entries: JournalEntry[]
   loading: boolean
   switchToInvestigation: (id: string) => void
-  addOptimisticEntry: (entry: JournalEntry) => void
   updateEntry: (updated: JournalEntry) => void
   deleteEntry: (id: string) => void
   fetchEntries: (investigationId: string) => Promise<void>
@@ -40,10 +39,6 @@ export function useOverlayState(): OverlayState {
     },
     [fetchEntries]
   )
-
-  const addOptimisticEntry = useCallback((entry: JournalEntry) => {
-    setEntries((prev) => [...prev, entry])
-  }, [])
 
   const updateEntry = useCallback((updated: JournalEntry) => {
     setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
@@ -143,7 +138,6 @@ export function useOverlayState(): OverlayState {
     entries,
     loading,
     switchToInvestigation,
-    addOptimisticEntry,
     updateEntry,
     deleteEntry,
     fetchEntries

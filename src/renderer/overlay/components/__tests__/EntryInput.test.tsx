@@ -23,11 +23,7 @@ const mockEntry: JournalEntry = {
 }
 
 // Wrapper that manages pendingImages state as the real parent would
-function Wrapper({
-  onEntryCreated
-}: {
-  onEntryCreated: (entry: JournalEntry) => void
-}) {
+function Wrapper() {
   const [pendingImages, setPendingImages] = useState<string[]>([])
   return (
     <EntryInput
@@ -35,7 +31,6 @@ function Wrapper({
       entries={[]}
       editingEntryId={null}
       onSetEditingEntryId={() => {}}
-      onEntryCreated={onEntryCreated}
       pendingImages={pendingImages}
       onPendingImagesChange={setPendingImages}
     />
@@ -43,38 +38,34 @@ function Wrapper({
 }
 
 describe('EntryInput', () => {
-  let onEntryCreated: ReturnType<typeof vi.fn>
-
   beforeEach(() => {
-    onEntryCreated = vi.fn()
     window.electronAPI.createEntry = vi.fn().mockResolvedValue(mockEntry)
   })
 
   it('renders the textarea', () => {
-    render(<Wrapper onEntryCreated={onEntryCreated} />)
+    render(<Wrapper />)
     expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 
   it('renders Upload and Screenshot buttons', () => {
-    render(<Wrapper onEntryCreated={onEntryCreated} />)
+    render(<Wrapper />)
     expect(screen.getByTitle('Attach image')).toBeInTheDocument()
     expect(screen.getByTitle('Capture screenshot region')).toBeInTheDocument()
   })
 
-  it('submits on Enter and calls onEntryCreated', async () => {
+  it('submits on Enter and calls createEntry', async () => {
     const user = userEvent.setup()
-    render(<Wrapper onEntryCreated={onEntryCreated} />)
+    render(<Wrapper />)
 
     await user.type(screen.getByRole('textbox'), 'My log entry')
     await user.keyboard('{Enter}')
 
     expect(window.electronAPI.createEntry).toHaveBeenCalledWith('inv-1', 'My log entry', undefined, 'note')
-    expect(onEntryCreated).toHaveBeenCalledWith(mockEntry)
   })
 
   it('clears the input after submit', async () => {
     const user = userEvent.setup()
-    render(<Wrapper onEntryCreated={onEntryCreated} />)
+    render(<Wrapper />)
 
     const textarea = screen.getByRole('textbox')
     await user.type(textarea, 'Something')
@@ -85,7 +76,7 @@ describe('EntryInput', () => {
 
   it('does not submit empty or whitespace-only input with no image', async () => {
     const user = userEvent.setup()
-    render(<Wrapper onEntryCreated={onEntryCreated} />)
+    render(<Wrapper />)
 
     await user.keyboard('{Enter}')
     expect(window.electronAPI.createEntry).not.toHaveBeenCalled()
@@ -97,7 +88,7 @@ describe('EntryInput', () => {
 
   it('inserts a newline on Shift+Enter', async () => {
     const user = userEvent.setup()
-    render(<Wrapper onEntryCreated={onEntryCreated} />)
+    render(<Wrapper />)
 
     const textarea = screen.getByRole('textbox')
     await user.type(textarea, 'line one')
@@ -110,7 +101,7 @@ describe('EntryInput', () => {
 
   it('trims whitespace before submitting', async () => {
     const user = userEvent.setup()
-    render(<Wrapper onEntryCreated={onEntryCreated} />)
+    render(<Wrapper />)
 
     await user.type(screen.getByRole('textbox'), '  trimmed  ')
     await user.keyboard('{Enter}')
@@ -124,7 +115,7 @@ describe('EntryInput', () => {
       const dataUrl = 'data:image/png;base64,iVBOR'
       window.electronAPI.pickImage = vi.fn().mockResolvedValue([dataUrl])
 
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
 
       await user.click(screen.getByTitle('Attach image'))
 
@@ -138,7 +129,7 @@ describe('EntryInput', () => {
       const user = userEvent.setup()
       window.electronAPI.pickImage = vi.fn().mockResolvedValue([])
 
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
 
       await user.click(screen.getByTitle('Attach image'))
 
@@ -150,7 +141,7 @@ describe('EntryInput', () => {
       const dataUrls = ['data:image/png;base64,a', 'data:image/png;base64,b']
       window.electronAPI.pickImage = vi.fn().mockResolvedValue(dataUrls)
 
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
 
       await user.click(screen.getByTitle('Attach image'))
 
@@ -165,7 +156,7 @@ describe('EntryInput', () => {
       const dataUrl = 'data:image/png;base64,screenshot'
       window.electronAPI.captureScreenshot = vi.fn().mockResolvedValue(dataUrl)
 
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
 
       await user.click(screen.getByTitle('Capture screenshot region'))
 
@@ -178,7 +169,7 @@ describe('EntryInput', () => {
       const user = userEvent.setup()
       window.electronAPI.pickImage = vi.fn().mockResolvedValue(['data:image/png;base64,x'])
 
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
 
       await user.click(screen.getByTitle('Attach image'))
       await waitFor(() => expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument())
@@ -193,7 +184,7 @@ describe('EntryInput', () => {
       const dataUrl = 'data:image/png;base64,img'
       window.electronAPI.pickImage = vi.fn().mockResolvedValue([dataUrl])
 
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
 
       await user.click(screen.getByTitle('Attach image'))
       await waitFor(() => expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument())
@@ -209,7 +200,7 @@ describe('EntryInput', () => {
       const dataUrl = 'data:image/png;base64,img'
       window.electronAPI.pickImage = vi.fn().mockResolvedValue([dataUrl])
 
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
 
       await user.click(screen.getByTitle('Attach image'))
       await waitFor(() => expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument())
@@ -225,7 +216,7 @@ describe('EntryInput', () => {
       const dataUrl = 'data:image/png;base64,img'
       window.electronAPI.pickImage = vi.fn().mockResolvedValue([dataUrl])
 
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
 
       await user.click(screen.getByTitle('Attach image'))
       await waitFor(() => expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument())
@@ -242,7 +233,7 @@ describe('EntryInput', () => {
       window.electronAPI.pickImage = vi.fn().mockResolvedValue([dataUrl])
       window.electronAPI.createEntry = vi.fn().mockRejectedValue(new Error('fail'))
 
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
 
       await user.click(screen.getByTitle('Attach image'))
       await waitFor(() => expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument())
@@ -258,7 +249,7 @@ describe('EntryInput', () => {
       const dataUrls = Array.from({ length: MAX_IMAGES_PER_ENTRY }, (_, i) => `data:image/png;base64,img${i}`)
       window.electronAPI.pickImage = vi.fn().mockResolvedValue(dataUrls)
 
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
 
       await user.click(screen.getByTitle('Attach image'))
 
@@ -275,7 +266,7 @@ describe('EntryInput', () => {
   describe('slash commands', () => {
     it('shows autocomplete dropdown when typing /', async () => {
       const user = userEvent.setup()
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
       await user.type(screen.getByRole('textbox'), '/')
       expect(screen.getByText('/action')).toBeInTheDocument()
       expect(screen.getByText('/finding')).toBeInTheDocument()
@@ -283,7 +274,7 @@ describe('EntryInput', () => {
 
     it('filters completions by prefix', async () => {
       const user = userEvent.setup()
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
       await user.type(screen.getByRole('textbox'), '/a')
       expect(screen.getByText('/action')).toBeInTheDocument()
       expect(screen.queryByText('/finding')).not.toBeInTheDocument()
@@ -291,7 +282,7 @@ describe('EntryInput', () => {
 
     it('applies completion and sets value on Tab', async () => {
       const user = userEvent.setup()
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
       await user.type(screen.getByRole('textbox'), '/')
       await user.keyboard('{Tab}')
       expect(screen.getByRole('textbox')).toHaveValue('/action ')
@@ -299,7 +290,7 @@ describe('EntryInput', () => {
 
     it('dismisses autocomplete on Escape', async () => {
       const user = userEvent.setup()
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
       await user.type(screen.getByRole('textbox'), '/')
       expect(screen.getByText('/action')).toBeInTheDocument()
       await user.keyboard('{Escape}')
@@ -308,7 +299,7 @@ describe('EntryInput', () => {
 
     it('submits /action command as action type with stripped body', async () => {
       const user = userEvent.setup()
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
       await user.type(screen.getByRole('textbox'), '/action restarted service')
       await user.keyboard('{Escape}')
       await user.keyboard('{Enter}')
@@ -319,7 +310,7 @@ describe('EntryInput', () => {
 
     it('submits /finding command as finding type with stripped body', async () => {
       const user = userEvent.setup()
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
       await user.type(screen.getByRole('textbox'), '/finding root cause identified')
       await user.keyboard('{Escape}')
       await user.keyboard('{Enter}')
@@ -330,7 +321,7 @@ describe('EntryInput', () => {
 
     it('shows type badge when an action command is active', async () => {
       const user = userEvent.setup()
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
       await user.type(screen.getByRole('textbox'), '/action ')
       // Dismiss autocomplete so only the badge remains
       await user.keyboard('{Escape}')
@@ -339,7 +330,7 @@ describe('EntryInput', () => {
 
     it('does not show type badge for plain text', async () => {
       const user = userEvent.setup()
-      render(<Wrapper onEntryCreated={onEntryCreated} />)
+      render(<Wrapper />)
       await user.type(screen.getByRole('textbox'), 'just a note')
       expect(screen.queryByText('ACTION')).not.toBeInTheDocument()
       expect(screen.queryByText('FINDING')).not.toBeInTheDocument()

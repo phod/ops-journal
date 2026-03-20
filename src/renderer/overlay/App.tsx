@@ -24,7 +24,6 @@ export default function App() {
     entries,
     loading,
     switchToInvestigation,
-    addOptimisticEntry,
     updateEntry,
     deleteEntry
   } = useOverlayState()
@@ -243,7 +242,6 @@ export default function App() {
           entries={entries}
           editingEntryId={editingEntryId}
           onSetEditingEntryId={setEditingEntryId}
-          onEntryCreated={addOptimisticEntry}
           pendingImages={pendingImages}
           onPendingImagesChange={setPendingImages}
         />
@@ -346,7 +344,6 @@ export default function App() {
               entries={entries}
               editingEntryId={editingEntryId}
               onSetEditingEntryId={setEditingEntryId}
-              onEntryCreated={addOptimisticEntry}
               pendingImages={pendingImages}
               onPendingImagesChange={setPendingImages}
             />

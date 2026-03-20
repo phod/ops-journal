@@ -44,7 +44,7 @@ export function ToolCard({ tool, depth = 0, folders = [], onEdit, onDelete, onMo
   return (
     <>
       <div
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700/50 hover:border-gray-600/60 transition-colors group"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700/50 hover:border-gray-600/60 transition-colors group overflow-hidden"
         style={{ paddingLeft: `${depth * 20 + 12}px` }}
         draggable={!!onDragStart}
         onDragStart={onDragStart}
@@ -57,7 +57,7 @@ export function ToolCard({ tool, depth = 0, folders = [], onEdit, onDelete, onMo
         </span>
 
         {/* Content – single row */}
-        <span className="text-xs font-medium text-gray-100 truncate">{tool.name}</span>
+        <span className="text-xs font-medium text-gray-100 truncate min-w-0">{tool.name}</span>
         <span className={`flex-shrink-0 text-[10px] font-medium px-1.5 py-0 rounded leading-4
           ${tool.tool_type === 'link'
             ? 'bg-blue-900/40 text-blue-400 border border-blue-800/40'
@@ -66,7 +66,7 @@ export function ToolCard({ tool, depth = 0, folders = [], onEdit, onDelete, onMo
         >
           {tool.tool_type}
         </span>
-        <span className="text-[11px] text-gray-500 truncate">{tool.value}</span>
+        <span className="text-[11px] text-gray-500 truncate min-w-0">{tool.value}</span>
 
         {tool.tags.length > 0 && (
           <div className="flex gap-1 flex-shrink-0">

@@ -180,6 +180,7 @@ export interface ElectronAPI {
   deleteTool: (id: string) => Promise<void>
   reorderTools: (orderedIds: string[]) => Promise<void>
   moveToolToFolder: (toolId: string, folderId: string | null) => Promise<void>
+  moveToolsToFolder: (toolIds: string[], folderId: string | null) => Promise<void>
   reorderToolsInFolder: (folderId: string | null, orderedIds: string[]) => Promise<void>
   executeTool: (id: string) => Promise<void>
   getToolkitHotkey: () => Promise<string>

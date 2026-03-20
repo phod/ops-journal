@@ -145,6 +145,8 @@ const electronAPI: ElectronAPI = {
   reorderTools: (orderedIds: string[]) => ipcRenderer.invoke('tool:reorder', { orderedIds }),
   moveToolToFolder: (toolId: string, folderId: string | null) =>
     ipcRenderer.invoke('tool:moveToFolder', { toolId, folderId }),
+  moveToolsToFolder: (toolIds: string[], folderId: string | null) =>
+    ipcRenderer.invoke('tool:moveMultipleToFolder', { toolIds, folderId }),
   reorderToolsInFolder: (folderId: string | null, orderedIds: string[]) =>
     ipcRenderer.invoke('tool:reorderInFolder', { folderId, orderedIds }),
   executeTool: (id: string) => ipcRenderer.invoke('tool:execute', { id }),

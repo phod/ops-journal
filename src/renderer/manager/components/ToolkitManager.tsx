@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type { Tool, ToolFolder } from '@shared/ipc-types'
 import { ToolCard } from './ToolCard'
 import { ToolForm } from './ToolForm'
@@ -33,6 +33,9 @@ export function ToolkitManager() {
   const [formFolderId, setFormFolderId] = useState<string | null>(null)
   const [subTab, setSubTab] = useState<SubTab>('tools')
   const [pendingCount, setPendingCount] = useState(0)
+  const [selectedToolIds, setSelectedToolIds] = useState<Set<string>>(new Set())
+  const lastClickedToolIdRef = useRef<string | null>(null)
+  const [dropIndicator, setDropIndicator] = useState<{ folderId: string | null; index: number } | null>(null)
 
   const loadTools = useCallback(async () => {
     const list = await window.electronAPI.listTools()
@@ -83,6 +86,63 @@ export function ToolkitManager() {
     })
   }
 
+  const tree = buildToolTree(tools, folders)
+
+  // Flat list of visible tool IDs in render order (for shift-click range selection)
+  const flatToolIds = useMemo(() => {
+    const ids: string[] = []
+    function walk(nodes: TreeNode[]) {
+      for (const node of nodes) {
+        if (node.type === 'tool') {
+          ids.push(node.tool.id)
+        } else {
+          if (expandedFolders.has(node.folder.id)) {
+            walk(node.children)
+          }
+        }
+      }
+    }
+    walk(tree)
+    return ids
+  }, [tree, expandedFolders])
+
+  function handleToolClick(e: React.MouseEvent, toolId: string) {
+    if (e.metaKey || e.ctrlKey) {
+      setSelectedToolIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(toolId)) next.delete(toolId)
+        else next.add(toolId)
+        return next
+      })
+      lastClickedToolIdRef.current = toolId
+    } else if (e.shiftKey && lastClickedToolIdRef.current) {
+      const lastIdx = flatToolIds.indexOf(lastClickedToolIdRef.current)
+      const currIdx = flatToolIds.indexOf(toolId)
+      if (lastIdx !== -1 && currIdx !== -1) {
+        const start = Math.min(lastIdx, currIdx)
+        const end = Math.max(lastIdx, currIdx)
+        const range = flatToolIds.slice(start, end + 1)
+        setSelectedToolIds((prev) => {
+          const next = new Set(prev)
+          for (const id of range) next.add(id)
+          return next
+        })
+      }
+    } else {
+      setSelectedToolIds(new Set([toolId]))
+      lastClickedToolIdRef.current = toolId
+    }
+  }
+
+  // Escape to clear selection
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSelectedToolIds(new Set())
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   function handleEdit(tool: Tool) {
     setEditingTool(tool)
     setFormFolderId(tool.folder_id)
@@ -119,8 +179,25 @@ export function ToolkitManager() {
 
   // Drag-and-drop handlers
   function handleToolDragStart(e: React.DragEvent, toolId: string) {
-    e.dataTransfer.setData('application/tool-id', toolId)
+    let dragIds: string[]
+    if (selectedToolIds.has(toolId)) {
+      dragIds = Array.from(selectedToolIds)
+    } else {
+      setSelectedToolIds(new Set())
+      dragIds = [toolId]
+    }
+    e.dataTransfer.setData('application/tool-ids', JSON.stringify(dragIds))
     e.dataTransfer.effectAllowed = 'move'
+
+    // Custom drag image for multi-drag
+    if (dragIds.length > 1) {
+      const badge = document.createElement('div')
+      badge.textContent = `${dragIds.length} tools`
+      badge.style.cssText = 'position:fixed;top:-100px;left:-100px;padding:4px 10px;background:#4f46e5;color:#fff;border-radius:6px;font-size:12px;font-weight:600;white-space:nowrap;'
+      document.body.appendChild(badge)
+      e.dataTransfer.setDragImage(badge, badge.offsetWidth / 2, badge.offsetHeight / 2)
+      requestAnimationFrame(() => document.body.removeChild(badge))
+    }
   }
 
   function handleFolderDragStart(e: React.DragEvent, folderId: string) {
@@ -140,12 +217,21 @@ export function ToolkitManager() {
   async function handleDropOnFolder(e: React.DragEvent, targetFolderId: string | null) {
     e.preventDefault()
     e.stopPropagation()
+    setDropIndicator(null)
 
-    const toolId = e.dataTransfer.getData('application/tool-id')
+    const toolIdsJson = e.dataTransfer.getData('application/tool-ids')
     const folderId = e.dataTransfer.getData('application/folder-id')
 
-    if (toolId) {
-      await window.electronAPI.moveToolToFolder(toolId, targetFolderId)
+    if (toolIdsJson) {
+      const toolIds = JSON.parse(toolIdsJson) as string[]
+      const toMove = toolIds.filter((id) => {
+        const tool = tools.find((t) => t.id === id)
+        return tool && tool.folder_id !== targetFolderId
+      })
+      if (toMove.length > 0) {
+        await window.electronAPI.moveToolsToFolder(toMove, targetFolderId)
+      }
+      setSelectedToolIds(new Set())
     } else if (folderId && folderId !== targetFolderId) {
       try {
         await window.electronAPI.moveToolFolderToFolder(folderId, targetFolderId)
@@ -155,11 +241,73 @@ export function ToolkitManager() {
     }
   }
 
+  function handleToolDragOver(e: React.DragEvent, toolId: string, folderId: string | null) {
+    if (!e.dataTransfer.types.includes('application/tool-ids')) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const midY = rect.top + rect.height / 2
+    const folderTools = tools.filter((t) => t.folder_id === folderId).sort((a, b) => a.sort_order - b.sort_order)
+    const toolIndex = folderTools.findIndex((t) => t.id === toolId)
+    const insertIndex = e.clientY < midY ? toolIndex : toolIndex + 1
+    setDropIndicator({ folderId, index: insertIndex })
+  }
+
+  function handleToolDragLeave() {
+    setDropIndicator(null)
+  }
+
+  async function handleDropOnTool(e: React.DragEvent, targetToolId: string, targetFolderId: string | null) {
+    e.preventDefault()
+    e.stopPropagation()
+    setDropIndicator(null)
+
+    const toolIdsJson = e.dataTransfer.getData('application/tool-ids')
+    if (!toolIdsJson) return
+
+    const dragIds = JSON.parse(toolIdsJson) as string[]
+    const folderTools = tools.filter((t) => t.folder_id === targetFolderId).sort((a, b) => a.sort_order - b.sort_order)
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const midY = rect.top + rect.height / 2
+    const targetIndex = folderTools.findIndex((t) => t.id === targetToolId)
+    const insertIndex = e.clientY < midY ? targetIndex : targetIndex + 1
+
+    // Move cross-folder tools first
+    const crossFolderIds = dragIds.filter((id) => {
+      const tool = tools.find((t) => t.id === id)
+      return tool && tool.folder_id !== targetFolderId
+    })
+    if (crossFolderIds.length > 0) {
+      await window.electronAPI.moveToolsToFolder(crossFolderIds, targetFolderId)
+    }
+
+    // Build new ordering: existing tools minus dragged, then insert dragged at position
+    const dragSet = new Set(dragIds)
+    const remaining = folderTools.filter((t) => !dragSet.has(t.id)).map((t) => t.id)
+    // Also include any tools that were just moved cross-folder
+    const allDragInFolder = dragIds.filter((id) => {
+      const tool = tools.find((t) => t.id === id)
+      return tool // all are now in target folder after the move above
+    })
+    // Compute actual insert position in the remaining array
+    let actualInsert = insertIndex
+    // Adjust for removed items before the insert point
+    let removed = 0
+    for (let i = 0; i < insertIndex && i < folderTools.length; i++) {
+      if (dragSet.has(folderTools[i].id)) removed++
+    }
+    actualInsert = insertIndex - removed
+    if (actualInsert > remaining.length) actualInsert = remaining.length
+
+    const newOrder = [...remaining]
+    newOrder.splice(actualInsert, 0, ...allDragInFolder)
+    await window.electronAPI.reorderToolsInFolder(targetFolderId, newOrder)
+    setSelectedToolIds(new Set())
+  }
+
   async function handleMoveToolToFolder(toolId: string, folderId: string | null) {
     await window.electronAPI.moveToolToFolder(toolId, folderId)
   }
-
-  const tree = buildToolTree(tools, folders)
 
   function renderTree(nodes: TreeNode[]): React.ReactNode {
     return nodes.map((node) => {
@@ -187,16 +335,27 @@ export function ToolkitManager() {
           </FolderRow>
         )
       } else {
+        const folderTools = tools.filter((t) => t.folder_id === node.tool.folder_id).sort((a, b) => a.sort_order - b.sort_order)
+        const toolIndex = folderTools.findIndex((t) => t.id === node.tool.id)
+        const showDropBefore = dropIndicator?.folderId === node.tool.folder_id && dropIndicator?.index === toolIndex
+        const showDropAfter = dropIndicator?.folderId === node.tool.folder_id && dropIndicator?.index === toolIndex + 1 &&
+          toolIndex === folderTools.length - 1
         return (
           <ToolCard
             key={node.tool.id}
             tool={node.tool}
             depth={node.depth}
             folders={folders}
+            isSelected={selectedToolIds.has(node.tool.id)}
+            onClick={(e) => handleToolClick(e, node.tool.id)}
             onEdit={() => handleEdit(node.tool)}
             onDelete={() => handleDelete(node.tool)}
             onMoveToFolder={(folderId) => handleMoveToolToFolder(node.tool.id, folderId)}
             onDragStart={(e) => handleToolDragStart(e, node.tool.id)}
+            onDragOver={(e) => handleToolDragOver(e, node.tool.id, node.tool.folder_id)}
+            onDragLeave={handleToolDragLeave}
+            onDrop={(e) => handleDropOnTool(e, node.tool.id, node.tool.folder_id)}
+            dropPosition={showDropBefore ? 'before' : showDropAfter ? 'after' : undefined}
           />
         )
       }
@@ -275,6 +434,7 @@ export function ToolkitManager() {
               className="grid gap-0.5"
               onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
               onDrop={(e) => handleDropOnFolder(e, null)}
+              onDragEnd={() => setDropIndicator(null)}
             >
               {renderTree(tree)}
             </div>

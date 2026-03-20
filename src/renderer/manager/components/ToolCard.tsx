@@ -7,13 +7,19 @@ interface Props {
   tool: Tool
   depth?: number
   folders?: ToolFolder[]
+  isSelected?: boolean
+  onClick?: (e: React.MouseEvent) => void
   onEdit: () => void
   onDelete: () => void
   onMoveToFolder?: (folderId: string | null) => void
   onDragStart?: (e: React.DragEvent) => void
+  onDragOver?: (e: React.DragEvent) => void
+  onDragLeave?: (e: React.DragEvent) => void
+  onDrop?: (e: React.DragEvent) => void
+  dropPosition?: 'before' | 'after'
 }
 
-export function ToolCard({ tool, depth = 0, folders = [], onEdit, onDelete, onMoveToFolder, onDragStart }: Props) {
+export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, onEdit, onDelete, onMoveToFolder, onDragStart, onDragOver, onDragLeave, onDrop, dropPosition }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showMoveMenu, setShowMoveMenu] = useState(false)
@@ -59,11 +65,25 @@ export function ToolCard({ tool, depth = 0, folders = [], onEdit, onDelete, onMo
   return (
     <>
       <div
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700/50 hover:border-gray-600/60 transition-colors group overflow-hidden"
+        className={`relative flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors group overflow-hidden cursor-pointer ${
+          isSelected
+            ? 'bg-indigo-500/15 border-indigo-500/50'
+            : 'bg-gray-800/50 border-gray-700/50 hover:border-gray-600/60'
+        }`}
         style={{ paddingLeft: `${depth * 20 + 12}px` }}
         draggable={!!onDragStart}
         onDragStart={onDragStart}
+        onClick={onClick}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
       >
+        {dropPosition === 'before' && (
+          <div className="absolute top-0 left-2 right-2 h-0.5 bg-indigo-500 rounded-full -translate-y-px" />
+        )}
+        {dropPosition === 'after' && (
+          <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-indigo-500 rounded-full translate-y-px" />
+        )}
         {/* Type icon */}
         <span className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs ${
           tool.tool_type === 'link' ? 'text-blue-400' : 'text-amber-400'
@@ -100,7 +120,7 @@ export function ToolCard({ tool, depth = 0, folders = [], onEdit, onDelete, onMo
         <div className="flex-shrink-0">
           <button
             ref={btnRef}
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
             className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-gray-300 hover:bg-gray-700/60 transition-colors opacity-0 group-hover:opacity-100 text-xs"
           >
             ···

@@ -7,6 +7,7 @@ import { SummaryView } from './components/SummaryView'
 import type { SummaryViewHandle } from './components/SummaryView'
 import { ExportView } from './components/ExportView'
 import { RumourBoardView } from './components/board/RumourBoardView'
+import { RelationshipMapView } from './components/relationships/RelationshipMapView'
 
 export default function App(): JSX.Element {
   const investigationId = new URLSearchParams(window.location.search).get('id')
@@ -15,7 +16,7 @@ export default function App(): JSX.Element {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
-  const [view, setView] = useState<'entries' | 'summary' | 'export' | 'board' | null>(null)
+  const [view, setView] = useState<'entries' | 'summary' | 'export' | 'board' | 'relationships' | null>(null)
   const [preExportView, setPreExportView] = useState<'entries' | 'summary' | null>(null)
   const [isRenaming, setIsRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
@@ -76,7 +77,7 @@ export default function App(): JSX.Element {
     setView('export')
   }
 
-  function navigateTo(target: 'summary' | 'entries' | 'board', newFilter?: Filter): void {
+  function navigateTo(target: 'summary' | 'entries' | 'board' | 'relationships', newFilter?: Filter): void {
     if (view === target && target === 'entries') {
       if (newFilter) setFilter(newFilter)
       return
@@ -261,6 +262,16 @@ export default function App(): JSX.Element {
         >
           Rumour Board
         </button>
+        <button
+          onClick={() => navigateTo('relationships')}
+          className={`text-xs px-3 py-1.5 rounded-t font-medium transition-colors ${
+            view === 'relationships'
+              ? 'bg-gray-700 text-gray-100 border border-b-0 border-gray-600'
+              : 'text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          Relationships
+        </button>
         {/* Search bar */}
         <div className="ml-auto flex items-center gap-1.5">
           {showSearch && (
@@ -306,6 +317,10 @@ export default function App(): JSX.Element {
       {view === 'board' ? (
         <div className="flex-1 min-h-0 flex">
           <RumourBoardView investigationId={investigationId} entries={entries} />
+        </div>
+      ) : view === 'relationships' ? (
+        <div className="flex-1 min-h-0 flex">
+          <RelationshipMapView entries={entries} />
         </div>
       ) : (
         <div className={`flex-1 min-h-0 px-6 py-4 ${view === 'summary' ? 'flex flex-col' : 'overflow-y-auto'}`}>

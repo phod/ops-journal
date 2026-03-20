@@ -213,6 +213,7 @@ function positionOverlay(win: BrowserWindow): void {
 }
 
 let preBoardBounds: OverlayBounds | null = null
+let preSearchBounds: OverlayBounds | null = null
 
 export function expandOverlayForBoard(): void {
   const win = overlayWindow
@@ -235,6 +236,30 @@ export function restoreOverlayFromBoard(): void {
   if (!win || !preBoardBounds) return
   win.setBounds(preBoardBounds)
   preBoardBounds = null
+}
+
+export function expandOverlayForSearch(): void {
+  const win = overlayWindow
+  if (!win) return
+  // Skip if board is already expanded (overlay already wide)
+  if (preBoardBounds) return
+  const [x, y] = win.getPosition()
+  const [currentWidth, height] = win.getSize()
+  preSearchBounds = { x, y, width: currentWidth, height }
+
+  const { workAreaSize } = screen.getPrimaryDisplay()
+  const targetWidth = Math.min(Math.round(workAreaSize.width * 0.85), 1600)
+  if (currentWidth < targetWidth) {
+    const newX = Math.round((workAreaSize.width - targetWidth) / 2)
+    win.setBounds({ x: newX, y, width: targetWidth, height })
+  }
+}
+
+export function restoreOverlayFromSearch(): void {
+  const win = overlayWindow
+  if (!win || !preSearchBounds) return
+  win.setBounds(preSearchBounds)
+  preSearchBounds = null
 }
 
 // --- Toolkit overlay ---

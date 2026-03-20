@@ -152,6 +152,8 @@ export interface ElectronAPI {
   showOverlay: () => Promise<void>
   expandOverlayForBoard: () => Promise<void>
   restoreOverlayFromBoard: () => Promise<void>
+  expandOverlayForSearch: () => Promise<void>
+  restoreOverlayFromSearch: () => Promise<void>
   openDetails: (id: string) => Promise<void>
   onShowDetails: (callback: (id: string) => void) => () => void
   onShowHome: (callback: () => void) => () => void

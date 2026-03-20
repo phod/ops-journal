@@ -29,6 +29,7 @@ interface Props {
   onEntryUpdated: (entry: JournalEntry) => void
   onEntryDeleted: (id: string) => void
   searchTerm?: string
+  highlightedEntryId?: string | null
 }
 
 function getCaretOffsetTop(textarea: HTMLTextAreaElement, position: number): number {
@@ -68,9 +69,10 @@ interface EntryRowProps {
   onUpdated: (entry: JournalEntry) => void
   onDeleted: (id: string) => void
   searchTerm?: string
+  isHighlighted?: boolean
 }
 
-function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavigateUp, onNavigateDown, onUpdated, onDeleted, searchTerm }: EntryRowProps) {
+function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavigateUp, onNavigateDown, onUpdated, onDeleted, searchTerm, isHighlighted }: EntryRowProps) {
   const [draft, setDraft] = useState(entry.body)
   const [saving, setSaving] = useState(false)
   const imageDataUrls = useEntryImages(entry.image_paths)
@@ -321,6 +323,20 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
 
   const { linkedFindings, linkedActions, linkedChildHypotheses, parentHypotheses, linkedHypotheses } = useEntryRelationships(entry, allEntries)
 
+  // Scroll into view when highlighted
+  const [glowActive, setGlowActive] = useState(false)
+  useEffect(() => {
+    if (isHighlighted) {
+      const el = document.getElementById(`entry-${entry.id}`)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setGlowActive(true)
+      const timer = setTimeout(() => setGlowActive(false), 2000)
+      return () => clearTimeout(timer)
+    } else {
+      setGlowActive(false)
+    }
+  }, [isHighlighted, entry.id])
+
   // Drag-and-drop linking
   const { draggedEntry, validTargetIds, hoveredTargetId, startDrag, endDrag, setHoveredTarget } = useEntryDrag()
   const isDragSource = draggedEntry?.id === entry.id
@@ -438,7 +454,8 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
     }
   }
 
-  const cardClass = `${baseCardClass} ${dragClass} transition-all`
+  const highlightClass = glowActive ? 'ring-1 ring-indigo-400/50 shadow-[0_0_12px_rgba(99,102,241,0.08)]' : ''
+  const cardClass = `${baseCardClass} ${dragClass} ${highlightClass} transition-all`
 
   return (
     <div
@@ -899,7 +916,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   )
 }
 
-export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onEntryUpdated, onEntryDeleted, searchTerm }: Props) {
+export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onEntryUpdated, onEntryDeleted, searchTerm, highlightedEntryId }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const prevEntriesLengthRef = useRef(entries.length)
@@ -953,6 +970,7 @@ export function EntryList({ entries, editingEntryId, onEditingEntryIdChange, onE
           onUpdated={onEntryUpdated}
           onDeleted={onEntryDeleted}
           searchTerm={searchTerm}
+          isHighlighted={highlightedEntryId === entry.id}
         />
       ))}
     </div>

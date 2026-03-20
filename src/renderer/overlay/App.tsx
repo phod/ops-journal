@@ -5,6 +5,7 @@ import { EntryList } from './components/EntryList'
 import { EntryInput } from './components/EntryInput'
 import { EntityPanel } from './components/EntityPanel'
 import { ResizeHandle } from './components/ResizeHandle'
+import { SearchPanel } from './components/SearchPanel'
 import { RumourBoardView } from '../details/components/board/RumourBoardView'
 import { EntryDragProvider } from './contexts/EntryDragContext'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
@@ -36,6 +37,8 @@ export default function App() {
   const [entityPanelWidth, setEntityPanelWidth] = useState(DEFAULT_ENTITY_PANEL_WIDTH)
   const [showSearch, setShowSearch] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null)
+  const [searchPanelWidth, setSearchPanelWidth] = useState(220)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const onboardingCheckedRef = useRef(false)
@@ -45,17 +48,22 @@ export default function App() {
     const handleKeyDown = (e: KeyboardEvent): void => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
         e.preventDefault()
-        setShowSearch(true)
-        setTimeout(() => searchInputRef.current?.focus(), 0)
+        if (!showSearch) {
+          setShowSearch(true)
+          if (!showRumourBoard) window.electronAPI.expandOverlayForSearch()
+          setTimeout(() => searchInputRef.current?.focus(), 0)
+        }
       }
       if (e.key === 'Escape' && showSearch) {
         setShowSearch(false)
         setSearchTerm('')
+        setHighlightedEntryId(null)
+        if (!showRumourBoard) window.electronAPI.restoreOverlayFromSearch()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showSearch])
+  }, [showSearch, showRumourBoard])
 
   // Check onboarding on first investigation
   useEffect(() => {
@@ -90,6 +98,21 @@ export default function App() {
 
   const handleEntityPanelResize = useCallback((delta: number) => {
     setEntityPanelWidth((w) => Math.max(MIN_ENTITY_PANEL_WIDTH, w - delta))
+  }, [])
+
+  const handleSearchPanelResize = useCallback((delta: number) => {
+    setSearchPanelWidth((w) => Math.max(160, w + delta))
+  }, [])
+
+  const closeSearch = useCallback(() => {
+    setShowSearch(false)
+    setSearchTerm('')
+    setHighlightedEntryId(null)
+    if (!showRumourBoard) window.electronAPI.restoreOverlayFromSearch()
+  }, [showRumourBoard])
+
+  const handleSearchResultClick = useCallback((entryId: string) => {
+    setHighlightedEntryId(entryId)
   }, [])
 
   const hasFiles = (e: React.DragEvent) => e.dataTransfer.types.includes('Files')
@@ -260,9 +283,23 @@ export default function App() {
     return (
       <EntryDragProvider entries={entries}>
         <div className="flex flex-1 overflow-hidden">
+          {showSearch && (
+            <>
+              <div className="flex-shrink-0 overflow-hidden" style={{ width: searchPanelWidth }}>
+                <SearchPanel
+                  entries={entries}
+                  searchTerm={searchTerm}
+                  onSearchTermChange={setSearchTerm}
+                  onResultClick={handleSearchResultClick}
+                  onClose={closeSearch}
+                  searchInputRef={searchInputRef}
+                />
+              </div>
+              <ResizeHandle onResize={handleSearchPanelResize} />
+            </>
+          )}
           <div className="flex flex-col flex-1 overflow-hidden">
-            {searchBar}
-            {showOnboarding && (
+            {showOnboarding && !showSearch && (
               <div className="mx-3 mt-2 p-3 rounded-lg bg-indigo-950/50 border border-indigo-500/30">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">Quick Tips</span>
@@ -277,12 +314,13 @@ export default function App() {
               </div>
             )}
             <EntryList
-              entries={filteredEntries}
+              entries={entries}
               editingEntryId={editingEntryId}
               onEditingEntryIdChange={setEditingEntryId}
               onEntryUpdated={updateEntry}
               onEntryDeleted={deleteEntry}
-              searchTerm={searchTerm}
+              searchTerm={showSearch ? searchTerm : undefined}
+              highlightedEntryId={highlightedEntryId}
             />
             <EntryInput
               activeInvestigation={currentInvestigation}

@@ -27,12 +27,11 @@ interface Props {
   entries: JournalEntry[]
   editingEntryId: string | null
   onSetEditingEntryId: (id: string | null) => void
-  onEntryCreated: (entry: JournalEntry) => void
   pendingImages: string[]
   onPendingImagesChange: (images: string[]) => void
 }
 
-export function EntryInput({ activeInvestigation, entries, editingEntryId, onSetEditingEntryId, onEntryCreated, pendingImages, onPendingImagesChange }: Props) {
+export function EntryInput({ activeInvestigation, entries, editingEntryId, onSetEditingEntryId, pendingImages, onPendingImagesChange }: Props) {
   const [value, setValue] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [screenshotHint, setScreenshotHint] = useState<string | null>(null)
@@ -139,13 +138,12 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
     setSubmitting(true)
 
     try {
-      const entry = await window.electronAPI.createEntry(
+      await window.electronAPI.createEntry(
         activeInvestigation.id,
         body,
         imagesToSubmit.length > 0 ? imagesToSubmit : undefined,
         type
       )
-      onEntryCreated(entry)
     } catch (err) {
       console.error('[overlay] Failed to create entry:', err)
       setValue(trimmed)

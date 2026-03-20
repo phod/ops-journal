@@ -15,8 +15,12 @@ export function ConversionQueue() {
   }, [filterInvestigationId])
 
   const loadInvestigations = useCallback(async () => {
-    const list = await window.electronAPI.listInvestigations()
-    setInvestigations(list)
+    const [allInvestigations, allPending] = await Promise.all([
+      window.electronAPI.listInvestigations(),
+      window.electronAPI.listPendingToolEntries(undefined),
+    ])
+    const idsWithPending = new Set(allPending.map((e) => e.investigation_id))
+    setInvestigations(allInvestigations.filter((inv) => idsWithPending.has(inv.id)))
   }, [])
 
   useEffect(() => {
@@ -30,8 +34,9 @@ export function ConversionQueue() {
   useEffect(() => {
     return window.electronAPI.onEntriesChanged(() => {
       loadEntries()
+      loadInvestigations()
     })
-  }, [loadEntries])
+  }, [loadEntries, loadInvestigations])
 
   const visibleEntries = entries.filter((e) => !skippedIds.has(e.id))
 

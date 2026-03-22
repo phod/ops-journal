@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ElectronAPI, ExportFormat, HypothesisStatus, ToolEntryStatus, Investigation, Tool, ToolFolder, ToolType, PendingToolEntry, BoardNode, BoardEdge, BoardViewport } from '../shared/ipc-types'
+import type { ElectronAPI, ExportFormat, HypothesisStatus, ToolEntryStatus, Investigation, Tool, ToolFolder, ToolType, FunctionParameter, PendingToolEntry, BoardNode, BoardEdge, BoardViewport } from '../shared/ipc-types'
 
 /**
  * Creates a listener for an IPC channel that forwards arguments to a callback,
@@ -137,11 +137,13 @@ const electronAPI: ElectronAPI = {
 
   // Toolkit
   listTools: () => ipcRenderer.invoke('tool:list'),
-  createTool: (name: string, toolType: ToolType, value: string, tags: string[], folderId?: string | null) =>
-    ipcRenderer.invoke('tool:create', { name, toolType, value, tags, folderId }),
+  createTool: (name: string, toolType: ToolType, value: string, tags: string[], folderId?: string | null, parameters?: FunctionParameter[] | null) =>
+    ipcRenderer.invoke('tool:create', { name, toolType, value, tags, folderId, parameters }),
   createToolsBulk: (tools, folderId?: string | null) => ipcRenderer.invoke('tool:createBulk', { tools, folderId }),
-  updateTool: (id: string, name: string, toolType: ToolType, value: string, tags: string[]) =>
-    ipcRenderer.invoke('tool:update', { id, name, toolType, value, tags }),
+  updateTool: (id: string, name: string, toolType: ToolType, value: string, tags: string[], parameters?: FunctionParameter[] | null) =>
+    ipcRenderer.invoke('tool:update', { id, name, toolType, value, tags, parameters }),
+  executeFunctionTool: (id: string, paramValues: Record<string, string>) =>
+    ipcRenderer.invoke('tool:executeFunction', { id, paramValues }),
   deleteTool: (id: string) => ipcRenderer.invoke('tool:delete', { id }),
   reorderTools: (orderedIds: string[]) => ipcRenderer.invoke('tool:reorder', { orderedIds }),
   moveToolToFolder: (toolId: string, folderId: string | null) =>

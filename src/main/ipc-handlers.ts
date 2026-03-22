@@ -20,8 +20,9 @@ import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, r
 import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getManagerHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed, getOpaqueOverlay, setOpaqueOverlay } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
-import type { Investigation, Tool, ToolFolder, ToolType } from '@shared/ipc-types'
+import type { Investigation, Tool, ToolFolder, ToolType, FunctionParameter } from '@shared/ipc-types'
 import { exportAsMarkdown, exportAsPdf, buildExportHtml } from './export'
+import { interpretScript } from './script-interpreter'
 
 function broadcastInvestigationChanged(investigations: Investigation[]): void {
   const windows = BrowserWindow.getAllWindows()
@@ -414,8 +415,8 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('tool:list', () => listTools())
 
-  ipcMain.handle('tool:create', (_event, { name, toolType, value, tags, folderId }: { name: string; toolType: ToolType; value: string; tags: string[]; folderId?: string | null }) => {
-    const tool = createTool(name, toolType, value, tags, folderId)
+  ipcMain.handle('tool:create', (_event, { name, toolType, value, tags, folderId, parameters }: { name: string; toolType: ToolType; value: string; tags: string[]; folderId?: string | null; parameters?: FunctionParameter[] | null }) => {
+    const tool = createTool(name, toolType, value, tags, folderId, parameters)
     broadcastToolsChanged()
     return tool
   })
@@ -426,8 +427,8 @@ export function registerIpcHandlers(): void {
     return created
   })
 
-  ipcMain.handle('tool:update', (_event, { id, name, toolType, value, tags }: { id: string; name: string; toolType: ToolType; value: string; tags: string[] }) => {
-    const tool = updateTool(id, name, toolType, value, tags)
+  ipcMain.handle('tool:update', (_event, { id, name, toolType, value, tags, parameters }: { id: string; name: string; toolType: ToolType; value: string; tags: string[]; parameters?: FunctionParameter[] | null }) => {
+    const tool = updateTool(id, name, toolType, value, tags, parameters)
     broadcastToolsChanged()
     return tool
   })
@@ -481,6 +482,25 @@ export function registerIpcHandlers(): void {
         }
       } catch {
         // Paste simulation failed — text is still on clipboard
+      }
+    }
+  })
+
+  ipcMain.handle('tool:executeFunction', async (_event, { id, paramValues }: { id: string; paramValues: Record<string, string> }) => {
+    const tools = listTools()
+    const tool = tools.find((t) => t.id === id)
+    if (!tool || tool.tool_type !== 'function') return
+
+    console.log('[tool:executeFunction] paramValues:', paramValues)
+    const actions = interpretScript(tool.value, paramValues)
+    console.log('[tool:executeFunction] actions:', actions)
+    for (const action of actions) {
+      if (action.type === 'copy') {
+        console.log('[tool:executeFunction] copying:', action.value)
+        clipboard.writeText(action.value)
+      } else if (action.type === 'openLink') {
+        console.log('[tool:executeFunction] opening:', action.value)
+        await shell.openExternal(action.value)
       }
     }
   })

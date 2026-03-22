@@ -35,8 +35,10 @@ function runMigrations(database: Database.Database): void {
 
   for (let i = 0; i < migrations.length; i++) {
     if (!applied.has(i)) {
-      database.exec(migrations[i])
-      insertMigration.run(i)
+      database.transaction(() => {
+        database.exec(migrations[i])
+        insertMigration.run(i)
+      })()
       console.log(`[db] Applied migration ${i}`)
     }
   }

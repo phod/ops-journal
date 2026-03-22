@@ -155,4 +155,25 @@ export const migrations: string[] = [
 
   // Migration 16 — tab ordering for investigations
   `ALTER TABLE investigations ADD COLUMN tab_order INTEGER NOT NULL DEFAULT 0;`,
+
+  // Migration 17 — function tools: update CHECK constraint + add parameters column
+  `
+  CREATE TABLE tools_new (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    tool_type TEXT NOT NULL CHECK(tool_type IN ('link', 'string', 'function')),
+    value TEXT NOT NULL,
+    tags TEXT NOT NULL DEFAULT '[]',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    folder_id TEXT REFERENCES tool_folders(id) ON DELETE SET NULL,
+    parameters TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  INSERT INTO tools_new (id, name, tool_type, value, tags, sort_order, folder_id, created_at, updated_at)
+    SELECT id, name, tool_type, value, tags, sort_order, folder_id, created_at, updated_at FROM tools;
+  DROP TABLE tools;
+  ALTER TABLE tools_new RENAME TO tools;
+  CREATE INDEX IF NOT EXISTS idx_tools_sort_order ON tools(sort_order);
+  `,
 ]

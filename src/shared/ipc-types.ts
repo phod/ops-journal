@@ -1,7 +1,15 @@
 import type { RumourBoard, BoardState, BoardViewport, BoardNode, BoardEdge } from './board-types'
 export type { RumourBoard, BoardState, BoardViewport, BoardNode, BoardEdge }
 
-export type ToolType = 'link' | 'string'
+export type ToolType = 'link' | 'string' | 'function'
+
+export type FunctionParameterType = 'text' | 'list' | 'list-other'
+
+export interface FunctionParameter {
+  name: string
+  type: FunctionParameterType
+  options?: string[]
+}
 
 export interface Tool {
   id: string
@@ -11,6 +19,7 @@ export interface Tool {
   tags: string[]
   folder_id: string | null
   sort_order: number
+  parameters: FunctionParameter[] | null
   created_at: string
   updated_at: string
 }
@@ -176,9 +185,10 @@ export interface ElectronAPI {
 
   // Toolkit
   listTools: () => Promise<Tool[]>
-  createTool: (name: string, toolType: ToolType, value: string, tags: string[], folderId?: string | null) => Promise<Tool>
-  createToolsBulk: (tools: { name: string; toolType: ToolType; value: string; tags: string[] }[], folderId?: string | null) => Promise<Tool[]>
-  updateTool: (id: string, name: string, toolType: ToolType, value: string, tags: string[]) => Promise<Tool>
+  createTool: (name: string, toolType: ToolType, value: string, tags: string[], folderId?: string | null, parameters?: FunctionParameter[] | null) => Promise<Tool>
+  createToolsBulk: (tools: { name: string; toolType: ToolType; value: string; tags: string[]; parameters?: FunctionParameter[] | null }[], folderId?: string | null) => Promise<Tool[]>
+  updateTool: (id: string, name: string, toolType: ToolType, value: string, tags: string[], parameters?: FunctionParameter[] | null) => Promise<Tool>
+  executeFunctionTool: (id: string, paramValues: Record<string, string>) => Promise<void>
   deleteTool: (id: string) => Promise<void>
   reorderTools: (orderedIds: string[]) => Promise<void>
   moveToolToFolder: (toolId: string, folderId: string | null) => Promise<void>

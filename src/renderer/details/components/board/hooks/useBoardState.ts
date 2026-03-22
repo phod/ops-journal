@@ -71,6 +71,8 @@ export interface BoardStateHook {
   nodes: Node[]
   edges: Edge[]
   viewport: Viewport
+  setNodes: React.Dispatch<React.SetStateAction<Node[]>>
+  setEdges: React.Dispatch<React.SetStateAction<Edge[]>>
   onNodesChange: (changes: NodeChange[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
   onConnect: (connection: Connection) => void
@@ -516,6 +518,8 @@ export function useBoardState(boardId: string | null, allEntries: JournalEntry[]
     nodes,
     edges,
     viewport,
+    setNodes,
+    setEdges,
     onNodesChange,
     onEdgesChange,
     onConnect,

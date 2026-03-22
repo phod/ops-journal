@@ -22,6 +22,12 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
   const [tagsInput, setTagsInput] = useState(tool?.tags.join(', ') ?? '')
   const [saving, setSaving] = useState(false)
   const [parameters, setParameters] = useState<FunctionParameter[]>(tool?.parameters ?? [])
+  const [referenceEntries, setReferenceEntries] = useState<{ key: string; value: string }[]>(() => {
+    if (tool?.tool_type === 'reference') {
+      try { return JSON.parse(tool.value) } catch { return [{ key: '', value: '' }] }
+    }
+    return [{ key: '', value: '' }]
+  })
   const [optionsInputs, setOptionsInputs] = useState<Record<number, string>>(() => {
     const init: Record<number, string> = {}
     for (let i = 0; i < (tool?.parameters ?? []).length; i++) {
@@ -60,7 +66,9 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !value.trim()) return
+    const effectiveValue = toolType === 'reference' ? JSON.stringify(referenceEntries.filter((e) => e.key.trim())) : value
+    if (!name.trim() || (!effectiveValue.trim() && toolType !== 'reference')) return
+    if (toolType === 'reference' && referenceEntries.filter((e) => e.key.trim()).length === 0) return
     if (toolType === 'function' && parameters.some((p) => !p.name.trim())) return
 
     setSaving(true)
@@ -76,9 +84,9 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
     const params = finalParams
     try {
       if (isEditing) {
-        await window.electronAPI.updateTool(tool.id, name.trim(), toolType, value.trim(), tags, params)
+        await window.electronAPI.updateTool(tool.id, name.trim(), toolType, effectiveValue.trim(), tags, params)
       } else {
-        await window.electronAPI.createTool(name.trim(), toolType, value.trim(), tags, folderId, params)
+        await window.electronAPI.createTool(name.trim(), toolType, effectiveValue.trim(), tags, folderId, params)
       }
       onClose()
     } finally {
@@ -96,18 +104,18 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
         <div>
           <label className="block text-xs text-gray-400 font-medium mb-1.5">Type</label>
           <div className="flex gap-1 p-0.5 bg-gray-700/60 rounded-lg w-fit">
-            {(['link', 'string', 'function', 'content'] as const).map((t) => (
+            {(['link', 'string', 'function', 'content', 'reference'] as const).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setToolType(t)}
                 className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors capitalize
                   ${toolType === t
-                    ? t === 'function' ? 'bg-emerald-600 text-white' : t === 'content' ? 'bg-purple-600 text-white' : 'bg-indigo-600 text-white'
+                    ? t === 'function' ? 'bg-emerald-600 text-white' : t === 'content' ? 'bg-purple-600 text-white' : t === 'reference' ? 'bg-cyan-600 text-white' : 'bg-indigo-600 text-white'
                     : 'text-gray-400 hover:text-gray-200'
                   }`}
               >
-                {t === 'link' ? '↗ Link' : t === 'function' ? '⚡ Function' : t === 'content' ? '📖 Content' : '⌨ String'}
+                {t === 'link' ? '↗ Link' : t === 'function' ? '⚡ Function' : t === 'content' ? '📖 Content' : t === 'reference' ? '📋 Reference' : '⌨ String'}
               </button>
             ))}
           </div>
@@ -213,7 +221,70 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
           </div>
         )}
 
-        {/* Value / Script */}
+        {/* Value / Script / Entries */}
+        {toolType === 'reference' ? (
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <label className="block text-xs text-gray-400 font-medium">Entries</label>
+              {referenceEntries.filter((e) => e.key.trim()).length > 0 && (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-indigo-600/30 text-indigo-300 border border-indigo-500/30">
+                  {referenceEntries.filter((e) => e.key.trim()).length} entr{referenceEntries.filter((e) => e.key.trim()).length !== 1 ? 'ies' : 'y'}
+                </span>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex gap-2 items-center px-0.5">
+                <span className="flex-1 text-[10px] text-gray-500 font-medium">KEY</span>
+                <span className="flex-1 text-[10px] text-gray-500 font-medium">VALUE</span>
+                <span className="w-7"></span>
+              </div>
+              {referenceEntries.map((entry, i) => {
+                const isDuplicate = referenceEntries.some((e, j) => j !== i && e.key.trim() && e.key.trim() === entry.key.trim())
+                return (
+                  <div key={i}>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={entry.key}
+                        onChange={(e) => setReferenceEntries(referenceEntries.map((re, ri) => ri === i ? { ...re, key: e.target.value } : re))}
+                        placeholder="key"
+                        className={`flex-1 min-w-0 bg-gray-800 border rounded-lg px-2.5 py-1.5 text-xs placeholder-gray-600 outline-none transition-colors font-mono ${
+                          isDuplicate ? 'border-red-500/50 text-red-300' : 'border-gray-700 text-cyan-300 focus:border-cyan-500/60'
+                        }`}
+                      />
+                      <input
+                        type="text"
+                        value={entry.value}
+                        onChange={(e) => setReferenceEntries(referenceEntries.map((re, ri) => ri === i ? { ...re, value: e.target.value } : re))}
+                        placeholder="value"
+                        className={`flex-1 min-w-0 bg-gray-800 border rounded-lg px-2.5 py-1.5 text-xs text-gray-100 placeholder-gray-600 outline-none transition-colors font-mono ${
+                          isDuplicate ? 'border-red-500/30' : 'border-gray-700 focus:border-cyan-500/60'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setReferenceEntries(referenceEntries.filter((_, ri) => ri !== i))}
+                        className="px-1.5 py-1.5 text-xs text-red-400 hover:text-red-300 transition-colors flex-shrink-0"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {isDuplicate && (
+                      <div className="text-[10px] text-red-400 mt-0.5 ml-0.5">Duplicate key &ldquo;{entry.key.trim()}&rdquo;</div>
+                    )}
+                  </div>
+                )
+              })}
+              <button
+                type="button"
+                onClick={() => setReferenceEntries([...referenceEntries, { key: '', value: '' }])}
+                className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+              >
+                + Add entry
+              </button>
+            </div>
+          </div>
+        ) : (
         <div>
           <label className="block text-xs text-gray-400 font-medium mb-1.5">
             {toolType === 'link' ? 'URL' : toolType === 'function' ? 'Script' : toolType === 'content' ? 'Content' : 'Text'}
@@ -249,6 +320,7 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
             </div>
           )}
         </div>
+        )}
 
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-1">
@@ -262,7 +334,7 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
           </button>
           <button
             type="submit"
-            disabled={!name.trim() || !value.trim() || saving || (toolType === 'function' && (parameters.some((p) => !p.name.trim()) || parameters.some((p, i) => (p.type === 'list' || p.type === 'list-other') && !(optionsInputs[i] ?? '').split(',').some((s) => s.trim()))))}
+            disabled={!name.trim() || saving || (toolType === 'reference' ? (referenceEntries.filter((e) => e.key.trim()).length === 0 || referenceEntries.some((e, i) => e.key.trim() && referenceEntries.some((e2, j) => j !== i && e2.key.trim() === e.key.trim())) || referenceEntries.some((e) => e.key.trim() && !e.value.trim())) : (!value.trim() || (toolType === 'function' && (parameters.some((p) => !p.name.trim()) || parameters.some((p, i) => (p.type === 'list' || p.type === 'list-other') && !(optionsInputs[i] ?? '').split(',').some((s) => s.trim()))))))}
             className="px-4 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500
               text-white transition-colors disabled:opacity-40"
           >

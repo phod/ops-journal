@@ -89,9 +89,9 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
         )}
         {/* Type icon */}
         <span className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs ${
-          tool.tool_type === 'link' ? 'text-blue-400' : tool.tool_type === 'function' ? 'text-emerald-400' : tool.tool_type === 'content' ? 'text-purple-400' : 'text-amber-400'
+          tool.tool_type === 'link' ? 'text-blue-400' : tool.tool_type === 'function' ? 'text-emerald-400' : tool.tool_type === 'content' ? 'text-purple-400' : tool.tool_type === 'reference' ? 'text-cyan-400' : 'text-amber-400'
         }`}>
-          {tool.tool_type === 'link' ? '↗' : tool.tool_type === 'function' ? '⚡' : tool.tool_type === 'content' ? '📖' : '⌨'}
+          {tool.tool_type === 'link' ? '↗' : tool.tool_type === 'function' ? '⚡' : tool.tool_type === 'content' ? '📖' : tool.tool_type === 'reference' ? '📋' : '⌨'}
         </span>
 
         {/* Content – single row */}
@@ -103,6 +103,8 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
             ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-800/40'
             : tool.tool_type === 'content'
             ? 'bg-purple-900/30 text-purple-400 border border-purple-800/40'
+            : tool.tool_type === 'reference'
+            ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-800/40'
             : 'bg-amber-900/30 text-amber-400 border border-amber-800/40'
           }`}
         >
@@ -111,6 +113,8 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
         <span className="text-[11px] text-gray-500 truncate min-w-0">
           {tool.tool_type === 'function' && tool.parameters
             ? `${tool.parameters.length} param${tool.parameters.length !== 1 ? 's' : ''}`
+            : tool.tool_type === 'reference'
+            ? (() => { try { const arr = JSON.parse(tool.value); return `${arr.length} entr${arr.length !== 1 ? 'ies' : 'y'}` } catch { return tool.value } })()
             : tool.value}
         </span>
 

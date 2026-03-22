@@ -7,6 +7,7 @@ import {
   setActiveInvestigation,
   deactivateInvestigation,
   renameInvestigation,
+  reorderInvestigations,
   getSummary,
   saveSummary
 } from './db/investigations'
@@ -96,6 +97,11 @@ export function registerIpcHandlers(): void {
     const investigation = renameInvestigation(id, name)
     broadcastInvestigationChanged(getActiveInvestigations())
     return investigation
+  })
+
+  ipcMain.handle('investigation:reorder', (_event, { orderedIds }: { orderedIds: string[] }) => {
+    reorderInvestigations(orderedIds)
+    broadcastInvestigationChanged(getActiveInvestigations())
   })
 
   // --- Entries ---

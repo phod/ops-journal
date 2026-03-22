@@ -44,6 +44,7 @@ export interface Investigation {
   id: string
   name: string
   is_active: number // 0 or 1
+  tab_order: number
   created_at: string
   entry_count: number
   last_entry_at: string | null
@@ -86,6 +87,7 @@ export interface ElectronAPI {
   setActiveInvestigation: (id: string) => Promise<Investigation>
   deactivateInvestigation: (id: string) => Promise<void>
   renameInvestigation: (id: string, name: string) => Promise<Investigation>
+  reorderInvestigations: (orderedIds: string[]) => Promise<void>
 
   // Entries
   listEntries: (investigationId: string) => Promise<JournalEntry[]>

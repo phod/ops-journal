@@ -153,7 +153,10 @@ export const migrations: string[] = [
   );
   `,
 
-  // Migration 16 — function tools: update CHECK constraint + add parameters column
+  // Migration 16 — tab ordering for investigations
+  `ALTER TABLE investigations ADD COLUMN tab_order INTEGER NOT NULL DEFAULT 0;`,
+
+  // Migration 17 — function tools: update CHECK constraint + add parameters column
   `
   CREATE TABLE tools_new (
     id TEXT PRIMARY KEY,

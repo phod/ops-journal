@@ -18,7 +18,7 @@ function getInvestigation(id: string): Investigation {
 export function getActiveInvestigations(): Investigation[] {
   const db = getDb()
   return db
-    .prepare('SELECT * FROM investigations WHERE is_active = 1 ORDER BY created_at ASC')
+    .prepare('SELECT * FROM investigations WHERE is_active = 1 ORDER BY tab_order ASC, created_at ASC')
     .all() as Investigation[]
 }
 
@@ -62,6 +62,17 @@ export function renameInvestigation(id: string, name: string): Investigation {
 export function deactivateInvestigation(id: string): void {
   const db = getDb()
   db.prepare('UPDATE investigations SET is_active = 0 WHERE id = ?').run(id)
+}
+
+export function reorderInvestigations(orderedIds: string[]): void {
+  const db = getDb()
+  const reorder = db.transaction(() => {
+    const stmt = db.prepare('UPDATE investigations SET tab_order = ? WHERE id = ?')
+    for (let i = 0; i < orderedIds.length; i++) {
+      stmt.run(i, orderedIds[i])
+    }
+  })
+  reorder()
 }
 
 export function getSummary(investigationId: string): string | null {

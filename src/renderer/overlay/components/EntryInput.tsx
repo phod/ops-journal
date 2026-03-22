@@ -225,7 +225,7 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
               <button
                 onClick={() => removeImage(i)}
                 className="no-drag absolute -top-1.5 -right-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-full w-4 h-4 flex items-center justify-center text-xs leading-none"
-                title="Remove image"
+                data-tooltip="Remove image"
               >
                 ×
               </button>
@@ -270,7 +270,7 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
           onClick={handlePickImage}
           disabled={submitting || atLimit}
           className="no-drag flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-40 px-1 py-0.5"
-          title={atLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Attach image'}
+          data-tooltip={atLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Attach image'}
         >
           {/* Paperclip icon */}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -283,7 +283,7 @@ export function EntryInput({ activeInvestigation, entries, editingEntryId, onSet
           onClick={handleCaptureScreenshot}
           disabled={submitting || atLimit}
           className="no-drag flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-40 px-1 py-0.5"
-          title={atLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Capture screenshot region'}
+          data-tooltip={atLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Capture screenshot region'}
         >
           {/* Scissors icon */}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -37,7 +37,7 @@ describe('BulkToolForm', () => {
     await user.click(screen.getByText('+ Add another'))
     expect(screen.getAllByPlaceholderText('Name')).toHaveLength(2)
 
-    const removeButtons = screen.getAllByTitle('Remove row')
+    const removeButtons = screen.getAllByTooltip('Remove row')
     await user.click(removeButtons[0])
     expect(screen.getAllByPlaceholderText('Name')).toHaveLength(1)
   })
@@ -45,7 +45,7 @@ describe('BulkToolForm', () => {
   it('does not remove the last row', async () => {
     const user = userEvent.setup()
     render(<BulkToolForm onClose={onClose} />)
-    const removeButton = screen.getByTitle('Remove row')
+    const removeButton = screen.getByTooltip('Remove row')
     expect(removeButton).toBeDisabled()
   })
 
@@ -86,7 +86,7 @@ describe('BulkToolForm', () => {
     await user.type(screen.getByPlaceholderText('https://...'), 'https://example.com')
 
     // Toggle per-row tags and add one that overlaps
-    await user.click(screen.getByTitle('Per-row tags'))
+    await user.click(screen.getByTooltip('Per-row tags'))
     await user.type(screen.getByPlaceholderText('+ extra tags for this row'), 'prod, extra')
 
     // Submit
@@ -109,9 +109,9 @@ describe('BulkToolForm', () => {
     render(<BulkToolForm onClose={onClose} />)
 
     expect(screen.queryByPlaceholderText('+ extra tags for this row')).not.toBeInTheDocument()
-    await user.click(screen.getByTitle('Per-row tags'))
+    await user.click(screen.getByTooltip('Per-row tags'))
     expect(screen.getByPlaceholderText('+ extra tags for this row')).toBeInTheDocument()
-    await user.click(screen.getByTitle('Per-row tags'))
+    await user.click(screen.getByTooltip('Per-row tags'))
     expect(screen.queryByPlaceholderText('+ extra tags for this row')).not.toBeInTheDocument()
   })
 

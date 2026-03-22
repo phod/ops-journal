@@ -142,7 +142,7 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
         <button
           onClick={() => { if (summaryRef.current?.confirmIfDirty() !== false) onBack() }}
           className="mt-0.5 text-gray-400 hover:text-gray-200 text-sm transition-colors justify-self-start"
-          title="Back to Investigations"
+          data-tooltip="Back to Investigations"
         >
           ← Back
         </button>
@@ -160,7 +160,7 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
             <h2
               className="text-xl font-semibold text-gray-100 cursor-pointer hover:text-indigo-300 transition-colors"
               onClick={startRenaming}
-              title="Click to rename"
+              data-tooltip="Click to rename"
             >
               {investigation.name}
             </h2>
@@ -182,14 +182,14 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
           <button
             onClick={() => window.electronAPI.showOverlay()}
             className="text-xs px-2.5 py-1 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
-            title="Open overlay"
+            data-tooltip="Open overlay"
           >
             Open overlay
           </button>
           <button
             onClick={openExport}
             className="text-xs px-2.5 py-1 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
-            title="Export investigation"
+            data-tooltip="Export investigation"
           >
             Export
           </button>

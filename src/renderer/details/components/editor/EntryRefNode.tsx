@@ -161,7 +161,7 @@ function EntryRefNodeView({ node }: NodeViewProps) {
                     className={`rounded border border-gray-700 object-contain cursor-pointer transition-all ${
                       expandedPath === p ? 'max-h-none w-full' : 'h-16 w-16 object-cover'
                     }`}
-                    title={expandedPath === p ? 'Click to collapse' : 'Click to expand'}
+                    data-tooltip={expandedPath === p ? 'Click to collapse' : 'Click to expand'}
                   />
                 : <div key={p} className="h-16 w-16 rounded border border-gray-700 bg-gray-800" />
             ))}

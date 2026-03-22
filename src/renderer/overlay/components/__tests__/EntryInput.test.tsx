@@ -49,8 +49,8 @@ describe('EntryInput', () => {
 
   it('renders Upload and Screenshot buttons', () => {
     render(<Wrapper />)
-    expect(screen.getByTitle('Attach image')).toBeInTheDocument()
-    expect(screen.getByTitle('Capture screenshot region')).toBeInTheDocument()
+    expect(screen.getByTooltip('Attach image')).toBeInTheDocument()
+    expect(screen.getByTooltip('Capture screenshot region')).toBeInTheDocument()
   })
 
   it('submits on Enter and calls createEntry', async () => {
@@ -117,7 +117,7 @@ describe('EntryInput', () => {
 
       render(<Wrapper />)
 
-      await user.click(screen.getByTitle('Attach image'))
+      await user.click(screen.getByTooltip('Attach image'))
 
       await waitFor(() => {
         expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument()
@@ -131,7 +131,7 @@ describe('EntryInput', () => {
 
       render(<Wrapper />)
 
-      await user.click(screen.getByTitle('Attach image'))
+      await user.click(screen.getByTooltip('Attach image'))
 
       expect(screen.queryByAltText('Pending attachment 1')).not.toBeInTheDocument()
     })
@@ -143,7 +143,7 @@ describe('EntryInput', () => {
 
       render(<Wrapper />)
 
-      await user.click(screen.getByTitle('Attach image'))
+      await user.click(screen.getByTooltip('Attach image'))
 
       await waitFor(() => {
         expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument()
@@ -158,7 +158,7 @@ describe('EntryInput', () => {
 
       render(<Wrapper />)
 
-      await user.click(screen.getByTitle('Capture screenshot region'))
+      await user.click(screen.getByTooltip('Capture screenshot region'))
 
       await waitFor(() => {
         expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument()
@@ -171,10 +171,10 @@ describe('EntryInput', () => {
 
       render(<Wrapper />)
 
-      await user.click(screen.getByTitle('Attach image'))
+      await user.click(screen.getByTooltip('Attach image'))
       await waitFor(() => expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument())
 
-      await user.click(screen.getByTitle('Remove image'))
+      await user.click(screen.getByTooltip('Remove image'))
 
       expect(screen.queryByAltText('Pending attachment 1')).not.toBeInTheDocument()
     })
@@ -186,7 +186,7 @@ describe('EntryInput', () => {
 
       render(<Wrapper />)
 
-      await user.click(screen.getByTitle('Attach image'))
+      await user.click(screen.getByTooltip('Attach image'))
       await waitFor(() => expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument())
 
       await user.type(screen.getByRole('textbox'), 'Note with image')
@@ -202,7 +202,7 @@ describe('EntryInput', () => {
 
       render(<Wrapper />)
 
-      await user.click(screen.getByTitle('Attach image'))
+      await user.click(screen.getByTooltip('Attach image'))
       await waitFor(() => expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument())
 
       await user.click(screen.getByRole('textbox'))
@@ -218,7 +218,7 @@ describe('EntryInput', () => {
 
       render(<Wrapper />)
 
-      await user.click(screen.getByTitle('Attach image'))
+      await user.click(screen.getByTooltip('Attach image'))
       await waitFor(() => expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument())
 
       await user.type(screen.getByRole('textbox'), 'hi')
@@ -235,7 +235,7 @@ describe('EntryInput', () => {
 
       render(<Wrapper />)
 
-      await user.click(screen.getByTitle('Attach image'))
+      await user.click(screen.getByTooltip('Attach image'))
       await waitFor(() => expect(screen.getByAltText('Pending attachment 1')).toBeInTheDocument())
 
       await user.type(screen.getByRole('textbox'), 'some text')
@@ -251,13 +251,13 @@ describe('EntryInput', () => {
 
       render(<Wrapper />)
 
-      await user.click(screen.getByTitle('Attach image'))
+      await user.click(screen.getByTooltip('Attach image'))
 
       await waitFor(() => {
         expect(screen.getByText(new RegExp(`Image limit reached`))).toBeInTheDocument()
       })
 
-      const limitedButtons = screen.getAllByTitle(`Image limit reached (${MAX_IMAGES_PER_ENTRY})`)
+      const limitedButtons = screen.getAllByTooltip(`Image limit reached (${MAX_IMAGES_PER_ENTRY})`)
       expect(limitedButtons.length).toBeGreaterThan(0)
       for (const btn of limitedButtons) expect(btn).toBeDisabled()
     })

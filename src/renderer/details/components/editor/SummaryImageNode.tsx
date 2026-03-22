@@ -74,7 +74,7 @@ function SummaryImageNodeView({ node, updateAttributes, editor }: NodeViewProps)
           <div
             onMouseDown={onMouseDown}
             className="absolute top-0 right-0 w-2 h-full cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity bg-blue-500/40 rounded-r"
-            title="Drag to resize"
+            data-tooltip="Drag to resize"
           />
         )}
       </div>

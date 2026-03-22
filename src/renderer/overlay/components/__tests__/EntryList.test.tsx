@@ -128,7 +128,7 @@ describe('EntryList', () => {
 
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      const deleteBtn = screen.getByTitle('Delete')
+      const deleteBtn = screen.getByTooltip('Delete')
       await user.click(deleteBtn)
 
       expect(window.confirm).toHaveBeenCalled()
@@ -142,7 +142,7 @@ describe('EntryList', () => {
 
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await user.click(screen.getByTitle('Delete'))
+      await user.click(screen.getByTooltip('Delete'))
       await waitFor(() => expect(window.electronAPI.deleteEntry).toHaveBeenCalledWith('entry-1'))
       expect(onEntryDeleted).toHaveBeenCalledWith('entry-1')
     })
@@ -155,7 +155,7 @@ describe('EntryList', () => {
 
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await user.click(screen.getByTitle('Delete'))
+      await user.click(screen.getByTooltip('Delete'))
       expect(window.electronAPI.deleteEntry).not.toHaveBeenCalled()
       expect(onEntryDeleted).not.toHaveBeenCalled()
     })
@@ -168,7 +168,7 @@ describe('EntryList', () => {
 
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await user.click(screen.getByTitle('Edit'))
+      await user.click(screen.getByTooltip('Edit'))
       expect(screen.getByRole('textbox')).toHaveValue('Original text')
     })
 
@@ -190,7 +190,7 @@ describe('EntryList', () => {
 
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await user.click(screen.getByTitle('Edit'))
+      await user.click(screen.getByTooltip('Edit'))
       const textarea = screen.getByRole('textbox')
       await user.clear(textarea)
       await user.type(textarea, 'New text')
@@ -209,7 +209,7 @@ describe('EntryList', () => {
 
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await user.click(screen.getByTitle('Edit'))
+      await user.click(screen.getByTooltip('Edit'))
       await user.type(screen.getByRole('textbox'), ' modified')
       await user.keyboard('{Escape}')
 
@@ -224,7 +224,7 @@ describe('EntryList', () => {
 
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await user.click(screen.getByTitle('Edit'))
+      await user.click(screen.getByTooltip('Edit'))
       await user.click(screen.getByText('Cancel'))
 
       expect(window.electronAPI.updateEntry).not.toHaveBeenCalled()
@@ -238,7 +238,7 @@ describe('EntryList', () => {
 
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await user.click(screen.getByTitle('Edit'))
+      await user.click(screen.getByTooltip('Edit'))
       await user.keyboard('{Enter}')
 
       expect(window.electronAPI.updateEntry).not.toHaveBeenCalled()
@@ -255,9 +255,9 @@ describe('EntryList', () => {
       await screen.findByRole('presentation')
 
       const user = userEvent.setup()
-      await user.click(screen.getByTitle('Edit'))
+      await user.click(screen.getByTooltip('Edit'))
 
-      await waitFor(() => expect(screen.getByTitle('Remove image')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByTooltip('Remove image')).toBeInTheDocument())
     })
 
     it('shows removal count message after marking an image for removal', async () => {
@@ -271,9 +271,9 @@ describe('EntryList', () => {
       await screen.findByRole('presentation')
 
       const user = userEvent.setup()
-      await user.click(screen.getByTitle('Edit'))
-      await waitFor(() => expect(screen.getByTitle('Remove image')).toBeInTheDocument())
-      await user.click(screen.getByTitle('Remove image'))
+      await user.click(screen.getByTooltip('Edit'))
+      await waitFor(() => expect(screen.getByTooltip('Remove image')).toBeInTheDocument())
+      await user.click(screen.getByTooltip('Remove image'))
 
       expect(screen.getByText(/image will be removed on save/i)).toBeInTheDocument()
     })
@@ -290,9 +290,9 @@ describe('EntryList', () => {
       await screen.findByRole('presentation')
 
       const user = userEvent.setup()
-      await user.click(screen.getByTitle('Edit'))
-      await waitFor(() => expect(screen.getByTitle('Remove image')).toBeInTheDocument())
-      await user.click(screen.getByTitle('Remove image'))
+      await user.click(screen.getByTooltip('Edit'))
+      await waitFor(() => expect(screen.getByTooltip('Remove image')).toBeInTheDocument())
+      await user.click(screen.getByTooltip('Remove image'))
 
       await user.click(screen.getByRole('button', { name: /save/i }))
 
@@ -311,9 +311,9 @@ describe('EntryList', () => {
       await screen.findByRole('presentation')
 
       const user = userEvent.setup()
-      await user.click(screen.getByTitle('Edit'))
-      await waitFor(() => expect(screen.getByTitle('Remove image')).toBeInTheDocument())
-      await user.click(screen.getByTitle('Remove image'))
+      await user.click(screen.getByTooltip('Edit'))
+      await waitFor(() => expect(screen.getByTooltip('Remove image')).toBeInTheDocument())
+      await user.click(screen.getByTooltip('Remove image'))
       expect(screen.getByText(/image will be removed on save/i)).toBeInTheDocument()
 
       await user.click(screen.getByText('Cancel'))
@@ -326,20 +326,20 @@ describe('EntryList', () => {
     it('shows ACTION badge for action entries', () => {
       const entry = makeEntry({ type: 'action' })
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
-      expect(screen.getByTitle('Change entry type')).toHaveTextContent('ACTION')
+      expect(screen.getByTooltip('Change entry type')).toHaveTextContent('ACTION')
     })
 
     it('shows FINDING badge for finding entries', () => {
       const entry = makeEntry({ type: 'finding' })
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
-      expect(screen.getByTitle('Change entry type')).toHaveTextContent('FINDING')
+      expect(screen.getByTooltip('Change entry type')).toHaveTextContent('FINDING')
     })
 
     it('shows a tag icon for note entries instead of a colored badge', () => {
       const entry = makeEntry({ type: 'note' })
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
-      expect(screen.queryByTitle('Change entry type')).not.toBeInTheDocument()
-      expect(screen.getByTitle('Set entry type')).toBeInTheDocument()
+      expect(screen.queryByTooltip('Change entry type')).not.toBeInTheDocument()
+      expect(screen.getByTooltip('Set entry type')).toBeInTheDocument()
     })
 
     it('opens the type picker menu when the badge is clicked', async () => {
@@ -347,7 +347,7 @@ describe('EntryList', () => {
       const entry = makeEntry({ type: 'action' })
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await user.click(screen.getByTitle('Change entry type'))
+      await user.click(screen.getByTooltip('Change entry type'))
 
       expect(screen.getByText('NOTE')).toBeInTheDocument()
       expect(screen.getByText('FINDING')).toBeInTheDocument()
@@ -361,7 +361,7 @@ describe('EntryList', () => {
 
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await user.click(screen.getByTitle('Change entry type'))
+      await user.click(screen.getByTooltip('Change entry type'))
       fireEvent.mouseDown(screen.getByText('FINDING').closest('button')!)
 
       await waitFor(() =>
@@ -376,7 +376,7 @@ describe('EntryList', () => {
 
       render(<Wrapper entries={[entry]} onEntryUpdated={onEntryUpdated} onEntryDeleted={onEntryDeleted} />)
 
-      await user.click(screen.getByTitle('Change entry type'))
+      await user.click(screen.getByTooltip('Change entry type'))
       // Find the ACTION option in the menu (no title, contains ACTION text with checkmark)
       const menuActionBtn = screen.getAllByRole('button').find(
         (btn) => btn.textContent?.includes('ACTION') && !btn.title

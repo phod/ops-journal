@@ -425,7 +425,7 @@ function RowActions({ row, rows, updateRow, removeRow }: { row: BulkRow; rows: B
       <button
         type="button"
         onClick={() => updateRow(row.id, 'showTags', !row.showTags)}
-        title="Per-row tags"
+        data-tooltip="Per-row tags"
         className="relative p-1.5 text-gray-500 hover:text-gray-300 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
@@ -440,7 +440,7 @@ function RowActions({ row, rows, updateRow, removeRow }: { row: BulkRow; rows: B
         onClick={() => removeRow(row.id)}
         disabled={rows.length <= 1}
         className="p-1.5 text-gray-600 hover:text-red-400 transition-colors disabled:opacity-30 disabled:hover:text-gray-600"
-        title="Remove row"
+        data-tooltip="Remove row"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
           <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />

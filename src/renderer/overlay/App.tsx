@@ -225,7 +225,7 @@ export default function App() {
         <button
           onClick={() => { setShowSearch(false); setSearchTerm('') }}
           className="text-gray-500 hover:text-gray-300 text-xs px-0.5"
-          title="Close search (Esc)"
+          data-tooltip="Close search (Esc)"
         >
           ✕
         </button>
@@ -393,7 +393,7 @@ export default function App() {
                     ? 'text-amber-300 bg-amber-500/25'
                     : 'text-gray-600 hover:text-gray-400'
                 }`}
-                title="Toggle Rumour Board"
+                data-tooltip="Toggle Rumour Board"
               >
                 ⊞
               </button>
@@ -414,7 +414,7 @@ export default function App() {
                     ? 'text-indigo-300 bg-indigo-500/20'
                     : 'text-gray-600 hover:text-gray-400'
                 }`}
-                title="Toggle Relationship Map"
+                data-tooltip="Toggle Relationship Map"
               >
                 ◈
               </button>
@@ -426,7 +426,7 @@ export default function App() {
                       ? 'text-amber-300 bg-amber-500/25'
                       : 'text-gray-600 hover:text-gray-400'
                   }`}
-                  title={showEntryStream ? 'Hide Entry Stream' : 'Show Entry Stream'}
+                  data-tooltip={showEntryStream ? 'Hide Entry Stream' : 'Show Entry Stream'}
                 >
                   {showEntryStream ? '⫿' : '⫿'}
                 </button>
@@ -438,14 +438,14 @@ export default function App() {
                     ? 'text-indigo-300 bg-indigo-500/20'
                     : 'text-gray-600 hover:text-gray-400'
                 }`}
-                title="Toggle Entity Panel"
+                data-tooltip="Toggle Entity Panel"
               >
                 ☰
               </button>
               <button
                 onClick={() => window.electronAPI.openDetails(currentInvestigation.id)}
                 className="no-drag text-gray-600 hover:text-gray-400 text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
-                title="Open Investigation Details"
+                data-tooltip="Open Investigation Details"
               >
                 ↗
               </button>
@@ -464,7 +464,7 @@ export default function App() {
                     ? 'text-indigo-300 bg-indigo-500/20'
                     : 'text-gray-600 hover:text-gray-400'
                 }`}
-                title="Search entries (⌘F)"
+                data-tooltip="Search entries (⌘F)"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8"/>
@@ -476,14 +476,14 @@ export default function App() {
           <button
             onClick={() => window.electronAPI.openManager()}
             className="no-drag text-gray-600 hover:text-gray-400 text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
-            title="Open Investigation Manager"
+            data-tooltip="Open Investigation Manager"
           >
             ⚙
           </button>
           <button
             onClick={() => window.electronAPI.hideOverlay()}
             className="no-drag text-gray-600 hover:text-gray-400 text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
-            title="Close (Esc)"
+            data-tooltip="Close (Esc)"
           >
             ✕
           </button>

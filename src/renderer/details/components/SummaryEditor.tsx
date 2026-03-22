@@ -156,14 +156,14 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
           <button
             onClick={handleUploadImage}
             className="text-xs px-2.5 py-1 rounded border border-gray-700 text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors font-mono"
-            title="Upload image"
+            data-tooltip="Upload image"
           >
             ↑ Upload
           </button>
           <button
             onClick={handleScreenshot}
             className="text-xs px-2.5 py-1 rounded border border-gray-700 text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors font-mono"
-            title="Capture screenshot"
+            data-tooltip="Capture screenshot"
           >
             ⌘ Screenshot
           </button>

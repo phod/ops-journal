@@ -17,7 +17,7 @@ export function HypothesisPanel({ entries, onClose }: Props) {
         <button
           onClick={onClose}
           className="no-drag text-gray-600 hover:text-gray-400 text-xs transition-colors"
-          title="Close panel"
+          data-tooltip="Close panel"
         >
           ✕
         </button>

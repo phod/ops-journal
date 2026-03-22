@@ -94,7 +94,7 @@ export function BoardSidebar({ entries, onAddTextBox, onAddImage, onAddShape }: 
             <button
               key={kind}
               onClick={() => onAddShape(kind)}
-              title={label}
+              data-tooltip={label}
               className="flex-1 text-sm py-1.5 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
             >
               {icon}

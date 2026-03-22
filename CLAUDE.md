@@ -25,3 +25,7 @@ npm run test:watch   # Run tests in watch mode
 ```
 
 > **Note:** `npm test` rebuilds `better-sqlite3` for system Node. `npm run dev` rebuilds it for Electron. Run `npm run dev` after running tests to restore the correct binary.a
+
+# Additional notes
+
+Ensure changes have test coverage

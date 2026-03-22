@@ -166,8 +166,8 @@ export function registerIpcHandlers(): void {
     return entry
   })
 
-  ipcMain.handle('toolEntry:listPending', (_event, { investigationId }: { investigationId?: string }) => {
-    return listPendingToolEntries(investigationId)
+  ipcMain.handle('toolEntry:listPending', (_event, { investigationId, statuses }: { investigationId?: string; statuses?: import('@shared/ipc-types').ToolEntryStatus[] }) => {
+    return listPendingToolEntries(investigationId, statuses)
   })
 
   ipcMain.handle('toolEntry:createFromEntry', (_event, { entryId, name, toolType, value, tags, parameters, folderId }: { entryId: string; name: string; toolType: ToolType; value: string; tags: string[]; parameters?: FunctionParameter[] | null; folderId?: string | null }) => {

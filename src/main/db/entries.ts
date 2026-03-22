@@ -61,18 +61,19 @@ function rowToEntry(row: Record<string, unknown>): JournalEntry {
   return entry
 }
 
-export function listPendingToolEntries(investigationId?: string): PendingToolEntry[] {
+export function listPendingToolEntries(investigationId?: string, statuses: ToolEntryStatus[] = ['pending']): PendingToolEntry[] {
   const db = getDb()
+  const placeholders = statuses.map(() => '?').join(', ')
   const baseQuery = `
-    SELECT je.id, je.investigation_id, i.name as investigation_name, je.body, je.created_at
+    SELECT je.id, je.investigation_id, i.name as investigation_name, je.body, je.created_at, je.tool_status
     FROM journal_entries je
     JOIN investigations i ON i.id = je.investigation_id
-    WHERE je.type = 'tool' AND je.tool_status = 'pending'
+    WHERE je.type = 'tool' AND je.tool_status IN (${placeholders})
   `
   if (investigationId) {
-    return db.prepare(`${baseQuery} AND je.investigation_id = ? ORDER BY je.created_at DESC`).all(investigationId) as PendingToolEntry[]
+    return db.prepare(`${baseQuery} AND je.investigation_id = ? ORDER BY je.created_at DESC`).all(...statuses, investigationId) as PendingToolEntry[]
   }
-  return db.prepare(`${baseQuery} ORDER BY je.created_at DESC`).all() as PendingToolEntry[]
+  return db.prepare(`${baseQuery} ORDER BY je.created_at DESC`).all(...statuses) as PendingToolEntry[]
 }
 
 export function listEntries(investigationId: string): JournalEntry[] {

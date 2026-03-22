@@ -98,7 +98,7 @@ export function RelationshipDetailPanel({
           onClick={onClose}
           className="text-gray-500 hover:text-gray-300 text-xs px-1 transition-colors"
         >
-          \u2715
+          {'\u2715'}
         </button>
       </div>
 

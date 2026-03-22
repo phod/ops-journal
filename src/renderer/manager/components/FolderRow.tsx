@@ -19,22 +19,19 @@ interface Props {
   onDrop: (e: React.DragEvent) => void
   onDragLeave: (e: React.DragEvent) => void
   onReorderDrop?: (position: 'before' | 'after') => void
-  ancestors?: ToolFolder[]
-  onMoveToParent?: (targetParentId: string | null) => void
 }
 
 export function FolderRow({
   folder, depth, toolCount, expanded, onToggle, onRename, onDelete,
   onAddTool, onAddSubFolder, children,
   onDragStart, onDragOver, onDrop, onDragLeave,
-  onReorderDrop, ancestors, onMoveToParent
+  onReorderDrop
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState(folder.name)
   const [dropZone, setDropZone] = useState<'before' | 'after' | 'into' | null>(null)
-  const [hovered, setHovered] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const renameRef = useRef<HTMLInputElement>(null)
   const rowRef = useRef<HTMLDivElement>(null)
@@ -112,13 +109,8 @@ export function FolderRow({
     onDrop(e)
   }
 
-  const showBreadcrumb = depth > 0 && hovered && ancestors && ancestors.length > 0 && onMoveToParent
-
   return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <div>
       {/* Reorder drop indicator — before */}
       {dropZone === 'before' && (
         <div className="h-0.5 bg-indigo-500 rounded-full mx-2" style={{ marginLeft: `${depth * 20 + 8}px` }} />
@@ -225,36 +217,6 @@ export function FolderRow({
           )}
         </div>
       </div>
-
-      {/* Breadcrumb strip for nested folders */}
-      {showBreadcrumb && (
-        <div
-          className="flex items-center gap-0.5 py-0.5 text-[10px]"
-          style={{ paddingLeft: `${depth * 20 + 28}px` }}
-        >
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onMoveToParent!(null) }}
-            className="text-gray-500 hover:text-indigo-400 transition-colors cursor-pointer"
-          >
-            / Root
-          </button>
-          {ancestors!.map((ancestor) => (
-            <span key={ancestor.id} className="flex items-center gap-0.5">
-              <span className="text-gray-700">›</span>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onMoveToParent!(ancestor.id) }}
-                className="text-gray-500 hover:text-indigo-400 transition-colors cursor-pointer"
-              >
-                {ancestor.name}
-              </button>
-            </span>
-          ))}
-          <span className="text-gray-700">›</span>
-          <span className="text-gray-600">{folder.name}</span>
-        </div>
-      )}
 
       {/* Reorder drop indicator — after */}
       {dropZone === 'after' && (

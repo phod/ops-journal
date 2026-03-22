@@ -44,8 +44,8 @@ const electronAPI: ElectronAPI = {
   // Tool entries
   updateToolEntryStatus: (entryId: string, status: ToolEntryStatus) =>
     ipcRenderer.invoke('toolEntry:updateStatus', { entryId, status }),
-  listPendingToolEntries: (investigationId?: string) =>
-    ipcRenderer.invoke('toolEntry:listPending', { investigationId }),
+  listPendingToolEntries: (investigationId?: string, statuses?: import('../shared/ipc-types').ToolEntryStatus[]) =>
+    ipcRenderer.invoke('toolEntry:listPending', { investigationId, statuses }),
   createToolFromEntry: (entryId: string, name: string, toolType: ToolType, value: string, tags: string[], parameters?: FunctionParameter[] | null, folderId?: string | null) =>
     ipcRenderer.invoke('toolEntry:createFromEntry', { entryId, name, toolType, value, tags, parameters, folderId }),
   abandonToolEntry: (entryId: string) =>

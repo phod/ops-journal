@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { PendingToolEntry, ToolType, ToolFolder, FunctionParameter, FunctionParameterType } from '@shared/ipc-types'
+import { TOOL_ENTRY_STATUS_CLASS } from '@shared/entry-types'
 import { ConfirmDialog } from './ConfirmDialog'
 import { FolderTreePicker } from './FolderTreePicker'
 
@@ -57,12 +58,14 @@ interface Props {
 
 export function PendingToolCard({ entry, isExpanded, onToggle, onCreated, onSkip, onAbandoned }: Props) {
   const isUrl = looksLikeUrl(entry.body)
+  const isAbandoned = entry.tool_status === 'abandoned'
   const [toolType, setToolType] = useState<ToolType>(isUrl ? 'link' : 'string')
   const [name, setName] = useState('')
   const [value, setValue] = useState(entry.body)
   const [tagsInput, setTagsInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [abandoning, setAbandoning] = useState(false)
+  const [restoring, setRestoring] = useState(false)
   const [confirmingAbandon, setConfirmingAbandon] = useState(false)
   const [sourceTextExpanded, setSourceTextExpanded] = useState(true)
   const [parameters, setParameters] = useState<FunctionParameter[]>([])
@@ -124,6 +127,15 @@ export function PendingToolCard({ entry, isExpanded, onToggle, onCreated, onSkip
     }
   }
 
+  async function handleRestore() {
+    setRestoring(true)
+    try {
+      await window.electronAPI.updateToolEntryStatus(entry.id, 'pending')
+    } finally {
+      setRestoring(false)
+    }
+  }
+
   function addParameter() {
     setParameters([...parameters, { name: '', type: 'text' }])
   }
@@ -170,6 +182,9 @@ export function PendingToolCard({ entry, isExpanded, onToggle, onCreated, onSkip
             <span className="text-[11px] text-gray-500">{entry.investigation_name}</span>
             <span className="text-[11px] text-gray-700">&middot;</span>
             <span className="text-[11px] text-gray-600">{timeAgo(entry.created_at)}</span>
+            {isAbandoned && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${TOOL_ENTRY_STATUS_CLASS.abandoned}`}>Abandoned</span>
+            )}
             {isUrl && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400/70 font-medium">URL detected</span>
             )}
@@ -447,15 +462,27 @@ export function PendingToolCard({ entry, isExpanded, onToggle, onCreated, onSkip
             >
               Skip
             </button>
-            <button
-              type="button"
-              onClick={() => setConfirmingAbandon(true)}
-              disabled={abandoning}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg text-red-400
-                hover:bg-red-500/10 transition-colors disabled:opacity-40"
-            >
-              Abandon
-            </button>
+            {isAbandoned ? (
+              <button
+                type="button"
+                onClick={handleRestore}
+                disabled={restoring}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg text-sky-400
+                  hover:bg-sky-500/10 transition-colors disabled:opacity-40"
+              >
+                Restore
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingAbandon(true)}
+                disabled={abandoning}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg text-red-400
+                  hover:bg-red-500/10 transition-colors disabled:opacity-40"
+              >
+                Abandon
+              </button>
+            )}
             <button
               type="button"
               onClick={handleCreate}

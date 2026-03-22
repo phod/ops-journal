@@ -77,6 +77,7 @@ export interface PendingToolEntry {
   investigation_name: string
   body: string
   created_at: string
+  tool_status: ToolEntryStatus
 }
 
 export interface ElectronAPI {
@@ -104,7 +105,7 @@ export interface ElectronAPI {
 
   // Tool entries
   updateToolEntryStatus: (entryId: string, status: ToolEntryStatus) => Promise<JournalEntry>
-  listPendingToolEntries: (investigationId?: string) => Promise<PendingToolEntry[]>
+  listPendingToolEntries: (investigationId?: string, statuses?: ToolEntryStatus[]) => Promise<PendingToolEntry[]>
   createToolFromEntry: (entryId: string, name: string, toolType: ToolType, value: string, tags: string[], parameters?: FunctionParameter[] | null, folderId?: string | null) => Promise<Tool>
   abandonToolEntry: (entryId: string) => Promise<void>
 

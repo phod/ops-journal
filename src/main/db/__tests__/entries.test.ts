@@ -9,7 +9,7 @@ vi.mock('../index', () => ({
 }))
 
 import { createInvestigation } from '../investigations'
-import { createEntry, listEntries, updateEntry, deleteEntry, getEntry, updateHypothesisStatus, updateToolEntryStatus, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from '../entries'
+import { createEntry, listEntries, updateEntry, deleteEntry, getEntry, updateHypothesisStatus, updateToolEntryStatus, listPendingToolEntries, linkHypothesisFinding, unlinkHypothesisFinding, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth } from '../entries'
 
 let investigationId: string
 
@@ -324,6 +324,49 @@ describe('tool entry operations', () => {
     const entry = createEntry(investigationId, 'some command', [], 'tool')
     const updated = updateToolEntryStatus(entry.id, 'abandoned')
     expect(updated.tool_status).toBe('abandoned')
+  })
+})
+
+describe('listPendingToolEntries', () => {
+  it('returns only pending entries by default', () => {
+    createEntry(investigationId, 'pending cmd', [], 'tool')
+    const abandoned = createEntry(investigationId, 'abandoned cmd', [], 'tool')
+    updateToolEntryStatus(abandoned.id, 'abandoned')
+    const done = createEntry(investigationId, 'done cmd', [], 'tool')
+    updateToolEntryStatus(done.id, 'done')
+
+    const results = listPendingToolEntries()
+    expect(results).toHaveLength(1)
+    expect(results[0].body).toBe('pending cmd')
+    expect(results[0].tool_status).toBe('pending')
+  })
+
+  it('returns pending and abandoned when statuses includes both', () => {
+    createEntry(investigationId, 'pending cmd', [], 'tool')
+    const abandoned = createEntry(investigationId, 'abandoned cmd', [], 'tool')
+    updateToolEntryStatus(abandoned.id, 'abandoned')
+    const done = createEntry(investigationId, 'done cmd', [], 'tool')
+    updateToolEntryStatus(done.id, 'done')
+
+    const results = listPendingToolEntries(undefined, ['pending', 'abandoned'])
+    expect(results).toHaveLength(2)
+    expect(results.map((e) => e.tool_status).sort()).toEqual(['abandoned', 'pending'])
+  })
+
+  it('filters by investigation when investigationId is provided', () => {
+    const other = createInvestigation('Other')
+    createEntry(investigationId, 'mine', [], 'tool')
+    createEntry(other.id, 'theirs', [], 'tool')
+
+    const results = listPendingToolEntries(investigationId)
+    expect(results).toHaveLength(1)
+    expect(results[0].body).toBe('mine')
+  })
+
+  it('includes tool_status in results', () => {
+    createEntry(investigationId, 'a tool', [], 'tool')
+    const results = listPendingToolEntries()
+    expect(results[0].tool_status).toBe('pending')
   })
 })
 

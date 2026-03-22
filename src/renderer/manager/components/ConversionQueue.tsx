@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { PendingToolEntry, Investigation } from '@shared/ipc-types'
+import type { PendingToolEntry, Investigation, ToolEntryStatus } from '@shared/ipc-types'
 import { PendingToolCard } from './PendingToolCard'
 
 export function ConversionQueue() {
@@ -8,20 +8,23 @@ export function ConversionQueue() {
   const [filterInvestigationId, setFilterInvestigationId] = useState<string>('')
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set())
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [showAbandoned, setShowAbandoned] = useState(false)
+
+  const statuses: ToolEntryStatus[] = showAbandoned ? ['pending', 'abandoned'] : ['pending']
 
   const loadEntries = useCallback(async () => {
-    const list = await window.electronAPI.listPendingToolEntries(filterInvestigationId || undefined)
+    const list = await window.electronAPI.listPendingToolEntries(filterInvestigationId || undefined, statuses)
     setEntries(list)
-  }, [filterInvestigationId])
+  }, [filterInvestigationId, showAbandoned])
 
   const loadInvestigations = useCallback(async () => {
-    const [allInvestigations, allPending] = await Promise.all([
+    const [allInvestigations, allEntries] = await Promise.all([
       window.electronAPI.listInvestigations(),
-      window.electronAPI.listPendingToolEntries(undefined),
+      window.electronAPI.listPendingToolEntries(undefined, statuses),
     ])
-    const idsWithPending = new Set(allPending.map((e) => e.investigation_id))
-    setInvestigations(allInvestigations.filter((inv) => idsWithPending.has(inv.id)))
-  }, [])
+    const idsWithEntries = new Set(allEntries.map((e) => e.investigation_id))
+    setInvestigations(allInvestigations.filter((inv) => idsWithEntries.has(inv.id)))
+  }, [showAbandoned])
 
   useEffect(() => {
     loadEntries()
@@ -39,6 +42,8 @@ export function ConversionQueue() {
   }, [loadEntries, loadInvestigations])
 
   const visibleEntries = entries.filter((e) => !skippedIds.has(e.id))
+  const pendingCount = visibleEntries.filter((e) => e.tool_status === 'pending').length
+  const abandonedCount = visibleEntries.filter((e) => e.tool_status === 'abandoned').length
 
   function handleToggle(id: string) {
     setExpandedId((prev) => (prev === id ? null : id))
@@ -87,8 +92,18 @@ export function ConversionQueue() {
             ))}
           </select>
           <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-sky-500/20 text-sky-300 tracking-wide">
-            {visibleEntries.length} pending
+            {pendingCount} pending
           </span>
+          <button
+            onClick={() => setShowAbandoned(!showAbandoned)}
+            className={`px-2.5 py-0.5 text-[11px] font-medium rounded-full transition-colors ${
+              showAbandoned
+                ? 'bg-gray-500/20 text-gray-300 border border-gray-600/30'
+                : 'text-gray-600 hover:text-gray-400 border border-transparent'
+            }`}
+          >
+            {showAbandoned ? `Hide abandoned (${abandonedCount})` : 'Show abandoned'}
+          </button>
         </div>
         {visibleEntries.length > 0 && (
           <button
@@ -103,7 +118,9 @@ export function ConversionQueue() {
       {/* Entry cards */}
       {visibleEntries.length === 0 ? (
         <div className="text-center py-16">
-          <div className="text-gray-600 text-sm mb-2 font-medium">No pending tool entries</div>
+          <div className="text-gray-600 text-sm mb-2 font-medium">
+            {showAbandoned ? 'No pending or abandoned tool entries' : 'No pending tool entries'}
+          </div>
           <div className="text-gray-700 text-xs">
             Use <span className="font-mono text-gray-500">/tool</span> in an investigation to create entries that can be converted.
           </div>

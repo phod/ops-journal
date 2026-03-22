@@ -44,6 +44,8 @@ export function ToolRow({ tool, search, selected, onClick, onMouseEnter }: Props
       <span className="flex-shrink-0 w-6 h-6 rounded-md bg-gray-800 border border-gray-700 flex items-center justify-center text-xs">
         {tool.tool_type === 'link' ? (
           <span className="text-blue-400">↗</span>
+        ) : tool.tool_type === 'function' ? (
+          <span className="text-emerald-400">⚡</span>
         ) : (
           <span className="text-amber-400">⌨</span>
         )}
@@ -70,6 +72,8 @@ export function ToolRow({ tool, search, selected, onClick, onMouseEnter }: Props
       <span className={`flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded
         ${tool.tool_type === 'link'
           ? 'bg-blue-900/40 text-blue-400 border border-blue-800/40'
+          : tool.tool_type === 'function'
+          ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-800/40'
           : 'bg-amber-900/30 text-amber-400 border border-amber-800/40'
         }`}
       >

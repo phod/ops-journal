@@ -89,9 +89,9 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
         )}
         {/* Type icon */}
         <span className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs ${
-          tool.tool_type === 'link' ? 'text-blue-400' : 'text-amber-400'
+          tool.tool_type === 'link' ? 'text-blue-400' : tool.tool_type === 'function' ? 'text-emerald-400' : 'text-amber-400'
         }`}>
-          {tool.tool_type === 'link' ? '↗' : '⌨'}
+          {tool.tool_type === 'link' ? '↗' : tool.tool_type === 'function' ? '⚡' : '⌨'}
         </span>
 
         {/* Content – single row */}
@@ -99,12 +99,18 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
         <span className={`flex-shrink-0 text-[10px] font-medium px-1.5 py-0 rounded leading-4
           ${tool.tool_type === 'link'
             ? 'bg-blue-900/40 text-blue-400 border border-blue-800/40'
+            : tool.tool_type === 'function'
+            ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-800/40'
             : 'bg-amber-900/30 text-amber-400 border border-amber-800/40'
           }`}
         >
           {tool.tool_type}
         </span>
-        <span className="text-[11px] text-gray-500 truncate min-w-0">{tool.value}</span>
+        <span className="text-[11px] text-gray-500 truncate min-w-0">
+          {tool.tool_type === 'function' && tool.parameters
+            ? `${tool.parameters.length} param${tool.parameters.length !== 1 ? 's' : ''}`
+            : tool.value}
+        </span>
 
         {tool.tags.length > 0 && (
           <div className="flex gap-1 flex-shrink-0">

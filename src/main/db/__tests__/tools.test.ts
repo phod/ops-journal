@@ -158,6 +158,40 @@ describe('createToolsBulk', () => {
   })
 })
 
+describe('function tools', () => {
+  it('creates a function tool with parameters', () => {
+    const params = [
+      { name: 'userId', type: 'text' as const },
+      { name: 'userPlan', type: 'list' as const, options: ['FREE', 'PAID', 'PREMIUM'] }
+    ]
+    const tool = createTool('Support Console', 'function', 'copy(userPlan);\nopenLink("https://site.com/" + userId);', ['support'], undefined, params)
+    expect(tool.tool_type).toBe('function')
+    expect(tool.parameters).toEqual(params)
+  })
+
+  it('round-trips parameters through JSON serialization', () => {
+    const params = [
+      { name: 'env', type: 'list-other' as const, options: ['staging', 'production'] }
+    ]
+    createTool('Deploy', 'function', 'openLink("https://deploy/" + env);', [], undefined, params)
+    const tools = listTools()
+    const found = tools.find((t) => t.name === 'Deploy')
+    expect(found?.parameters).toEqual(params)
+  })
+
+  it('updates function tool parameters', () => {
+    const tool = createTool('Test', 'function', 'copy("x");', [], undefined, [{ name: 'a', type: 'text' as const }])
+    const updated = updateTool(tool.id, 'Test', 'function', 'copy(a);', [], [{ name: 'a', type: 'text' as const }, { name: 'b', type: 'list' as const, options: ['x', 'y'] }])
+    expect(updated.parameters).toHaveLength(2)
+    expect(updated.parameters![1].options).toEqual(['x', 'y'])
+  })
+
+  it('returns null parameters for non-function tools', () => {
+    const tool = createTool('Link', 'link', 'https://example.com', [])
+    expect(tool.parameters).toBeNull()
+  })
+})
+
 describe('reorderTools', () => {
   it('updates sort_order based on array position', () => {
     const a = createTool('A', 'link', 'https://a.com', [])

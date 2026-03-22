@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { Tool } from '@shared/ipc-types'
 import { ToolRow } from './components/ToolRow'
+import { FunctionParamDialog } from './components/FunctionParamDialog'
 
 export default function App() {
   const [tools, setTools] = useState<Tool[]>([])
@@ -9,6 +10,7 @@ export default function App() {
   const searchRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const [opaqueOverlay, setOpaqueOverlay] = useState(false)
+  const [functionToolPending, setFunctionToolPending] = useState<Tool | null>(null)
 
   const loadTools = useCallback(async () => {
     const list = await window.electronAPI.listTools()
@@ -35,6 +37,7 @@ export default function App() {
     const handleFocus = () => {
       setSearch('')
       setSelectedIndex(0)
+      setFunctionToolPending(null)
       searchRef.current?.focus()
     }
     window.addEventListener('focus', handleFocus)
@@ -70,13 +73,25 @@ export default function App() {
   }, [selectedIndex])
 
   async function executeTool(tool: Tool) {
+    if (tool.tool_type === 'function') {
+      setFunctionToolPending(tool)
+      return
+    }
     await window.electronAPI.executeTool(tool.id)
     if (tool.tool_type === 'link') {
       await window.electronAPI.hideToolkitOverlay()
     }
   }
 
+  async function handleFunctionRun(paramValues: Record<string, string>) {
+    if (!functionToolPending) return
+    await window.electronAPI.executeFunctionTool(functionToolPending.id, paramValues)
+    setFunctionToolPending(null)
+    await window.electronAPI.hideToolkitOverlay()
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
+    if (functionToolPending) return // dialog handles its own keys
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1))
@@ -92,6 +107,21 @@ export default function App() {
       e.preventDefault()
       window.electronAPI.hideToolkitOverlay()
     }
+  }
+
+  // When function dialog is open, show the dialog instead of the tool list
+  if (functionToolPending) {
+    return (
+      <div
+        className={`h-screen flex flex-col rounded-xl ${opaqueOverlay ? 'bg-gray-900/95' : 'bg-gray-900'} border border-gray-700/60 shadow-2xl overflow-hidden backdrop-blur-sm`}
+      >
+        <FunctionParamDialog
+          tool={functionToolPending}
+          onRun={handleFunctionRun}
+          onCancel={() => setFunctionToolPending(null)}
+        />
+      </div>
+    )
   }
 
   return (

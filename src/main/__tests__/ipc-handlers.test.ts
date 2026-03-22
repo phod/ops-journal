@@ -12,6 +12,8 @@ const {
   mockSettings,
   mockScreenshot,
   mockExport,
+  mockTools,
+  mockToolFolders,
   mockHandlers,
   mockWebContentsSend,
   mockWindow
@@ -42,7 +44,9 @@ const {
     getFindingHypotheses: vi.fn().mockReturnValue([]),
     linkHypothesisChild: vi.fn().mockReturnValue({ id: 'e1', investigation_id: 'inv-1' }),
     unlinkHypothesisChild: vi.fn().mockReturnValue({ id: 'e1', investigation_id: 'inv-1' }),
-    getHypothesisNestingDepth: vi.fn().mockReturnValue(0)
+    getHypothesisNestingDepth: vi.fn().mockReturnValue(0),
+    updateToolEntryStatus: vi.fn().mockReturnValue({ id: 'e1', investigation_id: 'inv-1' }),
+    listPendingToolEntries: vi.fn().mockReturnValue([])
   }
 
   const mockBoards = {
@@ -98,9 +102,31 @@ const {
   const mockWebContentsSend = vi.fn()
   const mockWindow = { isDestroyed: () => false, webContents: { send: mockWebContentsSend } }
 
+  const mockTools = {
+    listTools: vi.fn().mockReturnValue([]),
+    createTool: vi.fn().mockReturnValue({ id: 'tool-1', name: 'Test Tool' }),
+    createToolsBulk: vi.fn().mockReturnValue([]),
+    updateTool: vi.fn(),
+    deleteTool: vi.fn(),
+    reorderTools: vi.fn(),
+    moveToolToFolder: vi.fn(),
+    moveToolsToFolder: vi.fn(),
+    reorderToolsInFolder: vi.fn()
+  }
+
+  const mockToolFolders = {
+    listToolFolders: vi.fn().mockReturnValue([]),
+    createToolFolder: vi.fn().mockReturnValue({ id: 'tf-1', name: 'Test Folder' }),
+    renameToolFolder: vi.fn(),
+    deleteToolFolder: vi.fn(),
+    moveToolFolderToFolder: vi.fn(),
+    reorderToolFoldersInParent: vi.fn()
+  }
+
   return {
     mockInvestigations, mockEntries, mockBoards, mockImages, mockWindows,
     mockHotkey, mockSettings, mockScreenshot, mockExport,
+    mockTools, mockToolFolders,
     mockHandlers, mockWebContentsSend, mockWindow
   }
 })
@@ -108,6 +134,8 @@ const {
 vi.mock('../db/investigations', () => mockInvestigations)
 vi.mock('../db/entries', () => mockEntries)
 vi.mock('../db/rumour-boards', () => mockBoards)
+vi.mock('../db/tools', () => mockTools)
+vi.mock('../db/tool-folders', () => mockToolFolders)
 vi.mock('../images', () => mockImages)
 vi.mock('../windows', () => mockWindows)
 vi.mock('../hotkey', () => mockHotkey)
@@ -165,6 +193,10 @@ beforeEach(() => {
   mockEntries.unlinkHypothesisChild.mockReturnValue({ id: 'e1', investigation_id: 'inv-1' })
   mockImages.saveImage.mockReturnValue('/saved/image.png')
   mockExport.exportAsMarkdown.mockReturnValue('# Export')
+  mockTools.listTools.mockReturnValue([])
+  mockTools.createTool.mockReturnValue({ id: 'tool-1', name: 'Test Tool' })
+  mockToolFolders.listToolFolders.mockReturnValue([])
+  mockEntries.updateToolEntryStatus.mockReturnValue({ id: 'e1', investigation_id: 'inv-1' })
 
   registerIpcHandlers()
 })
@@ -456,6 +488,42 @@ describe('window management handlers', () => {
   it('window:openDetails calls navigateManagerToDetails', () => {
     invoke('window:openDetails', { id: 'inv-1' })
     expect(mockWindows.navigateManagerToDetails).toHaveBeenCalledWith('inv-1')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tool entries
+// ---------------------------------------------------------------------------
+
+describe('tool entry handlers', () => {
+  it('toolEntry:createFromEntry passes folderId to createTool', () => {
+    invoke('toolEntry:createFromEntry', {
+      entryId: 'e1',
+      name: 'My Tool',
+      toolType: 'link',
+      value: 'https://example.com',
+      tags: ['tag1'],
+      parameters: null,
+      folderId: 'folder-1'
+    })
+
+    expect(mockTools.createTool).toHaveBeenCalledWith(
+      'My Tool', 'link', 'https://example.com', ['tag1'], 'folder-1', null
+    )
+  })
+
+  it('toolEntry:createFromEntry passes undefined folderId when not provided', () => {
+    invoke('toolEntry:createFromEntry', {
+      entryId: 'e1',
+      name: 'My Tool',
+      toolType: 'string',
+      value: 'some value',
+      tags: []
+    })
+
+    expect(mockTools.createTool).toHaveBeenCalledWith(
+      'My Tool', 'string', 'some value', [], undefined, undefined
+    )
   })
 })
 

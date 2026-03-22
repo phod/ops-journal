@@ -5,6 +5,7 @@ interface Props {
   tool: Tool
   search: string
   selected: boolean
+  depth?: number
   onClick: () => void
   onMouseEnter: () => void
 }
@@ -32,11 +33,12 @@ function highlightMatch(text: string, query: string) {
   )
 }
 
-export function ToolRow({ tool, search, selected, onClick, onMouseEnter }: Props) {
+export function ToolRow({ tool, search, selected, depth = 0, onClick, onMouseEnter }: Props) {
   return (
     <button
       className={`no-drag w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer
         ${selected ? 'bg-indigo-600/30 border border-indigo-500/40' : 'border border-transparent hover:bg-gray-800/50'}`}
+      style={depth > 0 ? { paddingLeft: `${depth * 16 + 12}px` } : undefined}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
     >

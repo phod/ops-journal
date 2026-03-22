@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Modal } from '@shared/Modal'
-import type { ToolType, FunctionParameter, FunctionParameterType } from '@shared/ipc-types'
+import type { ToolType, ToolFolder, FunctionParameter, FunctionParameterType } from '@shared/ipc-types'
+import { FolderTreePicker } from './FolderTreePicker'
 
 const PARAM_TYPE_LABELS: Record<FunctionParameterType, string> = {
   'text': 'Free text',
@@ -43,6 +44,12 @@ export function BulkToolForm({ onClose }: Props) {
   const [rows, setRows] = useState<BulkRow[]>(() => [makeRow()])
   const [saving, setSaving] = useState(false)
   const rowRefsMap = useRef<Map<number, HTMLInputElement>>(new Map())
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  const [folders, setFolders] = useState<ToolFolder[]>([])
+
+  useEffect(() => {
+    window.electronAPI.listToolFolders().then(setFolders)
+  }, [])
 
   const isRowValid = useCallback((r: BulkRow) => {
     if (!r.name.trim()) return false
@@ -101,7 +108,7 @@ export function BulkToolForm({ onClose }: Props) {
 
         return { name: row.name.trim(), toolType, value: effectiveValue, tags: mergedTags, parameters }
       })
-      await window.electronAPI.createToolsBulk(tools)
+      await window.electronAPI.createToolsBulk(tools, selectedFolderId)
       onClose()
     } finally {
       setSaving(false)
@@ -154,6 +161,16 @@ export function BulkToolForm({ onClose }: Props) {
                 placeholder-gray-600 outline-none focus:border-indigo-500/60 transition-colors"
             />
           </div>
+          {folders.length > 0 && (
+            <div>
+              <label className="block text-xs text-gray-400 font-medium mb-1.5">Folder</label>
+              <FolderTreePicker
+                folders={folders}
+                selectedFolderId={selectedFolderId}
+                onSelect={setSelectedFolderId}
+              />
+            </div>
+          )}
         </div>
 
         {/* Rows */}

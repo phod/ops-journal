@@ -219,6 +219,7 @@ export default function App() {
   function handleKeyDown(e: React.KeyboardEvent) {
     if (functionToolPending || referenceToolPending) return // dialog handles its own keys
 
+    const inTextInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
     const item = flatItems[selectedIndex]
 
     if (e.key === 'ArrowDown') {
@@ -228,6 +229,7 @@ export default function App() {
       e.preventDefault()
       setSelectedIndex((i) => Math.max(i - 1, 0))
     } else if (e.key === 'ArrowLeft') {
+      if (inTextInput) return
       e.preventDefault()
       if (item?.type === 'folder' && expandedFolders.has(item.folder.id)) {
         toggleFolder(item.folder.id)
@@ -242,6 +244,7 @@ export default function App() {
         }
       }
     } else if (e.key === 'ArrowRight') {
+      if (inTextInput) return
       e.preventDefault()
       if (item?.type === 'folder' && !expandedFolders.has(item.folder.id)) {
         toggleFolder(item.folder.id)
@@ -391,11 +394,6 @@ export default function App() {
         <span className="text-[10px] text-gray-600">
           <kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-500 text-[9px] font-mono">esc</kbd> close
         </span>
-        {hasFolders && (
-          <span className="text-[10px] text-gray-600">
-            <kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-500 text-[9px] font-mono">←→</kbd> fold/unfold
-          </span>
-        )}
       </div>
     </div>
   )

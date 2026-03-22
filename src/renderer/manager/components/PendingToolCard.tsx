@@ -63,7 +63,7 @@ export function PendingToolCard({ entry, isExpanded, onToggle, onCreated, onSkip
   const [saving, setSaving] = useState(false)
   const [abandoning, setAbandoning] = useState(false)
   const [confirmingAbandon, setConfirmingAbandon] = useState(false)
-  const [sourceTextExpanded, setSourceTextExpanded] = useState(false)
+  const [sourceTextExpanded, setSourceTextExpanded] = useState(true)
   const [parameters, setParameters] = useState<FunctionParameter[]>([])
   const [optionsInputs, setOptionsInputs] = useState<Record<number, string>>({})
   const [referenceEntries, setReferenceEntries] = useState<{ key: string; value: string }[]>(() =>
@@ -216,9 +216,9 @@ export function PendingToolCard({ entry, isExpanded, onToggle, onCreated, onSkip
               Source text
             </button>
             {sourceTextExpanded && (
-              <pre className="mt-1.5 p-2.5 bg-gray-800/60 border border-gray-700/40 rounded-lg text-xs text-gray-400 font-mono whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+              <div className="mt-1.5 px-3 py-2 text-xs text-gray-500 font-mono whitespace-pre-wrap break-words max-h-32 overflow-y-auto leading-relaxed">
                 {entry.body}
-              </pre>
+              </div>
             )}
           </div>
 

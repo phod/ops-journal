@@ -9,6 +9,7 @@ export interface FunctionParameter {
   name: string
   type: FunctionParameterType
   options?: string[]
+  required?: boolean
 }
 
 export interface Tool {

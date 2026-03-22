@@ -146,7 +146,7 @@ export const InvestigationDetails = forwardRef<InvestigationDetailsHandle, Props
   ]
 
   return (
-    <div className={`flex flex-col gap-6 ${view === 'summary' ? 'flex-1 min-h-0' : ''}`}>
+    <div className={`flex flex-col gap-6 ${['summary', 'board', 'relationships'].includes(view) ? 'flex-1 min-h-0' : ''}`}>
       {/* Back + header — hidden when in export view */}
       {view !== 'export' && <div className="grid grid-cols-[1fr_auto_1fr] items-start">
         <button
@@ -217,7 +217,7 @@ export const InvestigationDetails = forwardRef<InvestigationDetailsHandle, Props
       )}
 
       {/* Tabs + content */}
-      <div className={view === 'summary' ? 'flex flex-col flex-1 min-h-0' : undefined} style={{ display: view === 'export' ? 'none' : undefined }}>
+      <div className={['summary', 'board', 'relationships'].includes(view) ? 'flex flex-col flex-1 min-h-0' : undefined} style={{ display: view === 'export' ? 'none' : undefined }}>
         <div className="flex items-center gap-1 mb-3 border-b border-gray-700/50">
           <button
             onClick={() => navigateTo('summary')}
@@ -267,11 +267,11 @@ export const InvestigationDetails = forwardRef<InvestigationDetailsHandle, Props
           </button>
         </div>
         {view === 'relationships' ? (
-          <div className="flex-1 min-h-0 flex -mx-6 -mb-6" style={{ height: '60vh' }}>
+          <div className="flex-1 min-h-0 flex -mx-6 -mb-6">
             <RelationshipMapView entries={entries} />
           </div>
         ) : view === 'board' ? (
-          <div className="flex-1 min-h-0 flex -mx-6 -mb-6" style={{ height: '60vh' }}>
+          <div className="flex-1 min-h-0 flex -mx-6 -mb-6">
             <RumourBoardView investigationId={investigationId} entries={entries} />
           </div>
         ) : view === 'summary' ? (

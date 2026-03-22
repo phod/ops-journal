@@ -115,14 +115,13 @@ export function createManagerWindow(): BrowserWindow {
 
   // Hide instead of destroy when the user clicks the X button
   win.on('close', (e) => {
-    if (!appIsQuitting) {
-      e.preventDefault()
-      checkManagerDirty().then((canProceed) => {
-        if (canProceed) {
-          hideManager()
-        }
-      })
-    }
+    if (appIsQuitting) return
+    e.preventDefault()
+    checkManagerDirty().then((canProceed) => {
+      if (canProceed) {
+        hideManager()
+      }
+    })
   })
 
   loadWindowUrl(win, 'manager.html')
@@ -186,11 +185,19 @@ export function showManager(): void {
   win.focus()
 }
 
-export function checkManagerDirty(): Promise<boolean> {
+export function managerMayBeDirty(): boolean {
   const win = managerWindow
-  if (!win || win.isDestroyed() || !win.isVisible()) return Promise.resolve(true)
+  return !!win && !win.isDestroyed() && win.isVisible() && !win.webContents.isDestroyed()
+}
+
+export function checkManagerDirty(): Promise<boolean> {
+  if (!managerMayBeDirty()) return Promise.resolve(true)
+  const win = managerWindow!
   return new Promise((resolve) => {
+    const onDestroyed = (): void => resolve(true)
+    win.once('closed', onDestroyed)
     ipcMain.once('check-dirty-reply', (_event, canProceed: boolean) => {
+      win.removeListener('closed', onDestroyed)
       resolve(canProceed)
     })
     win.webContents.send('check-dirty')

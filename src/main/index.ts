@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { createOverlayWindow, createManagerWindow, createToolkitOverlayWindow, getOverlayWindow, getToolkitOverlayWindow, setAppQuitting, checkManagerDirty } from './windows'
+import { createOverlayWindow, createManagerWindow, createToolkitOverlayWindow, getOverlayWindow, getToolkitOverlayWindow, setAppQuitting, checkManagerDirty, managerMayBeDirty } from './windows'
 import { createTray, updateTrayMenu } from './tray'
 import { registerHotkey, registerImageHotkeys, registerToolkitHotkey, registerManagerHotkey, unregisterAllHotkeys } from './hotkey'
 import { registerIpcHandlers } from './ipc-handlers'
@@ -20,7 +20,7 @@ if (!gotLock) {
   // If a second instance tries to open, focus the existing one
   app.on('second-instance', () => {
     const overlay = getOverlayWindow()
-    if (overlay) {
+    if (overlay && !overlay.isDestroyed()) {
       if (!overlay.isVisible()) {
         overlay.show()
       }
@@ -76,6 +76,14 @@ if (!gotLock) {
       closeDb()
       return
     }
+    if (!managerMayBeDirty()) {
+      // No visible manager — nothing to check, let quit proceed synchronously
+      setAppQuitting()
+      unregisterAllHotkeys()
+      closeDb()
+      return
+    }
+    // Manager is visible — ask renderer if there are unsaved changes
     e.preventDefault()
     checkManagerDirty().then((canProceed) => {
       if (canProceed) {

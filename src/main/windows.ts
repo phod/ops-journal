@@ -1,4 +1,4 @@
-import { BrowserWindow, screen, app } from 'electron'
+import { BrowserWindow, screen, app, ipcMain } from 'electron'
 import { exec } from 'child_process'
 import path from 'path'
 import fs from 'fs'
@@ -117,11 +117,11 @@ export function createManagerWindow(): BrowserWindow {
   win.on('close', (e) => {
     if (!appIsQuitting) {
       e.preventDefault()
-      win.hide()
-      if (process.platform === 'darwin') {
-        app.setActivationPolicy('accessory')
-        app.dock?.hide()
-      }
+      checkManagerDirty().then((canProceed) => {
+        if (canProceed) {
+          hideManager()
+        }
+      })
     }
   })
 
@@ -186,9 +186,22 @@ export function showManager(): void {
   win.focus()
 }
 
-export function toggleManager(): void {
+export function checkManagerDirty(): Promise<boolean> {
+  const win = managerWindow
+  if (!win || win.isDestroyed() || !win.isVisible()) return Promise.resolve(true)
+  return new Promise((resolve) => {
+    ipcMain.once('check-dirty-reply', (_event, canProceed: boolean) => {
+      resolve(canProceed)
+    })
+    win.webContents.send('check-dirty')
+  })
+}
+
+export async function toggleManager(): Promise<void> {
   const win = managerWindow
   if (win?.isVisible()) {
+    const canProceed = await checkManagerDirty()
+    if (!canProceed) return
     hideManager()
   } else {
     showManager()

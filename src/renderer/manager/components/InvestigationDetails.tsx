@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import type { Investigation, JournalEntry } from '@shared/ipc-types'
 import { DetailsEntryList } from '../../details/components/DetailsEntryList'
 import { SummaryView } from '../../details/components/SummaryView'
@@ -9,12 +9,16 @@ import { RelationshipMapView } from '../../details/components/relationships/Rela
 import { formatDate } from '@shared/format-date'
 import { countEntries, filterEntries, type Filter } from '@shared/entry-types'
 
+export interface InvestigationDetailsHandle {
+  confirmIfDirty: () => boolean
+}
+
 interface Props {
   investigationId: string
   onBack: () => void
 }
 
-export function InvestigationDetails({ investigationId, onBack }: Props) {
+export const InvestigationDetails = forwardRef<InvestigationDetailsHandle, Props>(function InvestigationDetails({ investigationId, onBack }, ref) {
   const [investigation, setInvestigation] = useState<Investigation | null>(null)
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,6 +29,12 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
   const [renameValue, setRenameValue] = useState('')
   const renameInputRef = useRef<HTMLInputElement>(null)
   const summaryRef = useRef<SummaryViewHandle>(null)
+
+  const confirmIfDirty = useCallback((): boolean => {
+    return summaryRef.current?.confirmIfDirty() ?? true
+  }, [])
+
+  useImperativeHandle(ref, () => ({ confirmIfDirty }), [confirmIfDirty])
 
   const startRenaming = useCallback(() => {
     if (!investigation) return
@@ -279,4 +289,4 @@ export function InvestigationDetails({ investigationId, onBack }: Props) {
       </div>
     </div>
   )
-}
+})

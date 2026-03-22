@@ -29,3 +29,4 @@ npm run test:watch   # Run tests in watch mode
 # Additional notes
 
 Ensure changes have test coverage
+UI mocks should be written to `.mocks`

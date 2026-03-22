@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import type { PendingToolEntry, ToolType, FunctionParameter, FunctionParameterType } from '@shared/ipc-types'
+import { useState, useEffect } from 'react'
+import type { PendingToolEntry, ToolType, ToolFolder, FunctionParameter, FunctionParameterType } from '@shared/ipc-types'
 import { ConfirmDialog } from './ConfirmDialog'
+import { FolderTreePicker } from './FolderTreePicker'
 
 const PARAM_TYPE_LABELS: Record<FunctionParameterType, string> = {
   'text': 'Free text',
@@ -69,6 +70,12 @@ export function PendingToolCard({ entry, isExpanded, onToggle, onCreated, onSkip
   const [referenceEntries, setReferenceEntries] = useState<{ key: string; value: string }[]>(() =>
     parseReferenceFromBody(entry.body)
   )
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  const [folders, setFolders] = useState<ToolFolder[]>([])
+
+  useEffect(() => {
+    window.electronAPI.listToolFolders().then(setFolders)
+  }, [])
 
   const autoDetected = (isUrl && toolType === 'link') || (!isUrl && toolType === 'string')
 
@@ -100,7 +107,7 @@ export function PendingToolCard({ entry, isExpanded, onToggle, onCreated, onSkip
         })
       }
 
-      await window.electronAPI.createToolFromEntry(entry.id, name.trim(), toolType, effectiveValue, tags, finalParams)
+      await window.electronAPI.createToolFromEntry(entry.id, name.trim(), toolType, effectiveValue, tags, finalParams, selectedFolderId)
       onCreated()
     } finally {
       setSaving(false)
@@ -417,6 +424,18 @@ export function PendingToolCard({ entry, isExpanded, onToggle, onCreated, onSkip
                 placeholder-gray-600 outline-none focus:border-indigo-500/60 transition-colors"
             />
           </div>
+
+          {/* Folder */}
+          {folders.length > 0 && (
+            <div>
+              <label className="block text-[11px] text-gray-500 font-medium mb-1.5 uppercase tracking-wider">Folder</label>
+              <FolderTreePicker
+                folders={folders}
+                selectedFolderId={selectedFolderId}
+                onSelect={setSelectedFolderId}
+              />
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-1">

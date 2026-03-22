@@ -1,8 +1,21 @@
 import React from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { BulkToolForm } from '../BulkToolForm'
+import type { ToolFolder } from '@shared/ipc-types'
+
+function makeFolder(overrides: Partial<ToolFolder> = {}): ToolFolder {
+  return {
+    id: 'folder-1',
+    name: 'Scripts',
+    parent_id: null,
+    sort_order: 0,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+    ...overrides
+  }
+}
 
 describe('BulkToolForm', () => {
   const onClose = vi.fn()
@@ -10,6 +23,7 @@ describe('BulkToolForm', () => {
   beforeEach(() => {
     onClose.mockReset()
     window.electronAPI.createToolsBulk = vi.fn().mockResolvedValue([])
+    window.electronAPI.listToolFolders = vi.fn().mockResolvedValue([])
   })
 
   it('renders modal with title', () => {
@@ -100,7 +114,7 @@ describe('BulkToolForm', () => {
         tags: ['shared', 'prod', 'extra'],
         parameters: null
       }
-    ])
+    ], null)
     expect(onClose).toHaveBeenCalled()
   })
 
@@ -120,5 +134,49 @@ describe('BulkToolForm', () => {
     render(<BulkToolForm onClose={onClose} />)
     await user.click(screen.getByText('Cancel'))
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('renders folder picker when folders exist', async () => {
+    window.electronAPI.listToolFolders = vi.fn().mockResolvedValue([
+      makeFolder({ id: 'f1', name: 'Runbooks' })
+    ])
+    render(<BulkToolForm onClose={onClose} />)
+    await waitFor(() => expect(screen.getByText('Runbooks')).toBeInTheDocument())
+    expect(screen.getByText('No folder')).toBeInTheDocument()
+  })
+
+  it('does not render folder picker when no folders exist', async () => {
+    window.electronAPI.listToolFolders = vi.fn().mockResolvedValue([])
+    render(<BulkToolForm onClose={onClose} />)
+    // Wait for component to settle
+    await waitFor(() => expect(window.electronAPI.listToolFolders).toHaveBeenCalled())
+    expect(screen.queryByText('No folder')).not.toBeInTheDocument()
+  })
+
+  it('submits with selected folderId', async () => {
+    const user = userEvent.setup()
+    window.electronAPI.listToolFolders = vi.fn().mockResolvedValue([
+      makeFolder({ id: 'f1', name: 'Runbooks' })
+    ])
+    render(<BulkToolForm onClose={onClose} />)
+
+    // Wait for folders to load
+    await waitFor(() => expect(screen.getByText('Runbooks')).toBeInTheDocument())
+
+    // Select the folder
+    await user.click(screen.getByText('Runbooks'))
+
+    // Switch to link type and fill in row
+    await user.click(screen.getByText('↗ Link'))
+    await user.type(screen.getByPlaceholderText('Name'), 'My Link')
+    await user.type(screen.getByPlaceholderText('https://...'), 'https://example.com')
+
+    // Submit
+    await user.click(screen.getByRole('button', { name: /Create 1 Tool$/i }))
+
+    expect(window.electronAPI.createToolsBulk).toHaveBeenCalledWith(
+      expect.any(Array),
+      'f1'
+    )
   })
 })

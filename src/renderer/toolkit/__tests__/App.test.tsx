@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import App from '../App'
-import type { Tool } from '@shared/ipc-types'
+import type { Tool, ToolFolder } from '@shared/ipc-types'
 
 // scrollIntoView is not implemented in jsdom
 Element.prototype.scrollIntoView = vi.fn()
@@ -30,10 +30,24 @@ const sampleTools: Tool[] = [
   makeTool({ id: '4', name: 'Selenium Suite', value: 'https://selenium.example.com', tags: ['website', 'test'] })
 ]
 
+function makeFolder(overrides: Partial<ToolFolder> = {}): ToolFolder {
+  return {
+    id: 'folder-1',
+    name: 'Monitoring',
+    parent_id: null,
+    sort_order: 0,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+    ...overrides
+  }
+}
+
 describe('Toolkit App', () => {
   beforeEach(() => {
     window.electronAPI.listTools = vi.fn().mockResolvedValue(sampleTools)
+    window.electronAPI.listToolFolders = vi.fn().mockResolvedValue([])
     window.electronAPI.onToolsChanged = vi.fn().mockReturnValue(() => {})
+    window.electronAPI.onToolFoldersChanged = vi.fn().mockReturnValue(() => {})
     window.electronAPI.executeTool = vi.fn().mockResolvedValue(undefined)
     window.electronAPI.hideToolkitOverlay = vi.fn().mockResolvedValue(undefined)
   })
@@ -162,5 +176,69 @@ describe('Toolkit App', () => {
     expect(screen.getByText('navigate')).toBeInTheDocument()
     expect(screen.getByText('execute')).toBeInTheDocument()
     expect(screen.getByText('close')).toBeInTheDocument()
+  })
+
+  it('renders folder headers when folders exist', async () => {
+    const folders = [makeFolder({ id: 'f1', name: 'Monitoring' })]
+    const toolsInFolder = [
+      makeTool({ id: '1', name: 'Grafana', folder_id: 'f1' })
+    ]
+    window.electronAPI.listTools = vi.fn().mockResolvedValue(toolsInFolder)
+    window.electronAPI.listToolFolders = vi.fn().mockResolvedValue(folders)
+
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('Monitoring')).toBeInTheDocument())
+    expect(screen.getByText('Grafana')).toBeInTheDocument()
+  })
+
+  it('shows fold/unfold hint when folders exist', async () => {
+    window.electronAPI.listToolFolders = vi.fn().mockResolvedValue([
+      makeFolder({ id: 'f1', name: 'Scripts' })
+    ])
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('fold/unfold')).toBeInTheDocument())
+  })
+
+  it('collapses folder on ArrowLeft', async () => {
+    const folders = [makeFolder({ id: 'f1', name: 'Scripts' })]
+    const toolsInFolder = [
+      makeTool({ id: '1', name: 'Deploy Script', folder_id: 'f1' })
+    ]
+    window.electronAPI.listTools = vi.fn().mockResolvedValue(toolsInFolder)
+    window.electronAPI.listToolFolders = vi.fn().mockResolvedValue(folders)
+
+    const user = userEvent.setup()
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('Scripts')).toBeInTheDocument())
+
+    // Folder is expanded by default, tool visible
+    expect(screen.getByText('Deploy Script')).toBeInTheDocument()
+
+    // ArrowLeft on folder should collapse it
+    await user.keyboard('{ArrowLeft}')
+    expect(screen.queryByText('Deploy Script')).not.toBeInTheDocument()
+  })
+
+  it('auto-expands folders with search matches', async () => {
+    const folders = [makeFolder({ id: 'f1', name: 'Scripts' })]
+    const toolsInFolder = [
+      makeTool({ id: '1', name: 'Deploy Script', folder_id: 'f1' }),
+      makeTool({ id: '2', name: 'Root Tool', folder_id: null })
+    ]
+    window.electronAPI.listTools = vi.fn().mockResolvedValue(toolsInFolder)
+    window.electronAPI.listToolFolders = vi.fn().mockResolvedValue(folders)
+
+    const user = userEvent.setup()
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('Deploy Script')).toBeInTheDocument())
+
+    // Collapse folder first
+    await user.keyboard('{ArrowLeft}')
+    expect(screen.queryByText('Deploy Script')).not.toBeInTheDocument()
+
+    // Search should auto-expand the folder
+    await user.type(screen.getByPlaceholderText('Search tools...'), 'deploy')
+    expect(screen.getByText(/eploy/)).toBeInTheDocument()
+    expect(screen.queryByText('Root Tool')).not.toBeInTheDocument()
   })
 })

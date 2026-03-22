@@ -18,20 +18,26 @@ interface Props {
   onDragOver: (e: React.DragEvent) => void
   onDrop: (e: React.DragEvent) => void
   onDragLeave: (e: React.DragEvent) => void
+  onReorderDrop?: (position: 'before' | 'after') => void
+  ancestors?: ToolFolder[]
+  onMoveToParent?: (targetParentId: string | null) => void
 }
 
 export function FolderRow({
   folder, depth, toolCount, expanded, onToggle, onRename, onDelete,
   onAddTool, onAddSubFolder, children,
-  onDragStart, onDragOver, onDrop, onDragLeave
+  onDragStart, onDragOver, onDrop, onDragLeave,
+  onReorderDrop, ancestors, onMoveToParent
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState(folder.name)
-  const [dragOver, setDragOver] = useState(false)
+  const [dropZone, setDropZone] = useState<'before' | 'after' | 'into' | null>(null)
+  const [hovered, setHovered] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const renameRef = useRef<HTMLInputElement>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -61,25 +67,67 @@ export function FolderRow({
   }
 
   function handleDragOverLocal(e: React.DragEvent) {
-    setDragOver(true)
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+
+    // Determine drop zone based on cursor position
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const y = e.clientY - rect.top
+    const height = rect.height
+    const isFolderDrag = e.dataTransfer.types.includes('application/folder-id')
+
+    if (isFolderDrag && onReorderDrop) {
+      if (y < height * 0.25) {
+        setDropZone('before')
+      } else if (y > height * 0.75) {
+        setDropZone('after')
+      } else {
+        setDropZone('into')
+      }
+    } else {
+      setDropZone('into')
+    }
+
     onDragOver(e)
   }
 
   function handleDragLeaveLocal(e: React.DragEvent) {
-    setDragOver(false)
+    setDropZone(null)
     onDragLeave(e)
   }
 
   function handleDropLocal(e: React.DragEvent) {
-    setDragOver(false)
+    const currentDropZone = dropZone
+    setDropZone(null)
+
+    if (currentDropZone === 'before' || currentDropZone === 'after') {
+      if (onReorderDrop) {
+        e.preventDefault()
+        e.stopPropagation()
+        onReorderDrop(currentDropZone)
+        return
+      }
+    }
+
     onDrop(e)
   }
 
+  const showBreadcrumb = depth > 0 && hovered && ancestors && ancestors.length > 0 && onMoveToParent
+
   return (
-    <div>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Reorder drop indicator — before */}
+      {dropZone === 'before' && (
+        <div className="h-0.5 bg-indigo-500 rounded-full mx-2" style={{ marginLeft: `${depth * 20 + 8}px` }} />
+      )}
+
       <div
-        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group
-          ${dragOver ? 'bg-indigo-500/20 border border-indigo-500/40' : 'hover:bg-gray-800/50 border border-transparent'}`}
+        ref={rowRef}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors group
+          ${dropZone === 'into' ? 'bg-indigo-500/20 border border-indigo-500/40' : 'hover:bg-gray-800/50 border border-transparent'}`}
         style={{ paddingLeft: `${depth * 20 + 8}px` }}
         onClick={onToggle}
         draggable
@@ -88,13 +136,21 @@ export function FolderRow({
         onDrop={handleDropLocal}
         onDragLeave={handleDragLeaveLocal}
       >
+        {/* Grip handle for reordering */}
+        <span
+          className="text-[10px] text-gray-500 flex-shrink-0 w-3 opacity-0 group-hover:opacity-60 hover:!opacity-100 cursor-grab select-none"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          ⠿
+        </span>
+
         {/* Chevron */}
         <span className={`text-[10px] text-gray-500 transition-transform flex-shrink-0 w-3 ${expanded ? 'rotate-90' : ''}`}>
           ▶
         </span>
 
         {/* Folder icon */}
-        <span className="text-xs text-yellow-500/80 flex-shrink-0">
+        <span className="text-sm text-yellow-500/80 flex-shrink-0">
           {expanded ? '📂' : '📁'}
         </span>
 
@@ -110,11 +166,11 @@ export function FolderRow({
               if (e.key === 'Escape') { setRenaming(false); setRenameValue(folder.name) }
             }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-gray-800 border border-indigo-500/60 rounded px-1.5 py-0.5 text-xs text-gray-100 outline-none w-40"
+            className="bg-gray-800 border border-indigo-500/60 rounded px-1.5 py-0.5 text-sm text-gray-100 outline-none w-40"
           />
         ) : (
           <span
-            className="text-xs font-medium text-gray-200 truncate"
+            className="text-sm font-medium text-gray-200 truncate"
             onDoubleClick={(e) => { e.stopPropagation(); setRenaming(true); setRenameValue(folder.name) }}
           >
             {folder.name}
@@ -122,7 +178,7 @@ export function FolderRow({
         )}
 
         {/* Item count badge */}
-        <span className="text-[10px] text-gray-500 flex-shrink-0">
+        <span className="text-xs text-gray-500 flex-shrink-0">
           {toolCount}
         </span>
 
@@ -169,6 +225,41 @@ export function FolderRow({
           )}
         </div>
       </div>
+
+      {/* Breadcrumb strip for nested folders */}
+      {showBreadcrumb && (
+        <div
+          className="flex items-center gap-0.5 py-0.5 text-[10px]"
+          style={{ paddingLeft: `${depth * 20 + 28}px` }}
+        >
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onMoveToParent!(null) }}
+            className="text-gray-500 hover:text-indigo-400 transition-colors cursor-pointer"
+          >
+            / Root
+          </button>
+          {ancestors!.map((ancestor) => (
+            <span key={ancestor.id} className="flex items-center gap-0.5">
+              <span className="text-gray-700">›</span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onMoveToParent!(ancestor.id) }}
+                className="text-gray-500 hover:text-indigo-400 transition-colors cursor-pointer"
+              >
+                {ancestor.name}
+              </button>
+            </span>
+          ))}
+          <span className="text-gray-700">›</span>
+          <span className="text-gray-600">{folder.name}</span>
+        </div>
+      )}
+
+      {/* Reorder drop indicator — after */}
+      {dropZone === 'after' && (
+        <div className="h-0.5 bg-indigo-500 rounded-full mx-2" style={{ marginLeft: `${depth * 20 + 8}px` }} />
+      )}
 
       {/* Children (only visible when expanded) */}
       {expanded && children}

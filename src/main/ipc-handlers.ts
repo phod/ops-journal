@@ -170,8 +170,8 @@ export function registerIpcHandlers(): void {
     return listPendingToolEntries(investigationId)
   })
 
-  ipcMain.handle('toolEntry:createFromEntry', (_event, { entryId, name, toolType, value, tags, parameters }: { entryId: string; name: string; toolType: ToolType; value: string; tags: string[]; parameters?: FunctionParameter[] | null }) => {
-    const tool = createTool(name, toolType, value, tags, undefined, parameters)
+  ipcMain.handle('toolEntry:createFromEntry', (_event, { entryId, name, toolType, value, tags, parameters, folderId }: { entryId: string; name: string; toolType: ToolType; value: string; tags: string[]; parameters?: FunctionParameter[] | null; folderId?: string | null }) => {
+    const tool = createTool(name, toolType, value, tags, folderId, parameters)
     const entry = updateToolEntryStatus(entryId, 'done')
     broadcastToolsChanged()
     broadcastEntriesChanged(entry.investigation_id)

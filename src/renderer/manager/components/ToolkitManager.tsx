@@ -23,6 +23,28 @@ function saveExpandedFolders(set: Set<string>) {
   localStorage.setItem(EXPANDED_FOLDERS_KEY, JSON.stringify([...set]))
 }
 
+function buildAncestorMap(folders: ToolFolder[]): Map<string, ToolFolder[]> {
+  const folderMap = new Map<string, ToolFolder>()
+  for (const f of folders) folderMap.set(f.id, f)
+
+  const map = new Map<string, ToolFolder[]>()
+  for (const f of folders) {
+    const ancestors: ToolFolder[] = []
+    let current = f.parent_id
+    const visited = new Set<string>()
+    while (current) {
+      if (visited.has(current)) break
+      visited.add(current)
+      const parent = folderMap.get(current)
+      if (!parent) break
+      ancestors.unshift(parent)
+      current = parent.parent_id
+    }
+    map.set(f.id, ancestors)
+  }
+  return map
+}
+
 export function ToolkitManager() {
   const [tools, setTools] = useState<Tool[]>([])
   const [folders, setFolders] = useState<ToolFolder[]>([])
@@ -36,6 +58,8 @@ export function ToolkitManager() {
   const [selectedToolIds, setSelectedToolIds] = useState<Set<string>>(new Set())
   const lastClickedToolIdRef = useRef<string | null>(null)
   const [dropIndicator, setDropIndicator] = useState<{ folderId: string | null; index: number } | null>(null)
+  const [draggedFolderId, setDraggedFolderId] = useState<string | null>(null)
+  const [rootDropActive, setRootDropActive] = useState(false)
 
   const loadTools = useCallback(async () => {
     const list = await window.electronAPI.listTools()
@@ -87,6 +111,7 @@ export function ToolkitManager() {
   }
 
   const tree = buildToolTree(tools, folders)
+  const ancestorMap = useMemo(() => buildAncestorMap(folders), [folders])
 
   // Flat list of visible tool IDs in render order (for shift-click range selection)
   const flatToolIds = useMemo(() => {
@@ -177,6 +202,43 @@ export function ToolkitManager() {
     await window.electronAPI.deleteToolFolder(id)
   }
 
+  // Feature 1: Folder reorder handler
+  async function handleFolderReorderDrop(targetFolderId: string, position: 'before' | 'after') {
+    if (!draggedFolderId || draggedFolderId === targetFolderId) return
+
+    const targetFolder = folders.find((f) => f.id === targetFolderId)
+    if (!targetFolder) return
+
+    const parentId = targetFolder.parent_id
+    const draggedFolder = folders.find((f) => f.id === draggedFolderId)
+    if (!draggedFolder) return
+
+    // Only reorder siblings (same parent)
+    if (draggedFolder.parent_id !== parentId) return
+
+    const siblings = folders
+      .filter((f) => f.parent_id === parentId)
+      .sort((a, b) => a.sort_order - b.sort_order)
+
+    const withoutDragged = siblings.filter((f) => f.id !== draggedFolderId)
+    const targetIdx = withoutDragged.findIndex((f) => f.id === targetFolderId)
+    const insertIdx = position === 'before' ? targetIdx : targetIdx + 1
+
+    const newOrder = [...withoutDragged]
+    newOrder.splice(insertIdx, 0, draggedFolder)
+
+    await window.electronAPI.reorderToolFoldersInParent(parentId, newOrder.map((f) => f.id))
+  }
+
+  // Feature 2: Move folder to parent
+  async function handleMoveFolderToParent(folderId: string, targetParentId: string | null) {
+    try {
+      await window.electronAPI.moveToolFolderToFolder(folderId, targetParentId)
+    } catch {
+      // Depth validation or cycle detection failed — silently ignore
+    }
+  }
+
   // Drag-and-drop handlers
   function handleToolDragStart(e: React.DragEvent, toolId: string) {
     let dragIds: string[]
@@ -203,6 +265,7 @@ export function ToolkitManager() {
   function handleFolderDragStart(e: React.DragEvent, folderId: string) {
     e.dataTransfer.setData('application/folder-id', folderId)
     e.dataTransfer.effectAllowed = 'move'
+    setDraggedFolderId(folderId)
   }
 
   function handleFolderDragOver(e: React.DragEvent) {
@@ -239,6 +302,8 @@ export function ToolkitManager() {
         // Depth validation or cycle detection failed — silently ignore
       }
     }
+
+    setDraggedFolderId(null)
   }
 
   function handleToolDragOver(e: React.DragEvent, toolId: string, folderId: string | null) {
@@ -330,6 +395,9 @@ export function ToolkitManager() {
             onDragOver={handleFolderDragOver}
             onDrop={(e) => handleDropOnFolder(e, folderNode.folder.id)}
             onDragLeave={handleFolderDragLeave}
+            onReorderDrop={(position) => handleFolderReorderDrop(folderNode.folder.id, position)}
+            ancestors={ancestorMap.get(folderNode.folder.id)}
+            onMoveToParent={(targetParentId) => handleMoveFolderToParent(folderNode.folder.id, targetParentId)}
           >
             {renderTree(folderNode.children)}
           </FolderRow>
@@ -434,9 +502,37 @@ export function ToolkitManager() {
               className="grid gap-0.5"
               onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
               onDrop={(e) => handleDropOnFolder(e, null)}
-              onDragEnd={() => setDropIndicator(null)}
+              onDragEnd={() => { setDropIndicator(null); setDraggedFolderId(null) }}
             >
               {renderTree(tree)}
+
+              {/* Root drop zone for unnesting folders */}
+              {draggedFolderId && (
+                <div
+                  className={`mt-2 border-2 border-dashed rounded-lg py-3 text-center text-xs transition-colors ${
+                    rootDropActive
+                      ? 'border-indigo-500/60 bg-indigo-500/10 text-indigo-300'
+                      : 'border-gray-700/60 text-gray-600'
+                  }`}
+                  onDragEnter={(e) => {
+                    e.preventDefault()
+                    if (e.dataTransfer.types.includes('application/folder-id')) {
+                      setRootDropActive(true)
+                    }
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'move'
+                  }}
+                  onDragLeave={() => setRootDropActive(false)}
+                  onDrop={(e) => {
+                    setRootDropActive(false)
+                    handleDropOnFolder(e, null)
+                  }}
+                >
+                  Drop here to move to root
+                </div>
+              )}
             </div>
           )}
 

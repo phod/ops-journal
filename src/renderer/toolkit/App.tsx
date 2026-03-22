@@ -43,8 +43,8 @@ export default function App() {
   const loadFolders = useCallback(async () => {
     const list = await window.electronAPI.listToolFolders()
     setFolders(list)
-    // Default: all folders expanded
-    setExpandedFolders(new Set(list.map((f) => f.id)))
+    // Default: all folders collapsed
+    setExpandedFolders(new Set())
   }, [])
 
   useEffect(() => {
@@ -67,9 +67,11 @@ export default function App() {
     return window.electronAPI.onToolFoldersChanged((updatedFolders) => {
       setFolders(updatedFolders)
       setExpandedFolders((prev) => {
-        const next = new Set(prev)
-        for (const f of updatedFolders) {
-          if (!prev.has(f.id)) next.add(f.id)
+        // Keep only folders that still exist; new folders start collapsed
+        const updatedIds = new Set(updatedFolders.map((f) => f.id))
+        const next = new Set<string>()
+        for (const id of prev) {
+          if (updatedIds.has(id)) next.add(id)
         }
         return next
       })
@@ -84,8 +86,8 @@ export default function App() {
       setFunctionToolPending(null)
       setReferenceToolPending(null)
       setExpandedBeforeSearch(null)
-      // Re-expand all on focus
-      setExpandedFolders(new Set(folders.map((f) => f.id)))
+      // Collapse all on focus
+      setExpandedFolders(new Set())
       searchRef.current?.focus()
     }
     window.addEventListener('focus', handleFocus)

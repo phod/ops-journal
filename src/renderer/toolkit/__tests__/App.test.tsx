@@ -188,7 +188,8 @@ describe('Toolkit App', () => {
 
     render(<App />)
     await waitFor(() => expect(screen.getByText('Monitoring')).toBeInTheDocument())
-    expect(screen.getByText('Grafana')).toBeInTheDocument()
+    // Folders are collapsed by default, so the tool inside is not visible
+    expect(screen.queryByText('Grafana')).not.toBeInTheDocument()
   })
 
   it('shows fold/unfold hint when folders exist', async () => {
@@ -199,7 +200,7 @@ describe('Toolkit App', () => {
     await waitFor(() => expect(screen.getByText('fold/unfold')).toBeInTheDocument())
   })
 
-  it('collapses folder on ArrowLeft', async () => {
+  it('expands folder on ArrowRight and collapses on ArrowLeft', async () => {
     const folders = [makeFolder({ id: 'f1', name: 'Scripts' })]
     const toolsInFolder = [
       makeTool({ id: '1', name: 'Deploy Script', folder_id: 'f1' })
@@ -211,7 +212,11 @@ describe('Toolkit App', () => {
     render(<App />)
     await waitFor(() => expect(screen.getByText('Scripts')).toBeInTheDocument())
 
-    // Folder is expanded by default, tool visible
+    // Folder is collapsed by default, tool not visible
+    expect(screen.queryByText('Deploy Script')).not.toBeInTheDocument()
+
+    // ArrowRight on folder should expand it
+    await user.keyboard('{ArrowRight}')
     expect(screen.getByText('Deploy Script')).toBeInTheDocument()
 
     // ArrowLeft on folder should collapse it
@@ -230,10 +235,9 @@ describe('Toolkit App', () => {
 
     const user = userEvent.setup()
     render(<App />)
-    await waitFor(() => expect(screen.getByText('Deploy Script')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Scripts')).toBeInTheDocument())
 
-    // Collapse folder first
-    await user.keyboard('{ArrowLeft}')
+    // Folder is collapsed by default
     expect(screen.queryByText('Deploy Script')).not.toBeInTheDocument()
 
     // Search should auto-expand the folder

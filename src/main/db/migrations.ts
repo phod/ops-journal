@@ -152,4 +152,7 @@ export const migrations: string[] = [
     PRIMARY KEY (hypothesis_entry_id, action_entry_id)
   );
   `,
+
+  // Migration 16 — tab ordering for investigations
+  `ALTER TABLE investigations ADD COLUMN tab_order INTEGER NOT NULL DEFAULT 0;`,
 ]

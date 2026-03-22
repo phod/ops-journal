@@ -10,6 +10,7 @@ import { RumourBoardView } from '../details/components/board/RumourBoardView'
 import { RelationshipMapView } from '../details/components/relationships/RelationshipMapView'
 import { EntryDragProvider } from './contexts/EntryDragContext'
 import { MAX_IMAGES_PER_ENTRY } from '@shared/ipc-types'
+import { Modal } from '@shared/Modal'
 
 const MIN_ENTRY_STREAM_WIDTH = 200
 const DEFAULT_ENTRY_STREAM_WIDTH = 288
@@ -28,6 +29,7 @@ export default function App() {
     deleteEntry
   } = useOverlayState()
   const [isDragging, setIsDragging] = useState(false)
+  const [deactivateConfirmId, setDeactivateConfirmId] = useState<string | null>(null)
   const [opaqueOverlay, setOpaqueOverlay] = useState(false)
 
   useEffect(() => {
@@ -160,6 +162,7 @@ export default function App() {
   const handleCreateInvestigation = async (name: string) => {
     const inv = await window.electronAPI.createInvestigation(name)
     await window.electronAPI.setActiveInvestigation(inv.id)
+    switchToInvestigation(inv.id)
   }
 
   if (loading) {
@@ -491,9 +494,10 @@ export default function App() {
         investigations={activeInvestigations}
         currentId={currentInvestigationId}
         onSelect={switchToInvestigation}
-        onDeactivate={(id) => window.electronAPI.deactivateInvestigation(id)}
+        onDeactivate={(id) => setDeactivateConfirmId(id)}
         onCreate={handleCreateInvestigation}
         onRename={(id, name) => window.electronAPI.renameInvestigation(id, name)}
+        onReorder={(orderedIds) => window.electronAPI.reorderInvestigations(orderedIds)}
       />
 
       {/* Drag overlay */}
@@ -504,6 +508,32 @@ export default function App() {
       )}
 
       {renderMainContent()}
+
+      {deactivateConfirmId && (
+        <Modal onClose={() => setDeactivateConfirmId(null)} className="p-6 w-[340px]">
+          <h3 className="text-gray-100 font-semibold text-sm mb-2">Close tab?</h3>
+          <p className="text-gray-400 text-sm mb-5 leading-relaxed">
+            This will deactivate the investigation. You can reactivate it later from the Investigation Manager.
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setDeactivateConfirmId(null)}
+              className="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                window.electronAPI.deactivateInvestigation(deactivateConfirmId)
+                setDeactivateConfirmId(null)
+              }}
+              className="px-4 py-1.5 text-xs font-medium rounded-lg bg-amber-600 hover:bg-amber-500 text-white transition-colors"
+            >
+              Close tab
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

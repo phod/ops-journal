@@ -22,7 +22,7 @@
     "@tiptap/react": "^3.20.1",
     "@tiptap/starter-kit": "^3.20.1",
     "@xyflow/react": "^12.10.1",
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.8.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
@@ -38,7 +38,7 @@
     "@types/uuid": "^9.0.7",
     "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.4.17",
-    "electron": "^33.0.0",
+    "electron": "^41.0.3",
     "electron-vite": "^5.0.0",
     "jsdom": "^28.1.0",
     "postcss": "^8.4.33",

@@ -57,7 +57,7 @@ function FindingDetailCard({ finding }: { finding: JournalEntry }) {
               className={`rounded border border-teal-500/30 object-contain cursor-pointer transition-all ${
                 expandedPath === path ? 'max-h-none w-full' : 'max-h-48'
               }`}
-              title={expandedPath === path ? 'Click to collapse' : 'Click to expand'}
+              data-tooltip={expandedPath === path ? 'Click to collapse' : 'Click to expand'}
             />
           ))}
         </div>
@@ -136,7 +136,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
             <button
               onClick={() => setShowTypeMenu((v) => !v)}
               className={`no-drag px-1.5 py-0.5 rounded text-xs ${typeDef.tagBgClass} ${typeDef.tagTextClass} cursor-pointer`}
-              title="Change entry type"
+              data-tooltip="Change entry type"
             >
               {typeDef.label.toUpperCase()}
             </button>
@@ -144,7 +144,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
             <button
               onClick={() => setShowTypeMenu((v) => !v)}
               className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-gray-400 px-1"
-              title="Set entry type"
+              data-tooltip="Set entry type"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
@@ -162,7 +162,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
             <button
               onClick={() => setShowStatusMenu((v) => !v)}
               className={`no-drag px-1.5 py-0.5 rounded text-xs font-semibold cursor-pointer ${HYPOTHESIS_STATUS_CLASS[status]}`}
-              title="Change hypothesis status"
+              data-tooltip="Change hypothesis status"
             >
               {HYPOTHESIS_STATUS_LABEL[status]}
             </button>
@@ -180,7 +180,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
                 ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                 : 'bg-orange-500/10 text-orange-400/60 hover:bg-orange-500/20 hover:text-orange-400'
             }`}
-            title={entry.action_completed ? 'Mark incomplete' : 'Mark complete'}
+            data-tooltip={entry.action_completed ? 'Mark incomplete' : 'Mark complete'}
           >
             {entry.action_completed ? (
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -200,7 +200,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
             <button
               onClick={() => setShowStatusMenu((v) => !v)}
               className={`no-drag px-1.5 py-0.5 rounded text-xs font-semibold cursor-pointer ${TOOL_ENTRY_STATUS_CLASS[toolStatus]}`}
-              title="Change tool status"
+              data-tooltip="Change tool status"
             >
               {TOOL_ENTRY_STATUS_LABEL[toolStatus]}
             </button>
@@ -217,7 +217,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
               ? 'text-amber-400 hover:text-amber-300'
               : 'opacity-0 group-hover:opacity-100 text-gray-600 hover:text-amber-400'
           }`}
-          title={entry.flagged ? 'Remove flag' : 'Flag as important'}
+          data-tooltip={entry.flagged ? 'Remove flag' : 'Flag as important'}
         >
           <FlagIcon filled={!!entry.flagged} className={entry.flagged ? 'text-amber-400' : 'text-current'} />
         </button>
@@ -241,7 +241,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
               className={`rounded border border-gray-600 object-contain cursor-pointer transition-all ${
                 expandedPath === path ? 'max-h-none w-full' : 'max-h-40'
               }`}
-              title={expandedPath === path ? 'Click to collapse' : 'Click to expand'}
+              data-tooltip={expandedPath === path ? 'Click to collapse' : 'Click to expand'}
             />
           ))}
         </div>
@@ -258,7 +258,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
                   key={p.id}
                   onClick={() => scrollToEntry(p.id)}
                   className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 transition-colors flex items-center gap-1.5"
-                  title={p.body}
+                  data-tooltip={p.body}
                 >
                   <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[pStatus]}`}>
                     {HYPOTHESIS_STATUS_LABEL[pStatus]}
@@ -281,7 +281,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
                 <button
                   onClick={() => toggleFindingExpanded(f.id)}
                   className="w-full text-left px-2 py-1.5 rounded text-xs font-mono bg-teal-500/10 border border-teal-500/25 text-teal-300 hover:bg-teal-500/20 transition-colors flex items-center justify-between gap-2"
-                  title={isExpanded ? 'Collapse finding' : 'Expand finding'}
+                  data-tooltip={isExpanded ? 'Collapse finding' : 'Expand finding'}
                 >
                   <span className="truncate">{f.body || '(no text)'}</span>
                   <span className="flex-shrink-0 text-gray-600">{isExpanded ? '▲' : '▼'}</span>
@@ -302,7 +302,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
                 key={a.id}
                 onClick={() => scrollToEntry(a.id)}
                 className="px-2 py-0.5 rounded text-xs font-mono bg-orange-500/15 border border-orange-500/30 text-orange-300 hover:bg-orange-500/25 transition-colors flex items-center gap-1.5"
-                title={a.body}
+                data-tooltip={a.body}
               >
                 <span className="truncate max-w-[180px]">{a.body || '(no text)'}</span>
               </button>
@@ -322,7 +322,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
                   key={ch.id}
                   onClick={() => scrollToEntry(ch.id)}
                   className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 transition-colors flex items-center gap-1.5"
-                  title={ch.body}
+                  data-tooltip={ch.body}
                 >
                   <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[chStatus]}`}>
                     {HYPOTHESIS_STATUS_LABEL[chStatus]}
@@ -346,7 +346,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
                   key={h.id}
                   onClick={() => scrollToEntry(h.id)}
                   className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 transition-colors flex items-center gap-1.5"
-                  title={h.body}
+                  data-tooltip={h.body}
                 >
                   <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[hStatus]}`}>
                     {HYPOTHESIS_STATUS_LABEL[hStatus]}
@@ -370,7 +370,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
                   key={h.id}
                   onClick={() => scrollToEntry(h.id)}
                   className="px-2 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 transition-colors flex items-center gap-1.5"
-                  title={h.body}
+                  data-tooltip={h.body}
                 >
                   <span className={`text-xs font-semibold ${HYPOTHESIS_STATUS_TEXT_CLASS[hStatus]}`}>
                     {HYPOTHESIS_STATUS_LABEL[hStatus]}

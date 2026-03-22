@@ -1,5 +1,38 @@
 import '@testing-library/jest-dom/vitest'
 import { vi, beforeEach } from 'vitest'
+import { screen, within, queryHelpers } from '@testing-library/react'
+
+// Custom queries for data-tooltip (replaces native title attribute)
+function queryAllByTooltip(container: HTMLElement, tooltip: string) {
+  return Array.from(container.querySelectorAll<HTMLElement>(`[data-tooltip="${CSS.escape(tooltip)}"]`))
+}
+
+const [queryByTooltip, getAllByTooltip, getByTooltip, findAllByTooltip, findByTooltip] =
+  queryHelpers.buildQueries<[string]>(
+    queryAllByTooltip,
+    (_, tooltip) => `Unable to find an element with the data-tooltip: ${tooltip}`,
+    (_, tooltip) => `Found multiple elements with the data-tooltip: ${tooltip}`
+  )
+
+// Patch screen with tooltip queries
+Object.assign(screen, {
+  getByTooltip: (tooltip: string) => getByTooltip(document.body, tooltip),
+  getAllByTooltip: (tooltip: string) => getAllByTooltip(document.body, tooltip),
+  queryByTooltip: (tooltip: string) => queryByTooltip(document.body, tooltip),
+  findByTooltip: (tooltip: string) => findByTooltip(document.body, tooltip),
+  findAllByTooltip: (tooltip: string) => findAllByTooltip(document.body, tooltip),
+})
+
+// Re-export for use in tests
+declare module '@testing-library/react' {
+  interface Screen {
+    getByTooltip(tooltip: string): HTMLElement
+    getAllByTooltip(tooltip: string): HTMLElement[]
+    queryByTooltip(tooltip: string): HTMLElement | null
+    findByTooltip(tooltip: string): Promise<HTMLElement>
+    findAllByTooltip(tooltip: string): Promise<HTMLElement[]>
+  }
+}
 
 const DEFAULT_MOCKS = {
   getActiveInvestigations: vi.fn().mockResolvedValue([]),

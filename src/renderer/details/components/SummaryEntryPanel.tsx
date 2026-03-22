@@ -121,7 +121,7 @@ function PanelEntry({
           onClick={() => onInsert(entry)}
           onMouseDown={(e) => e.preventDefault()}
           className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium"
-          title="Insert at cursor"
+          data-tooltip="Insert at cursor"
         >
           Insert
         </button>
@@ -224,7 +224,7 @@ function EntryImageStrip({
             onClick={() => onInsertImage(p)}
             onMouseDown={(e) => e.preventDefault()}
             className="absolute inset-0 flex items-center justify-center rounded opacity-0 group-hover/img:opacity-100 bg-black/60 text-white text-xs font-medium transition-opacity"
-            title="Insert image"
+            data-tooltip="Insert image"
           >
             Insert
           </button>

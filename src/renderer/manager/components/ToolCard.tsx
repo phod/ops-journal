@@ -190,7 +190,7 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
 
       {confirmDelete && (
         <ConfirmDialog
-          title="Delete Tool"
+          data-tooltip="Delete Tool"
           message={`Are you sure you want to delete "${tool.name}"? This cannot be undone.`}
           confirmLabel="Delete"
           onConfirm={() => { setConfirmDelete(false); onDelete() }}

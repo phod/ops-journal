@@ -175,7 +175,7 @@ export function FolderRow({
 
       {confirmDelete && (
         <ConfirmDialog
-          title="Delete Folder"
+          data-tooltip="Delete Folder"
           message={`Delete "${folder.name}"? Items inside will be moved to the parent folder.`}
           confirmLabel="Delete"
           onConfirm={() => { setConfirmDelete(false); onDelete() }}

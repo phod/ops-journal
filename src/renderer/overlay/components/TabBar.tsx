@@ -249,7 +249,7 @@ export function TabBar({ investigations, currentId, onSelect, onDeactivate, onCr
                     onDeactivate(inv.id)
                   }}
                   className="flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity ml-0.5"
-                  title="Close tab"
+                  data-tooltip="Close tab"
                 >
                   ×
                 </button>
@@ -269,7 +269,7 @@ export function TabBar({ investigations, currentId, onSelect, onDeactivate, onCr
                 setDropdownOpen((v) => !v)
               }}
               className="px-1.5 py-1 rounded text-xs text-gray-400 hover:bg-gray-700/40 hover:text-gray-200 transition-colors"
-              title="More tabs"
+              data-tooltip="More tabs"
             >
               •••
             </button>
@@ -316,7 +316,7 @@ export function TabBar({ investigations, currentId, onSelect, onDeactivate, onCr
                             setDropdownOpen(false)
                           }}
                           className="flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity"
-                          title="Close tab"
+                          data-tooltip="Close tab"
                         >
                           ×
                         </button>
@@ -349,7 +349,7 @@ export function TabBar({ investigations, currentId, onSelect, onDeactivate, onCr
           <button
             onClick={startCreating}
             className="no-drag flex-shrink-0 px-1.5 py-1 rounded text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-700/40 transition-colors"
-            title="New investigation"
+            data-tooltip="New investigation"
           >
             +
           </button>

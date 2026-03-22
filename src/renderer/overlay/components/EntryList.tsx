@@ -510,7 +510,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               <button
                 onClick={() => setShowTypeMenu((v) => !v)}
                 className={`no-drag px-1.5 py-0.5 rounded text-xs ${typeDef.tagBgClass} ${typeDef.tagTextClass} cursor-pointer`}
-                title="Change entry type"
+                data-tooltip="Change entry type"
               >
                 {typeDef.label.toUpperCase()}
               </button>
@@ -519,7 +519,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                 <button
                   onClick={() => setShowTypeMenu((v) => !v)}
                   className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-gray-400 px-1"
-                  title="Set entry type"
+                  data-tooltip="Set entry type"
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
@@ -538,7 +538,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               <button
                 onClick={() => setShowStatusMenu((v) => !v)}
                 className={`no-drag px-1.5 py-0.5 rounded text-xs font-semibold cursor-pointer ${HYPOTHESIS_STATUS_CLASS[status]}`}
-                title="Change hypothesis status"
+                data-tooltip="Change hypothesis status"
               >
                 {HYPOTHESIS_STATUS_LABEL[status]}
               </button>
@@ -556,7 +556,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                   : 'bg-orange-500/10 text-orange-400/60 hover:bg-orange-500/20 hover:text-orange-400'
               }`}
-              title={entry.action_completed ? 'Mark incomplete' : 'Mark complete'}
+              data-tooltip={entry.action_completed ? 'Mark incomplete' : 'Mark complete'}
             >
               {entry.action_completed ? (
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -576,7 +576,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               <button
                 onClick={() => setShowStatusMenu((v) => !v)}
                 className={`no-drag px-1.5 py-0.5 rounded text-xs font-semibold cursor-pointer ${TOOL_ENTRY_STATUS_CLASS[toolStatus]}`}
-                title="Change tool status"
+                data-tooltip="Change tool status"
               >
                 {TOOL_ENTRY_STATUS_LABEL[toolStatus]}
               </button>
@@ -590,7 +590,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
             <button
               onClick={() => setShowLinkModal(true)}
               className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-teal-400 px-1 text-xs"
-              title="Manage linked findings, actions, and child hypotheses"
+              data-tooltip="Manage linked findings, actions, and child hypotheses"
             >
               {(linkedFindings.length + linkedActions.length + linkedChildHypotheses.length) > 0 ? 'edit links' : '+ link'}
             </button>
@@ -600,7 +600,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
             <button
               onClick={() => setShowLinkModal(true)}
               className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-violet-400 px-1 text-xs"
-              title="Link to hypotheses"
+              data-tooltip="Link to hypotheses"
             >
               {linkedHypotheses.length > 0 ? 'edit links' : '+ link'}
             </button>
@@ -610,7 +610,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
             <button
               onClick={() => setShowLinkModal(true)}
               className="no-drag opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-violet-400 px-1 text-xs"
-              title="Link to hypotheses"
+              data-tooltip="Link to hypotheses"
             >
               {linkedHypotheses.length > 0 ? 'edit links' : '+ link'}
             </button>
@@ -624,7 +624,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   ? 'text-amber-400 hover:text-amber-300'
                   : 'opacity-0 group-hover:opacity-100 text-gray-600 hover:text-amber-400'
               }`}
-              title={entry.flagged ? 'Remove flag' : 'Flag as important'}
+              data-tooltip={entry.flagged ? 'Remove flag' : 'Flag as important'}
             >
               <FlagIcon filled={!!entry.flagged} className={entry.flagged ? 'text-amber-400' : 'text-current'} />
             </button>
@@ -635,7 +635,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
             <button
               onClick={onEditStart}
               className="no-drag text-gray-500 hover:text-gray-300 transition-colors px-1"
-              title="Edit"
+              data-tooltip="Edit"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -645,7 +645,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
             <button
               onClick={handleDelete}
               className="no-drag text-gray-500 hover:text-red-400 transition-colors px-1"
-              title="Delete"
+              data-tooltip="Delete"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="3 6 5 6 21 6"/>
@@ -701,7 +701,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                           ? 'bg-gray-600 hover:bg-gray-500 text-gray-400'
                           : 'bg-red-700 hover:bg-red-600 text-white'
                       }`}
-                      title={markedForRemoval ? 'Keep image' : 'Remove image'}
+                      data-tooltip={markedForRemoval ? 'Keep image' : 'Remove image'}
                     >
                       {markedForRemoval ? '↩' : '×'}
                     </button>
@@ -722,7 +722,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   <button
                     onClick={() => setPendingNewImages((prev) => prev.filter((_, idx) => idx !== i))}
                     className="no-drag absolute -top-1.5 -right-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-full w-4 h-4 flex items-center justify-center text-xs leading-none"
-                    title="Remove image"
+                    data-tooltip="Remove image"
                   >
                     ×
                   </button>
@@ -759,7 +759,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                 onClick={handlePickImage}
                 disabled={saving || editAtLimit}
                 className="no-drag flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-40 px-1 py-0.5"
-                title={editAtLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Attach image'}
+                data-tooltip={editAtLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Attach image'}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
@@ -770,7 +770,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                 onClick={handleCaptureScreenshot}
                 disabled={saving || editAtLimit}
                 className="no-drag flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-40 px-1 py-0.5"
-                title={editAtLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Capture screenshot region'}
+                data-tooltip={editAtLimit ? `Image limit reached (${MAX_IMAGES_PER_ENTRY})` : 'Capture screenshot region'}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="6" cy="6" r="3"/>
@@ -810,7 +810,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   className={`rounded border border-gray-600 object-contain cursor-pointer transition-all ${
                     expandedPath === path ? 'max-h-none w-full' : 'max-h-24'
                   }`}
-                  title={expandedPath === path ? 'Click to collapse' : 'Click to expand'}
+                  data-tooltip={expandedPath === path ? 'Click to collapse' : 'Click to expand'}
                 />
               ))}
             </div>
@@ -826,14 +826,14 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   <button
                     onClick={() => scrollToEntry(f.id)}
                     className="no-drag px-1.5 py-0.5 truncate"
-                    title={`Go to finding: ${f.body}`}
+                    data-tooltip={`Go to finding: ${f.body}`}
                   >
                     {f.body || '(no text)'}
                   </button>
                   <button
                     onClick={() => unlinkFinding(f.id)}
                     className="no-drag px-1 py-0.5 pb-1 opacity-0 group-hover/chip:opacity-100 text-teal-500 hover:text-red-400 transition-all shrink-0"
-                    title="Unlink finding"
+                    data-tooltip="Unlink finding"
                   >
                     ×
                   </button>
@@ -852,14 +852,14 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   <button
                     onClick={() => scrollToEntry(a.id)}
                     className="no-drag px-1.5 py-0.5 truncate"
-                    title={`Go to action: ${a.body}`}
+                    data-tooltip={`Go to action: ${a.body}`}
                   >
                     {a.body || '(no text)'}
                   </button>
                   <button
                     onClick={() => unlinkAction(a.id)}
                     className="no-drag px-1 py-0.5 pb-1 opacity-0 group-hover/chip:opacity-100 text-orange-500 hover:text-red-400 transition-all shrink-0"
-                    title="Unlink action"
+                    data-tooltip="Unlink action"
                   >
                     ×
                   </button>
@@ -878,14 +878,14 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   <button
                     onClick={() => scrollToEntry(ch.id)}
                     className="no-drag px-1.5 py-0.5 truncate"
-                    title={`Go to child hypothesis: ${ch.body}`}
+                    data-tooltip={`Go to child hypothesis: ${ch.body}`}
                   >
                     {ch.body || '(no text)'}
                   </button>
                   <button
                     onClick={() => unlinkChildHypothesis(ch.id)}
                     className="no-drag px-1 py-0.5 pb-1 opacity-0 group-hover/chip:opacity-100 text-violet-500 hover:text-red-400 transition-all shrink-0"
-                    title="Unlink child hypothesis"
+                    data-tooltip="Unlink child hypothesis"
                   >
                     ×
                   </button>
@@ -902,7 +902,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   key={p.id}
                   onClick={() => scrollToEntry(p.id)}
                   className="no-drag px-1.5 py-0.5 rounded text-xs font-mono bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 transition-colors truncate max-w-[160px]"
-                  title={`Go to parent hypothesis: ${p.body}`}
+                  data-tooltip={`Go to parent hypothesis: ${p.body}`}
                 >
                   {p.body || '(no text)'}
                 </button>
@@ -917,7 +917,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   key={h.id}
                   onClick={() => scrollToEntry(h.id)}
                   className="no-drag px-1.5 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/30 transition-colors truncate max-w-[160px]"
-                  title={`Go to hypothesis: ${h.body}`}
+                  data-tooltip={`Go to hypothesis: ${h.body}`}
                 >
                   {h.body || '(no text)'}
                 </button>
@@ -932,7 +932,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   key={h.id}
                   onClick={() => scrollToEntry(h.id)}
                   className="no-drag px-1.5 py-0.5 rounded text-xs font-mono bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/30 transition-colors truncate max-w-[160px]"
-                  title={`Go to hypothesis: ${h.body}`}
+                  data-tooltip={`Go to hypothesis: ${h.body}`}
                 >
                   {h.body || '(no text)'}
                 </button>

@@ -453,7 +453,7 @@ export function PendingToolCard({ entry, isExpanded, onToggle, onCreated, onSkip
 
     {confirmingAbandon && (
       <ConfirmDialog
-        title="Abandon Tool Entry"
+        data-tooltip="Abandon Tool Entry"
         message="Are you sure you want to abandon this tool entry? It won't appear in the conversion queue unless manually set back to pending."
         confirmLabel="Abandon"
         onConfirm={() => { setConfirmingAbandon(false); handleAbandon() }}

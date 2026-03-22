@@ -361,7 +361,7 @@ export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
                 className={`no-drag text-xs px-1.5 py-0.5 rounded transition-colors font-medium ${
                   isActive ? tabColors.active : tabColors.inactive
                 }`}
-                title={tab.label}
+                data-tooltip={tab.label}
               >
                 {tab.icon}
                 {count > 0 && (
@@ -374,7 +374,7 @@ export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
         <button
           onClick={onClose}
           className="no-drag text-gray-600 hover:text-gray-400 text-xs transition-colors px-1"
-          title="Close panel"
+          data-tooltip="Close panel"
         >
           ✕
         </button>

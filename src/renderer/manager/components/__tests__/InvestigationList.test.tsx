@@ -113,7 +113,7 @@ describe('InvestigationList', () => {
         onDelete={onDelete}
       />
     )
-    await user.click(screen.getByTitle('More options'))
+    await user.click(screen.getByTooltip('More options'))
     await user.click(screen.getByRole('button', { name: /delete/i }))
     expect(screen.getByText(/delete investigation/i)).toBeInTheDocument()
     expect(onDelete).not.toHaveBeenCalled()
@@ -129,7 +129,7 @@ describe('InvestigationList', () => {
         onDelete={onDelete}
       />
     )
-    await user.click(screen.getByTitle('More options'))
+    await user.click(screen.getByTooltip('More options'))
     await user.click(screen.getByRole('button', { name: /delete/i }))
     // Click delete in confirmation dialog
     const dialog = screen.getByText(/delete investigation/i).closest('div[class*="fixed"]')!
@@ -147,7 +147,7 @@ describe('InvestigationList', () => {
         onDelete={onDelete}
       />
     )
-    await user.click(screen.getByTitle('More options'))
+    await user.click(screen.getByTooltip('More options'))
     await user.click(screen.getByRole('button', { name: /delete/i }))
     await user.click(screen.getByRole('button', { name: /cancel/i }))
     expect(onDelete).not.toHaveBeenCalled()

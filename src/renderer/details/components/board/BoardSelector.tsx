@@ -56,7 +56,7 @@ export function BoardSelector({ boards, selectedId, onSelect, onCreate, onDelete
             <button
               onClick={() => onSelect(board.id)}
               onDoubleClick={() => startRename(board)}
-              title="Double-click to rename"
+              data-tooltip="Double-click to rename"
               className={`text-xs px-3 py-1 rounded font-medium transition-colors ${
                 selectedId === board.id
                   ? 'bg-gray-700 text-gray-100 border border-gray-600'
@@ -72,7 +72,7 @@ export function BoardSelector({ boards, selectedId, onSelect, onCreate, onDelete
                 if (confirm(`Delete board "${board.name}"?`)) onDelete(board.id)
               }}
               className="ml-0.5 text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-xs px-1"
-              title="Delete board"
+              data-tooltip="Delete board"
             >
               ×
             </button>
@@ -81,7 +81,7 @@ export function BoardSelector({ boards, selectedId, onSelect, onCreate, onDelete
       ))}
       <button
         onClick={onCreate}
-        title="New board"
+        data-tooltip="New board"
         className="text-xs px-2 py-1 text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0"
       >
         + New

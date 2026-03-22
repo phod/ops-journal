@@ -99,7 +99,7 @@ function EdgeDirectionToolbar({
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
             }`}
-            title={opt.label}
+            data-tooltip={opt.label}
           >
             {opt.icon}
           </button>
@@ -315,7 +315,7 @@ export function BoardCanvas({
               return next
             })}
             className="text-xs px-2 py-1 rounded bg-gray-800 border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors"
-            title={minimapOpen ? 'Hide minimap' : 'Show minimap'}
+            data-tooltip={minimapOpen ? 'Hide minimap' : 'Show minimap'}
           >
             {minimapOpen ? 'Hide map' : 'Show map'}
           </button>

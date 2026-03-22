@@ -42,20 +42,20 @@ describe('DetailsEntryList', () => {
   it('shows ACTION badge for action entries', () => {
     const entry = makeEntry({ type: 'action' })
     render(<DetailsEntryList entries={[entry]} />)
-    expect(screen.getByTitle('Change entry type')).toHaveTextContent('ACTION')
+    expect(screen.getByTooltip('Change entry type')).toHaveTextContent('ACTION')
   })
 
   it('shows FINDING badge for finding entries', () => {
     const entry = makeEntry({ type: 'finding' })
     render(<DetailsEntryList entries={[entry]} />)
-    expect(screen.getByTitle('Change entry type')).toHaveTextContent('FINDING')
+    expect(screen.getByTooltip('Change entry type')).toHaveTextContent('FINDING')
   })
 
   it('shows a tag icon for note entries instead of a colored badge', () => {
     const entry = makeEntry({ type: 'note' })
     render(<DetailsEntryList entries={[entry]} />)
-    expect(screen.queryByTitle('Change entry type')).not.toBeInTheDocument()
-    expect(screen.getByTitle('Set entry type')).toBeInTheDocument()
+    expect(screen.queryByTooltip('Change entry type')).not.toBeInTheDocument()
+    expect(screen.getByTooltip('Set entry type')).toBeInTheDocument()
   })
 
   it('opens the type picker menu when the badge is clicked', async () => {
@@ -63,7 +63,7 @@ describe('DetailsEntryList', () => {
     const entry = makeEntry({ type: 'action' })
     render(<DetailsEntryList entries={[entry]} onEntryUpdated={onEntryUpdated} />)
 
-    await user.click(screen.getByTitle('Change entry type'))
+    await user.click(screen.getByTooltip('Change entry type'))
 
     expect(screen.getByText('NOTE')).toBeInTheDocument()
     expect(screen.getByText('FINDING')).toBeInTheDocument()
@@ -77,7 +77,7 @@ describe('DetailsEntryList', () => {
 
     render(<DetailsEntryList entries={[entry]} onEntryUpdated={onEntryUpdated} />)
 
-    await user.click(screen.getByTitle('Change entry type'))
+    await user.click(screen.getByTooltip('Change entry type'))
     fireEvent.mouseDown(screen.getByText('FINDING').closest('button')!)
 
     await waitFor(() =>
@@ -92,7 +92,7 @@ describe('DetailsEntryList', () => {
 
     render(<DetailsEntryList entries={[entry]} onEntryUpdated={onEntryUpdated} />)
 
-    await user.click(screen.getByTitle('Change entry type'))
+    await user.click(screen.getByTooltip('Change entry type'))
     // Find the ACTION option in the menu (no title attribute, text includes ACTION)
     const menuActionBtn = screen.getAllByRole('button').find(
       (btn) => btn.textContent?.includes('ACTION') && !btn.title

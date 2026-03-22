@@ -29,7 +29,7 @@ function OverflowMenu({ onDelete }: { onDelete: () => void }) {
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-700 transition-colors"
-        title="More options"
+        data-tooltip="More options"
       >
         ···
       </button>

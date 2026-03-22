@@ -241,6 +241,7 @@ export function TabBar({ investigations, currentId, onSelect, onDeactivate, onCr
                   }
                 }}
                 onMouseDown={(e) => handleMiddleClick(e, inv.id)}
+                data-tooltip={inv.name}
               >
                 <span className="truncate">{inv.name}</span>
                 <button

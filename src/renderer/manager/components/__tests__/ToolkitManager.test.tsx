@@ -106,4 +106,126 @@ describe('ToolkitManager', () => {
     await waitFor(() => expect(screen.getByText('Scripts')).toBeInTheDocument())
   })
 
+  describe('search', () => {
+    const tools = [
+      makeTool({ id: '1', name: 'Grafana', tags: ['monitoring', 'observability'] }),
+      makeTool({ id: '2', name: 'kubectl pods', tags: ['kubernetes'], sort_order: 1 }),
+      makeTool({ id: '3', name: 'PagerDuty', tags: ['alerting'], sort_order: 2 })
+    ]
+
+    beforeEach(() => {
+      window.electronAPI.listTools = vi.fn().mockResolvedValue(tools)
+    })
+
+    it('renders the search input', async () => {
+      render(<ToolkitManager />)
+      await waitFor(() => expect(screen.getByPlaceholderText('Search tools…')).toBeInTheDocument())
+    })
+
+    it('filters tools by name', async () => {
+      const user = userEvent.setup()
+      render(<ToolkitManager />)
+      await waitFor(() => expect(screen.getByText('Grafana')).toBeInTheDocument())
+
+      await user.type(screen.getByPlaceholderText('Search tools…'), 'graf')
+
+      expect(screen.getByText('Grafana')).toBeInTheDocument()
+      expect(screen.queryByText('kubectl pods')).not.toBeInTheDocument()
+      expect(screen.queryByText('PagerDuty')).not.toBeInTheDocument()
+    })
+
+    it('filters tools by tag', async () => {
+      const user = userEvent.setup()
+      render(<ToolkitManager />)
+      await waitFor(() => expect(screen.getByText('Grafana')).toBeInTheDocument())
+
+      await user.type(screen.getByPlaceholderText('Search tools…'), 'monitor')
+
+      expect(screen.getByText('Grafana')).toBeInTheDocument()
+      expect(screen.queryByText('kubectl pods')).not.toBeInTheDocument()
+    })
+
+    it('shows match count badge', async () => {
+      const user = userEvent.setup()
+      render(<ToolkitManager />)
+      await waitFor(() => expect(screen.getByText('Grafana')).toBeInTheDocument())
+
+      await user.type(screen.getByPlaceholderText('Search tools…'), 'graf')
+
+      expect(screen.getByText('1 match')).toBeInTheDocument()
+    })
+
+    it('hides empty folders when no children match', async () => {
+      const folders = [makeFolder({ id: 'f1', name: 'Empty Folder' })]
+      window.electronAPI.listToolFolders = vi.fn().mockResolvedValue(folders)
+
+      const user = userEvent.setup()
+      render(<ToolkitManager />)
+      await waitFor(() => expect(screen.getByText('Grafana')).toBeInTheDocument())
+      expect(screen.getByText('Empty Folder')).toBeInTheDocument()
+
+      await user.type(screen.getByPlaceholderText('Search tools…'), 'graf')
+
+      expect(screen.getByText('Grafana')).toBeInTheDocument()
+      expect(screen.queryByText('Empty Folder')).not.toBeInTheDocument()
+    })
+
+    it('keeps ancestor folders visible for nested matches', async () => {
+      const folders = [
+        makeFolder({ id: 'f-parent', name: 'Parent Folder' }),
+        makeFolder({ id: 'f-child', name: 'Child Folder', parent_id: 'f-parent', sort_order: 1 })
+      ]
+      const nestedTools = [
+        makeTool({ id: '10', name: 'Nested Tool', folder_id: 'f-child', tags: ['special'] })
+      ]
+      window.electronAPI.listToolFolders = vi.fn().mockResolvedValue(folders)
+      window.electronAPI.listTools = vi.fn().mockResolvedValue(nestedTools)
+
+      const user = userEvent.setup()
+      render(<ToolkitManager />)
+      await waitFor(() => expect(screen.getByText('Parent Folder')).toBeInTheDocument())
+
+      await user.type(screen.getByPlaceholderText('Search tools…'), 'nested')
+
+      expect(screen.getByText('Nested Tool')).toBeInTheDocument()
+      expect(screen.getByText('Parent Folder')).toBeInTheDocument()
+      expect(screen.getByText('Child Folder')).toBeInTheDocument()
+    })
+
+    it('clears search and shows all tools when clear button is clicked', async () => {
+      const user = userEvent.setup()
+      render(<ToolkitManager />)
+      await waitFor(() => expect(screen.getByText('Grafana')).toBeInTheDocument())
+
+      await user.type(screen.getByPlaceholderText('Search tools…'), 'graf')
+      expect(screen.queryByText('kubectl pods')).not.toBeInTheDocument()
+
+      await user.click(screen.getByText('✕'))
+
+      expect(screen.getByText('Grafana')).toBeInTheDocument()
+      expect(screen.getByText('kubectl pods')).toBeInTheDocument()
+      expect(screen.getByText('PagerDuty')).toBeInTheDocument()
+    })
+
+    it('shows no-match message for zero results', async () => {
+      const user = userEvent.setup()
+      render(<ToolkitManager />)
+      await waitFor(() => expect(screen.getByText('Grafana')).toBeInTheDocument())
+
+      await user.type(screen.getByPlaceholderText('Search tools…'), 'zzzznotfound')
+
+      expect(screen.getByText('No tools match your search.')).toBeInTheDocument()
+    })
+
+    it('matches case-insensitively', async () => {
+      const user = userEvent.setup()
+      render(<ToolkitManager />)
+      await waitFor(() => expect(screen.getByText('Grafana')).toBeInTheDocument())
+
+      await user.type(screen.getByPlaceholderText('Search tools…'), 'GRAFANA')
+
+      expect(screen.getByText('Grafana')).toBeInTheDocument()
+    })
+  })
+
 })

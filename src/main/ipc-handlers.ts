@@ -467,7 +467,7 @@ export function registerIpcHandlers(): void {
       shell.openExternal(tool.value)
     } else {
       clipboard.writeText(tool.value)
-      const frontApp = getPreviousFrontApp()
+      const frontApp = await getPreviousFrontApp()
       console.log('[tool:execute] Previous front app:', frontApp)
       hideToolkitOverlay()
       await new Promise((r) => setTimeout(r, 150))

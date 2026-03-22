@@ -1,5 +1,5 @@
 import { BrowserWindow, screen, app } from 'electron'
-import { execSync } from 'child_process'
+import { exec } from 'child_process'
 import path from 'path'
 import fs from 'fs'
 
@@ -10,20 +10,21 @@ let overlayWindow: BrowserWindow | null = null
 let managerWindow: BrowserWindow | null = null
 let toolkitOverlayWindow: BrowserWindow | null = null
 let appIsQuitting = false
-let previousFrontApp: string | null = null
+let previousFrontAppPromise: Promise<string | null> = Promise.resolve(null)
 
-export function getPreviousFrontApp(): string | null {
-  return previousFrontApp
+export async function getPreviousFrontApp(): Promise<string | null> {
+  return previousFrontAppPromise
 }
 
 function capturePreviousFrontApp(): void {
-  try {
-    previousFrontApp = execSync(
-      'osascript -e \'tell application "System Events" to get name of first application process whose frontmost is true\''
-    ).toString().trim()
-  } catch {
-    previousFrontApp = null
-  }
+  previousFrontAppPromise = new Promise((resolve) => {
+    exec(
+      'osascript -e \'tell application "System Events" to get name of first application process whose frontmost is true\'',
+      (error, stdout) => {
+        resolve(error ? null : stdout.trim())
+      }
+    )
+  })
 }
 
 export function setAppQuitting(): void {
@@ -268,10 +269,14 @@ function toolkitBoundsFilePath(): string {
   return path.join(app.getPath('userData'), 'toolkit-overlay-bounds.json')
 }
 
+let cachedToolkitBounds: OverlayBounds | null = null
+
 function loadToolkitBounds(): OverlayBounds | null {
+  if (cachedToolkitBounds) return cachedToolkitBounds
   try {
     const raw = fs.readFileSync(toolkitBoundsFilePath(), 'utf-8')
-    return JSON.parse(raw) as OverlayBounds
+    cachedToolkitBounds = JSON.parse(raw) as OverlayBounds
+    return cachedToolkitBounds
   } catch {
     return null
   }
@@ -281,7 +286,8 @@ function saveToolkitBounds(win: BrowserWindow): void {
   try {
     const [x, y] = win.getPosition()
     const [width, height] = win.getSize()
-    fs.writeFileSync(toolkitBoundsFilePath(), JSON.stringify({ x, y, width, height }))
+    cachedToolkitBounds = { x, y, width, height }
+    fs.writeFileSync(toolkitBoundsFilePath(), JSON.stringify(cachedToolkitBounds))
   } catch {
     // ignore
   }

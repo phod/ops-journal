@@ -96,18 +96,18 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
         <div>
           <label className="block text-xs text-gray-400 font-medium mb-1.5">Type</label>
           <div className="flex gap-1 p-0.5 bg-gray-700/60 rounded-lg w-fit">
-            {(['link', 'string', 'function'] as const).map((t) => (
+            {(['link', 'string', 'function', 'content'] as const).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setToolType(t)}
                 className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors capitalize
                   ${toolType === t
-                    ? t === 'function' ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
+                    ? t === 'function' ? 'bg-emerald-600 text-white' : t === 'content' ? 'bg-purple-600 text-white' : 'bg-indigo-600 text-white'
                     : 'text-gray-400 hover:text-gray-200'
                   }`}
               >
-                {t === 'link' ? '↗ Link' : t === 'function' ? '⚡ Function' : '⌨ String'}
+                {t === 'link' ? '↗ Link' : t === 'function' ? '⚡ Function' : t === 'content' ? '📖 Content' : '⌨ String'}
               </button>
             ))}
           </div>
@@ -216,7 +216,7 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
         {/* Value / Script */}
         <div>
           <label className="block text-xs text-gray-400 font-medium mb-1.5">
-            {toolType === 'link' ? 'URL' : toolType === 'function' ? 'Script' : 'Text'}
+            {toolType === 'link' ? 'URL' : toolType === 'function' ? 'Script' : toolType === 'content' ? 'Content' : 'Text'}
           </label>
           {toolType === 'link' ? (
             <input
@@ -233,8 +233,10 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
               onChange={(e) => setValue(e.target.value)}
               placeholder={toolType === 'function'
                 ? 'var url = "https://site.com/" + userId;\ncopy(userPlan);\nopenLink(url);'
+                : toolType === 'content'
+                ? 'Paste or type content...'
                 : 'kubectl get pods -n production'}
-              rows={toolType === 'function' ? 6 : 4}
+              rows={toolType === 'function' ? 6 : toolType === 'content' ? 8 : 4}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100
                 placeholder-gray-600 outline-none focus:border-indigo-500/60 transition-colors resize-none font-mono"
             />

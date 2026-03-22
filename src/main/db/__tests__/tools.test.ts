@@ -219,6 +219,21 @@ describe('function tools', () => {
   })
 })
 
+describe('content tools', () => {
+  it('creates a content tool and round-trips via listTools', () => {
+    const tool = createTool('UUID Mappings', 'content', 'abc-123 → prod-server-1\ndef-456 → prod-server-2', ['infra'])
+    expect(tool.tool_type).toBe('content')
+    expect(tool.value).toContain('abc-123')
+    expect(tool.tags).toEqual(['infra'])
+
+    const tools = listTools()
+    const found = tools.find((t) => t.id === tool.id)
+    expect(found).toBeDefined()
+    expect(found!.tool_type).toBe('content')
+    expect(found!.value).toBe('abc-123 → prod-server-1\ndef-456 → prod-server-2')
+  })
+})
+
 describe('reorderTools', () => {
   it('updates sort_order based on array position', () => {
     const a = createTool('A', 'link', 'https://a.com', [])

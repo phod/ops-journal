@@ -89,9 +89,9 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
         )}
         {/* Type icon */}
         <span className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs ${
-          tool.tool_type === 'link' ? 'text-blue-400' : tool.tool_type === 'function' ? 'text-emerald-400' : 'text-amber-400'
+          tool.tool_type === 'link' ? 'text-blue-400' : tool.tool_type === 'function' ? 'text-emerald-400' : tool.tool_type === 'content' ? 'text-purple-400' : 'text-amber-400'
         }`}>
-          {tool.tool_type === 'link' ? '↗' : tool.tool_type === 'function' ? '⚡' : '⌨'}
+          {tool.tool_type === 'link' ? '↗' : tool.tool_type === 'function' ? '⚡' : tool.tool_type === 'content' ? '📖' : '⌨'}
         </span>
 
         {/* Content – single row */}
@@ -101,6 +101,8 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
             ? 'bg-blue-900/40 text-blue-400 border border-blue-800/40'
             : tool.tool_type === 'function'
             ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-800/40'
+            : tool.tool_type === 'content'
+            ? 'bg-purple-900/30 text-purple-400 border border-purple-800/40'
             : 'bg-amber-900/30 text-amber-400 border border-amber-800/40'
           }`}
         >

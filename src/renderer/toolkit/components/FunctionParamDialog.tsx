@@ -31,13 +31,17 @@ export function FunctionParamDialog({ tool, onRun, onCancel }: Props) {
     setValues((prev) => ({ ...prev, [name]: value }))
   }
 
+  const canRun = params.every((p) =>
+    !p.required || (values[p.name] ?? '').trim() !== ''
+  )
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
       e.preventDefault()
       onCancel()
     } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      onRun(values)
+      if (canRun) onRun(values)
     }
   }
 
@@ -54,7 +58,7 @@ export function FunctionParamDialog({ tool, onRun, onCancel }: Props) {
         {params.map((param, i) => (
           <div key={param.name}>
             <label className="block text-xs text-gray-400 font-medium mb-1">
-              {param.name}
+              {param.name}{param.required && <span className="text-red-400 ml-0.5">*</span>}
             </label>
             {param.type === 'text' ? (
               <input
@@ -148,7 +152,8 @@ export function FunctionParamDialog({ tool, onRun, onCancel }: Props) {
           <button
             type="button"
             onClick={() => onRun(values)}
-            className="no-drag px-4 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+            disabled={!canRun}
+            className="no-drag px-4 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-40"
           >
             Run ⚡
           </button>

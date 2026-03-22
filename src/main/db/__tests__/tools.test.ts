@@ -186,6 +186,33 @@ describe('function tools', () => {
     expect(updated.parameters![1].options).toEqual(['x', 'y'])
   })
 
+  it('round-trips required flag through create and list', () => {
+    const params = [
+      { name: 'userId', type: 'text' as const, required: true },
+      { name: 'note', type: 'text' as const }
+    ]
+    const tool = createTool('Required Test', 'function', 'copy(userId);', [], undefined, params)
+    expect(tool.parameters![0].required).toBe(true)
+    expect(tool.parameters![1].required).toBeUndefined()
+
+    const tools = listTools()
+    const found = tools.find((t) => t.name === 'Required Test')
+    expect(found?.parameters![0].required).toBe(true)
+    expect(found?.parameters![1].required).toBeUndefined()
+  })
+
+  it('preserves required flag through updateTool', () => {
+    const tool = createTool('Update Required', 'function', 'copy(a);', [], undefined, [
+      { name: 'a', type: 'text' as const, required: true }
+    ])
+    const updated = updateTool(tool.id, 'Update Required', 'function', 'copy(a);', [], [
+      { name: 'a', type: 'text' as const, required: true },
+      { name: 'b', type: 'text' as const }
+    ])
+    expect(updated.parameters![0].required).toBe(true)
+    expect(updated.parameters![1].required).toBeUndefined()
+  })
+
   it('returns null parameters for non-function tools', () => {
     const tool = createTool('Link', 'link', 'https://example.com', [])
     expect(tool.parameters).toBeNull()

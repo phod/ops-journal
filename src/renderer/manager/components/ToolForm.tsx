@@ -51,6 +51,10 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
   }
 
   function updateParameter(index: number, updates: Partial<FunctionParameter>) {
+    // Clear required flag when switching away from text type
+    if (updates.type && updates.type !== 'text') {
+      updates = { ...updates, required: undefined }
+    }
     setParameters(parameters.map((p, i) => i === index ? { ...p, ...updates } : p))
   }
 
@@ -169,6 +173,17 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
                       ✕
                     </button>
                   </div>
+                  {param.type === 'text' && (
+                    <label className="flex items-center gap-1.5 ml-0.5">
+                      <input
+                        type="checkbox"
+                        checked={param.required ?? false}
+                        onChange={(e) => updateParameter(i, { required: e.target.checked || undefined })}
+                        className="accent-indigo-500"
+                      />
+                      <span className="text-[11px] text-gray-500">Required</span>
+                    </label>
+                  )}
                   {(param.type === 'list' || param.type === 'list-other') && (
                     <input
                       type="text"
@@ -245,7 +260,7 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
           </button>
           <button
             type="submit"
-            disabled={!name.trim() || !value.trim() || saving || (toolType === 'function' && parameters.some((p) => !p.name.trim()))}
+            disabled={!name.trim() || !value.trim() || saving || (toolType === 'function' && (parameters.some((p) => !p.name.trim()) || parameters.some((p, i) => (p.type === 'list' || p.type === 'list-other') && !(optionsInputs[i] ?? '').split(',').some((s) => s.trim()))))}
             className="px-4 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500
               text-white transition-colors disabled:opacity-40"
           >

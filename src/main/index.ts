@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { createOverlayWindow, createManagerWindow, createToolkitOverlayWindow, getOverlayWindow, getToolkitOverlayWindow, setAppQuitting } from './windows'
+import { createOverlayWindow, createManagerWindow, createToolkitOverlayWindow, getOverlayWindow, getToolkitOverlayWindow, setAppQuitting, checkManagerDirty } from './windows'
 import { createTray, updateTrayMenu } from './tray'
 import { registerHotkey, registerImageHotkeys, registerToolkitHotkey, registerManagerHotkey, unregisterAllHotkeys } from './hotkey'
 import { registerIpcHandlers } from './ipc-handlers'
@@ -68,10 +68,21 @@ if (!gotLock) {
     }
   })
 
-  app.on('before-quit', () => {
-    setAppQuitting()
-    unregisterAllHotkeys()
-    closeDb()
+  let quitConfirmed = false
+  app.on('before-quit', (e) => {
+    if (quitConfirmed) {
+      setAppQuitting()
+      unregisterAllHotkeys()
+      closeDb()
+      return
+    }
+    e.preventDefault()
+    checkManagerDirty().then((canProceed) => {
+      if (canProceed) {
+        quitConfirmed = true
+        app.quit()
+      }
+    })
   })
 
   // Keep the app alive even when all windows are closed

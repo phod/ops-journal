@@ -108,6 +108,8 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
           .focus()
           .insertContent({ type: 'entryRef', attrs: entryRefAttrs(entry, entriesRef.current) })
           .run()
+        // Move cursor past inserted node so next insert appends rather than replaces
+        editor.commands.setTextSelection(editor.state.selection.$to.pos)
       },
       insertImage: (imagePath: string) => {
         if (!editor) return
@@ -116,6 +118,7 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
           .focus()
           .insertContent({ type: 'summaryImage', attrs: { src: imagePath } })
           .run()
+        editor.commands.setTextSelection(editor.state.selection.$to.pos)
       },
       isDirty: () => {
         if (!editor) return false

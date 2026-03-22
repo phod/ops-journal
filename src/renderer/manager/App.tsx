@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { CreateInvestigationForm } from './components/CreateInvestigationForm'
 import { HotkeySettings } from './components/HotkeySettings'
 import { InvestigationDetails } from './components/InvestigationDetails'
+import type { InvestigationDetailsHandle } from './components/InvestigationDetails'
 import { InvestigationList } from './components/InvestigationList'
 import { ToolkitManager } from './components/ToolkitManager'
 import type { Investigation } from '@shared/ipc-types'
@@ -14,6 +15,7 @@ export default function App() {
   const [tab, setTab] = useState<'investigations' | 'toolkits' | 'settings'>('investigations')
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const versionFetchedRef = useRef(false)
+  const detailsRef = useRef<InvestigationDetailsHandle>(null)
 
   const fetchInvestigations = useCallback(async () => {
     try {
@@ -48,6 +50,13 @@ export default function App() {
 
   useEffect(() => {
     return window.electronAPI.onShowHome(() => setDetailsId(null))
+  }, [])
+
+  useEffect(() => {
+    return window.electronAPI.onCheckDirty(() => {
+      const canProceed = detailsRef.current?.confirmIfDirty() ?? true
+      window.electronAPI.replyCheckDirty(canProceed)
+    })
   }, [])
 
   async function handleSetActive(id: string): Promise<void> {
@@ -101,6 +110,7 @@ export default function App() {
         {detailsId ? (
           <div className="flex-1 min-h-0 flex flex-col px-6 py-6">
             <InvestigationDetails
+              ref={detailsRef}
               investigationId={detailsId}
               onBack={() => setDetailsId(null)}
             />

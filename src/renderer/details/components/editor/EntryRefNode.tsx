@@ -89,7 +89,7 @@ function ChildHypothesisTree({ hypothesis, depth = 0 }: { hypothesis: LinkedHypo
   )
 }
 
-function EntryRefNodeView({ node }: NodeViewProps) {
+function EntryRefNodeView({ node, selected }: NodeViewProps) {
   const { entryType, entryBody, entryTimestamp, entryImagePaths, entryHypothesisStatus, entryLinkedFindings, entryLinkedActions, entryChildHypotheses, entryParentHypotheses, entryFlagged } = node.attrs
   const typeDef = getEntryTypeDefinition(entryType ?? 'note')
   const isTyped = entryType !== 'note'
@@ -115,7 +115,7 @@ function EntryRefNodeView({ node }: NodeViewProps) {
           isTyped
             ? `border-l-4 ${typeDef.leftBorderClass} ${typeDef.cardBgClass} ${typeDef.cardBorderClass}`
             : 'bg-gray-800/60 border-gray-700/50'
-        }`}
+        } ${selected ? 'ring-2 ring-blue-500/70' : ''}`}
       >
         {/* Header row: type badge + timestamp + hypothesis status */}
         <div className="flex items-center gap-2 mb-1 flex-wrap">

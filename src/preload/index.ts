@@ -120,6 +120,8 @@ const electronAPI: ElectronAPI = {
   openDetails: (id) => ipcRenderer.invoke('window:openDetails', { id }),
   onShowDetails: (callback) => onIpcEvent<[string]>('navigate:details', callback),
   onShowHome: (callback) => onIpcEvent<[]>('navigate:home', callback),
+  onCheckDirty: (callback) => onIpcEvent<[]>('check-dirty', callback),
+  replyCheckDirty: (canProceed) => ipcRenderer.send('check-dirty-reply', canProceed),
 
   // Push events
   onInvestigationChanged: (callback) =>

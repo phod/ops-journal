@@ -173,6 +173,8 @@ export interface ElectronAPI {
   openDetails: (id: string) => Promise<void>
   onShowDetails: (callback: (id: string) => void) => () => void
   onShowHome: (callback: () => void) => () => void
+  onCheckDirty: (callback: () => void) => () => void
+  replyCheckDirty: (canProceed: boolean) => void
 
   // Push events
   onInvestigationChanged: (callback: (investigations: Investigation[]) => void) => () => void

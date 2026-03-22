@@ -129,7 +129,15 @@ const DEFAULT_MOCKS = {
   deleteToolFolder: vi.fn(),
   moveToolFolderToFolder: vi.fn(),
   reorderToolFoldersInParent: vi.fn(),
-  onToolFoldersChanged: vi.fn().mockReturnValue(() => {})
+  onToolFoldersChanged: vi.fn().mockReturnValue(() => {}),
+  onCheckDirty: vi.fn().mockReturnValue(() => {}),
+  replyCheckDirty: vi.fn(),
+  expandOverlayForSearch: vi.fn(),
+  restoreOverlayFromSearch: vi.fn(),
+  reorderInvestigations: vi.fn(),
+  linkHypothesisAction: vi.fn(),
+  unlinkHypothesisAction: vi.fn(),
+  onOnboardingReset: vi.fn().mockReturnValue(() => {})
 } as const
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
@@ -190,4 +198,6 @@ beforeEach(() => {
   DEFAULT_MOCKS.listPendingToolEntries.mockResolvedValue([])
   DEFAULT_MOCKS.listToolFolders.mockResolvedValue([])
   DEFAULT_MOCKS.onToolFoldersChanged.mockReturnValue(() => {})
+  DEFAULT_MOCKS.onCheckDirty.mockReturnValue(() => {})
+  DEFAULT_MOCKS.onOnboardingReset.mockReturnValue(() => {})
 })

@@ -83,7 +83,7 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
   }
 
   return (
-    <Modal onClose={onClose} className="p-6 w-[460px]">
+    <Modal onClose={onClose} className="p-6 w-[460px] max-h-[90vh] overflow-y-auto">
       <h3 className="text-gray-100 font-semibold text-sm mb-4">
         {isEditing ? 'Edit Tool' : 'New Tool'}
       </h3>
@@ -142,24 +142,33 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
             <label className="block text-xs text-gray-400 font-medium mb-1.5">Parameters</label>
             <div className="space-y-2">
               {parameters.map((param, i) => (
-                <div key={i} className="flex gap-2 items-start">
-                  <input
-                    type="text"
-                    value={param.name}
-                    onChange={(e) => updateParameter(i, { name: e.target.value })}
-                    placeholder="param name"
-                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-100
-                      placeholder-gray-600 outline-none focus:border-indigo-500/60 transition-colors font-mono"
-                  />
-                  <select
-                    value={param.type}
-                    onChange={(e) => updateParameter(i, { type: e.target.value as FunctionParameterType, options: e.target.value === 'text' ? undefined : param.options })}
-                    className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-gray-100 outline-none focus:border-indigo-500/60 transition-colors"
-                  >
-                    {Object.entries(PARAM_TYPE_LABELS).map(([val, label]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
-                  </select>
+                <div key={i} className="space-y-1.5">
+                  <div className="flex gap-2 items-start">
+                    <input
+                      type="text"
+                      value={param.name}
+                      onChange={(e) => updateParameter(i, { name: e.target.value })}
+                      placeholder="param name"
+                      className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-100
+                        placeholder-gray-600 outline-none focus:border-indigo-500/60 transition-colors font-mono"
+                    />
+                    <select
+                      value={param.type}
+                      onChange={(e) => updateParameter(i, { type: e.target.value as FunctionParameterType, options: e.target.value === 'text' ? undefined : param.options })}
+                      className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-gray-100 outline-none focus:border-indigo-500/60 transition-colors flex-shrink-0"
+                    >
+                      {Object.entries(PARAM_TYPE_LABELS).map(([val, label]) => (
+                        <option key={val} value={val}>{label}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => removeParameter(i)}
+                      className="px-1.5 py-1.5 text-xs text-red-400 hover:text-red-300 transition-colors flex-shrink-0"
+                    >
+                      ✕
+                    </button>
+                  </div>
                   {(param.type === 'list' || param.type === 'list-other') && (
                     <input
                       type="text"
@@ -172,17 +181,10 @@ export function ToolForm({ tool, folderId, onClose }: Props) {
                         updateParameter(i, { options: parsed })
                       }}
                       placeholder="values (comma-separated)"
-                      className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-100
-                        placeholder-gray-600 outline-none focus:border-indigo-500/60 transition-colors"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-100
+                        placeholder-gray-600 outline-none focus:border-indigo-500/60 transition-colors ml-0"
                     />
                   )}
-                  <button
-                    type="button"
-                    onClick={() => removeParameter(i)}
-                    className="px-1.5 py-1.5 text-xs text-red-400 hover:text-red-300 transition-colors"
-                  >
-                    ✕
-                  </button>
                 </div>
               ))}
               <button

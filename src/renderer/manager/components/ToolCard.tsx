@@ -51,6 +51,9 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [menuOpen])
 
+  // Determine if submenu should render to the left (when near right edge)
+  const submenuLeft = menuPos ? (menuPos.left + 320 + 8 > window.innerWidth) : false
+
   // Build move-to options: root + all folders except current
   const moveOptions: { id: string | null; name: string }[] = []
   if (tool.folder_id !== null) {
@@ -148,7 +151,7 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
                   <span className="text-[10px] text-gray-500">▶</span>
                 </button>
                 {showMoveMenu && (
-                  <div className="absolute left-full top-0 ml-1 z-[9999] w-40 py-1 rounded-lg bg-gray-700 border border-gray-600 shadow-xl max-h-48 overflow-y-auto">
+                  <div className={`absolute ${submenuLeft ? 'right-full mr-1' : 'left-full ml-1'} top-0 z-[9999] w-40 py-1 rounded-lg bg-gray-700 border border-gray-600 shadow-xl max-h-48 overflow-y-auto`}>
                     {moveOptions.map((opt) => (
                       <button
                         key={opt.id ?? '__root__'}

@@ -24,9 +24,10 @@ function makeTool(overrides: Partial<Tool> = {}): Tool {
 }
 
 const sampleTools: Tool[] = [
-  makeTool({ id: '1', name: 'Grafana', tags: ['monitoring'] }),
+  makeTool({ id: '1', name: 'Grafana', value: 'https://grafana.example.com', tags: ['monitoring'] }),
   makeTool({ id: '2', name: 'kubectl pods', tool_type: 'string', value: 'kubectl get pods', tags: ['k8s'] }),
-  makeTool({ id: '3', name: 'PagerDuty', tags: ['alerting'] })
+  makeTool({ id: '3', name: 'PagerDuty', value: 'https://pagerduty.example.com', tags: ['alerting'] }),
+  makeTool({ id: '4', name: 'Selenium Suite', value: 'https://selenium.example.com', tags: ['website', 'test'] })
 ]
 
 describe('Toolkit App', () => {
@@ -46,7 +47,7 @@ describe('Toolkit App', () => {
 
   it('shows tool count', async () => {
     render(<App />)
-    await waitFor(() => expect(screen.getByText('3 tools')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('4 tools')).toBeInTheDocument())
   })
 
   it('shows empty state when no tools exist', async () => {
@@ -89,7 +90,7 @@ describe('Toolkit App', () => {
   it('updates tool count when filtering', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await waitFor(() => expect(screen.getByText('3 tools')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('4 tools')).toBeInTheDocument())
 
     await user.type(screen.getByPlaceholderText('Search tools...'), 'graf')
     expect(screen.getByText('1 tool')).toBeInTheDocument()
@@ -125,6 +126,35 @@ describe('Toolkit App', () => {
   it('subscribes to tools:changed events', () => {
     render(<App />)
     expect(window.electronAPI.onToolsChanged).toHaveBeenCalled()
+  })
+
+  it('multi-term search matches tool with both tags', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('Selenium Suite')).toBeInTheDocument())
+
+    await user.type(screen.getByPlaceholderText('Search tools...'), 'website test')
+    expect(screen.getByText('Selenium Suite')).toBeInTheDocument()
+    expect(screen.queryByText('Grafana')).not.toBeInTheDocument()
+  })
+
+  it('multi-term search matches across tag and name', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('Grafana')).toBeInTheDocument())
+
+    await user.type(screen.getByPlaceholderText('Search tools...'), 'monitoring graf')
+    expect(screen.getByText(/raf/)).toBeInTheDocument()
+    expect(screen.queryByText('PagerDuty')).not.toBeInTheDocument()
+  })
+
+  it('partial multi-term match does not return the tool', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('Grafana')).toBeInTheDocument())
+
+    await user.type(screen.getByPlaceholderText('Search tools...'), 'monitoring alert')
+    expect(screen.getByText('No matching tools')).toBeInTheDocument()
   })
 
   it('renders keyboard shortcut hints', async () => {

@@ -1,3 +1,4 @@
+import React from 'react'
 import type { Tool } from '@shared/ipc-types'
 
 interface Props {
@@ -10,14 +11,23 @@ interface Props {
 
 function highlightMatch(text: string, query: string) {
   if (!query) return <>{text}</>
-  const lower = text.toLowerCase()
-  const idx = lower.indexOf(query.toLowerCase())
-  if (idx === -1) return <>{text}</>
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
+  if (terms.length === 0) return <>{text}</>
+
+  // Build a regex that matches any of the terms
+  const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const regex = new RegExp(`(${escaped.join('|')})`, 'gi')
+  const parts = text.split(regex)
+
   return (
     <>
-      {text.slice(0, idx)}
-      <span className="text-indigo-300 font-semibold">{text.slice(idx, idx + query.length)}</span>
-      {text.slice(idx + query.length)}
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <span key={i} className="text-indigo-300 font-semibold">{part}</span>
+        ) : (
+          <React.Fragment key={i}>{part}</React.Fragment>
+        )
+      )}
     </>
   )
 }
@@ -46,7 +56,12 @@ export function ToolRow({ tool, search, selected, onClick, onMouseEnter }: Props
         </div>
         {tool.tags.length > 0 && (
           <div className="text-[10px] text-gray-500 truncate mt-0.5">
-            {tool.tags.join(', ')}
+            {tool.tags.map((tag, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && ', '}
+                {highlightMatch(tag, search)}
+              </React.Fragment>
+            ))}
           </div>
         )}
       </div>

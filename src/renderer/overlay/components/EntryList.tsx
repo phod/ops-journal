@@ -18,7 +18,7 @@ import { HypothesisStatusMenu } from '@shared/HypothesisStatusMenu'
 import { ToolEntryStatusMenu } from '@shared/ToolEntryStatusMenu'
 import { LinkFindingModal } from './LinkFindingModal'
 import { LinkHypothesisModal } from './LinkHypothesisModal'
-import { HighlightedText } from '@shared/HighlightedText'
+import { LinkedText } from '@shared/LinkedText'
 import { useEntryDrag } from '../contexts/EntryDragContext'
 import { getLinkAction } from '@shared/link-drag-utils'
 
@@ -795,7 +795,7 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                   : 'text-gray-100'
               }`}
             >
-              {searchTerm ? <HighlightedText text={entry.body} searchTerm={searchTerm} /> : entry.body}
+              <LinkedText text={entry.body} searchTerm={searchTerm} />
             </div>
           )}
           {visiblePaths.length > 0 && (

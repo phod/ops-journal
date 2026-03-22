@@ -64,6 +64,13 @@ function loadWindowUrl(win: BrowserWindow, page: string): void {
   }
 }
 
+function preventExternalNavigation(win: BrowserWindow): void {
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  win.webContents.on('will-navigate', (event) => {
+    event.preventDefault()
+  })
+}
+
 function sharedWebPreferences(): Electron.WebPreferences {
   return {
     preload: path.join(__dirname, '../preload/index.js'),
@@ -95,6 +102,7 @@ export function createOverlayWindow(): BrowserWindow {
 
   win.setAlwaysOnTop(true, 'floating')
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  preventExternalNavigation(win)
 
   loadWindowUrl(win, 'index.html')
 
@@ -112,6 +120,7 @@ export function createManagerWindow(): BrowserWindow {
   })
 
   win.setTitle('Ops Journal — Investigations')
+  preventExternalNavigation(win)
 
   // Hide instead of destroy when the user clicks the X button
   win.on('close', (e) => {
@@ -335,6 +344,7 @@ export function createToolkitOverlayWindow(): BrowserWindow {
 
   win.setAlwaysOnTop(true, 'floating')
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  preventExternalNavigation(win)
 
   loadWindowUrl(win, 'toolkit.html')
 

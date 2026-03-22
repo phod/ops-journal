@@ -224,6 +224,9 @@ export interface ElectronAPI {
   getBoardState: (boardId: string) => Promise<BoardState>
   saveBoardState: (boardId: string, state: { nodes: BoardNode[]; edges: BoardEdge[]; viewport: BoardViewport }) => Promise<void>
   saveBoardImage: (dataUrl: string) => Promise<string>
+
+  // Shell
+  openExternal: (url: string) => Promise<void>
 }
 
 declare global {

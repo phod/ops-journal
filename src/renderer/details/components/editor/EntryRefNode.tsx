@@ -6,6 +6,7 @@ import type { HypothesisStatus } from '@shared/ipc-types'
 import { formatDate, TIMESTAMP_OPTIONS_SHORT } from '@shared/format-date'
 import { useEntryImages } from '@shared/useEntryImages'
 import { FlagIcon } from '@shared/FlagIcon'
+import { LinkedText } from '@shared/LinkedText'
 
 interface LinkedEntry {
   id: string
@@ -140,7 +141,7 @@ function EntryRefNodeView({ node, selected }: NodeViewProps) {
         {/* Body */}
         {entryBody && (
           <div className="text-gray-200 text-xs line-clamp-3 whitespace-pre-wrap break-words leading-relaxed">
-            {entryBody}
+            <LinkedText text={entryBody} />
           </div>
         )}
         {!entryBody && imagePaths.length === 0 && (

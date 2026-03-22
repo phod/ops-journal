@@ -564,6 +564,10 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('overlay:restoreFromSearch', () => restoreOverlayFromSearch())
   ipcMain.handle('window:openDetails', (_event, { id }: { id: string }) => navigateManagerToDetails(id))
 
+  // --- Shell ---
+
+  ipcMain.handle('shell:openExternal', (_event, { url }: { url: string }) => shell.openExternal(url))
+
   console.log('[ipc] All handlers registered')
 }
 

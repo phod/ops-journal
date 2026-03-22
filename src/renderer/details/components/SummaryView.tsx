@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import Link from '@tiptap/extension-link'
 import type { JournalEntry } from '@shared/ipc-types'
 import { SummaryEditor } from './SummaryEditor'
 import type { SummaryEditorHandle } from './SummaryEditor'
@@ -18,13 +19,29 @@ interface Props {
 
 function ReadOnlyRenderer({ summaryJson }: { summaryJson: string }) {
   const editor = useEditor({
-    extensions: [StarterKit, EntryRefNode, SummaryImageNode],
+    extensions: [
+      StarterKit,
+      EntryRefNode,
+      SummaryImageNode,
+      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-blue-400 underline hover:text-blue-300 cursor-pointer' } })
+    ],
     content: JSON.parse(summaryJson),
     editable: false,
     editorProps: {
       attributes: {
         class:
           'outline-none prose prose-invert prose-sm max-w-none font-mono text-gray-100 [&_p]:my-1 [&_h1]:text-gray-100 [&_h2]:text-gray-200 [&_h3]:text-gray-300 [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4'
+      },
+      handleClick: (_view, _pos, event) => {
+        const anchor = (event.target as HTMLElement).closest('a')
+        if (!anchor) return false
+        const href = anchor.getAttribute('href')
+        if (href) {
+          event.preventDefault()
+          window.electronAPI.openExternal(href)
+          return true
+        }
+        return false
       }
     }
   })

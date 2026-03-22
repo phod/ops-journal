@@ -2,6 +2,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import DropCursor from '@tiptap/extension-dropcursor'
+import Link from '@tiptap/extension-link'
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
 import type { JournalEntry } from '@shared/ipc-types'
 import { resolveLinkedFindings, resolveLinkedActions, resolveChildHypotheses, resolveParentHypotheses } from '@shared/entry-types'
@@ -68,13 +69,26 @@ export const SummaryEditor = forwardRef<SummaryEditorHandle, Props>(
         Placeholder.configure({ placeholder: 'Write your summary…' }),
         EntryRefNode,
         SummaryImageNode,
-        DropCursor.configure({ color: '#3b82f6', width: 2 })
+        DropCursor.configure({ color: '#3b82f6', width: 2 }),
+        Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-blue-400 underline hover:text-blue-300 cursor-pointer' } })
       ],
       content: initialJson ? JSON.parse(initialJson) : undefined,
       editorProps: {
         attributes: {
           class:
             'outline-none min-h-[200px] prose prose-invert prose-sm max-w-none font-mono text-gray-100 [&_p]:my-1 [&_h1]:text-gray-100 [&_h2]:text-gray-200 [&_h3]:text-gray-300 [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4'
+        },
+        handleClick: (_view, _pos, event) => {
+          if (!(event.metaKey || event.ctrlKey)) return false
+          const anchor = (event.target as HTMLElement).closest('a')
+          if (!anchor) return false
+          const href = anchor.getAttribute('href')
+          if (href) {
+            event.preventDefault()
+            window.electronAPI.openExternal(href)
+            return true
+          }
+          return false
         },
         handleDrop: (view, event) => {
           const entryId = event.dataTransfer?.getData('application/x-ops-entry-ref')

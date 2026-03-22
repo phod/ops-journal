@@ -46,6 +46,8 @@ export function ToolRow({ tool, search, selected, onClick, onMouseEnter }: Props
           <span className="text-blue-400">↗</span>
         ) : tool.tool_type === 'function' ? (
           <span className="text-emerald-400">⚡</span>
+        ) : tool.tool_type === 'content' ? (
+          <span className="text-purple-400">📖</span>
         ) : (
           <span className="text-amber-400">⌨</span>
         )}
@@ -74,6 +76,8 @@ export function ToolRow({ tool, search, selected, onClick, onMouseEnter }: Props
           ? 'bg-blue-900/40 text-blue-400 border border-blue-800/40'
           : tool.tool_type === 'function'
           ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-800/40'
+          : tool.tool_type === 'content'
+          ? 'bg-purple-900/30 text-purple-400 border border-purple-800/40'
           : 'bg-amber-900/30 text-amber-400 border border-amber-800/40'
         }`}
       >

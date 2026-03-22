@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import type { Tool } from '@shared/ipc-types'
 import { ToolRow } from './components/ToolRow'
 import { FunctionParamDialog } from './components/FunctionParamDialog'
+import { ContentViewer } from './components/ContentViewer'
 
 export default function App() {
   const [tools, setTools] = useState<Tool[]>([])
@@ -11,6 +12,7 @@ export default function App() {
   const listRef = useRef<HTMLDivElement>(null)
   const [opaqueOverlay, setOpaqueOverlay] = useState(false)
   const [functionToolPending, setFunctionToolPending] = useState<Tool | null>(null)
+  const [referenceToolPending, setReferenceToolPending] = useState<Tool | null>(null)
 
   const loadTools = useCallback(async () => {
     const list = await window.electronAPI.listTools()
@@ -38,6 +40,7 @@ export default function App() {
       setSearch('')
       setSelectedIndex(0)
       setFunctionToolPending(null)
+      setReferenceToolPending(null)
       searchRef.current?.focus()
     }
     window.addEventListener('focus', handleFocus)
@@ -77,6 +80,10 @@ export default function App() {
       setFunctionToolPending(tool)
       return
     }
+    if (tool.tool_type === 'content') {
+      setReferenceToolPending(tool)
+      return
+    }
     await window.electronAPI.executeTool(tool.id)
     if (tool.tool_type === 'link') {
       await window.electronAPI.hideToolkitOverlay()
@@ -91,7 +98,7 @@ export default function App() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (functionToolPending) return // dialog handles its own keys
+    if (functionToolPending || referenceToolPending) return // dialog handles its own keys
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1))
@@ -119,6 +126,20 @@ export default function App() {
           tool={functionToolPending}
           onRun={handleFunctionRun}
           onCancel={() => setFunctionToolPending(null)}
+        />
+      </div>
+    )
+  }
+
+  // When content viewer is open, show it instead of the tool list
+  if (referenceToolPending) {
+    return (
+      <div
+        className={`h-screen flex flex-col rounded-xl ${opaqueOverlay ? 'bg-gray-900/95' : 'bg-gray-900'} border border-gray-700/60 shadow-2xl overflow-hidden backdrop-blur-sm`}
+      >
+        <ContentViewer
+          tool={referenceToolPending}
+          onClose={() => setReferenceToolPending(null)}
         />
       </div>
     )
@@ -176,7 +197,7 @@ export default function App() {
           <kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-500 text-[9px] font-mono">↑↓</kbd> navigate
         </span>
         <span className="text-[10px] text-gray-600">
-          <kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-500 text-[9px] font-mono">↵</kbd> execute
+          <kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-500 text-[9px] font-mono">↵</kbd> {filtered[selectedIndex]?.tool_type === 'content' ? 'open' : 'execute'}
         </span>
         <span className="text-[10px] text-gray-600">
           <kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-500 text-[9px] font-mono">esc</kbd> close

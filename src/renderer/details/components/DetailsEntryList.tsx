@@ -11,7 +11,7 @@ import { EntryTypeMenu } from '@shared/EntryTypeMenu'
 import { HypothesisStatusMenu } from '@shared/HypothesisStatusMenu'
 import { ToolEntryStatusMenu } from '@shared/ToolEntryStatusMenu'
 import { scrollToEntry } from '@shared/scroll-to-entry'
-import { HighlightedText } from '@shared/HighlightedText'
+import { LinkedText } from '@shared/LinkedText'
 
 interface Props {
   entries: JournalEntry[]
@@ -42,7 +42,7 @@ function FindingDetailCard({ finding }: { finding: JournalEntry }) {
       </div>
       {finding.body && (
         <div className="text-sm text-gray-200 font-mono whitespace-pre-wrap break-words leading-relaxed">
-          {finding.body}
+          <LinkedText text={finding.body} />
         </div>
       )}
       {finding.image_paths.length > 0 && (
@@ -226,7 +226,7 @@ function DetailsEntryRow({ entry, allEntries, searchTerm, onEntryUpdated }: { en
         <div className={`text-sm font-mono whitespace-pre-wrap break-words leading-relaxed ${
           isAction && entry.action_completed ? 'line-through text-gray-500' : 'text-gray-100'
         }`}>
-          {searchTerm ? <HighlightedText text={entry.body} searchTerm={searchTerm} /> : entry.body}
+          <LinkedText text={entry.body} searchTerm={searchTerm} />
         </div>
       )}
       {entry.image_paths.length > 0 && (

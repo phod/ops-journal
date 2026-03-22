@@ -185,7 +185,10 @@ const electronAPI: ElectronAPI = {
   renameBoard: (boardId, name) => ipcRenderer.invoke('board:rename', { boardId, name }),
   getBoardState: (boardId) => ipcRenderer.invoke('board:getState', { boardId }),
   saveBoardState: (boardId, state: { nodes: BoardNode[]; edges: BoardEdge[]; viewport: BoardViewport }) => ipcRenderer.invoke('board:saveState', { boardId, state }),
-  saveBoardImage: (dataUrl) => ipcRenderer.invoke('board:saveImage', { dataUrl })
+  saveBoardImage: (dataUrl) => ipcRenderer.invoke('board:saveImage', { dataUrl }),
+
+  // Shell
+  openExternal: (url) => ipcRenderer.invoke('shell:openExternal', { url })
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

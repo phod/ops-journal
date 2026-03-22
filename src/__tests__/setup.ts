@@ -137,7 +137,8 @@ const DEFAULT_MOCKS = {
   reorderInvestigations: vi.fn(),
   linkHypothesisAction: vi.fn(),
   unlinkHypothesisAction: vi.fn(),
-  onOnboardingReset: vi.fn().mockReturnValue(() => {})
+  onOnboardingReset: vi.fn().mockReturnValue(() => {}),
+  openExternal: vi.fn().mockResolvedValue(undefined)
 } as const
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {

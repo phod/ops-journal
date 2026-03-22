@@ -3,6 +3,7 @@ import type { Tool } from '@shared/ipc-types'
 import { ToolRow } from './components/ToolRow'
 import { FunctionParamDialog } from './components/FunctionParamDialog'
 import { ContentViewer } from './components/ContentViewer'
+import { ReferenceViewer } from './components/ReferenceViewer'
 
 export default function App() {
   const [tools, setTools] = useState<Tool[]>([])
@@ -80,7 +81,7 @@ export default function App() {
       setFunctionToolPending(tool)
       return
     }
-    if (tool.tool_type === 'content') {
+    if (tool.tool_type === 'content' || tool.tool_type === 'reference') {
       setReferenceToolPending(tool)
       return
     }
@@ -131,16 +132,23 @@ export default function App() {
     )
   }
 
-  // When content viewer is open, show it instead of the tool list
+  // When content/reference viewer is open, show it instead of the tool list
   if (referenceToolPending) {
     return (
       <div
         className={`h-screen flex flex-col rounded-xl ${opaqueOverlay ? 'bg-gray-900/95' : 'bg-gray-900'} border border-gray-700/60 shadow-2xl overflow-hidden backdrop-blur-sm`}
       >
-        <ContentViewer
-          tool={referenceToolPending}
-          onClose={() => setReferenceToolPending(null)}
-        />
+        {referenceToolPending.tool_type === 'reference' ? (
+          <ReferenceViewer
+            tool={referenceToolPending}
+            onClose={() => setReferenceToolPending(null)}
+          />
+        ) : (
+          <ContentViewer
+            tool={referenceToolPending}
+            onClose={() => setReferenceToolPending(null)}
+          />
+        )}
       </div>
     )
   }
@@ -197,7 +205,7 @@ export default function App() {
           <kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-500 text-[9px] font-mono">↑↓</kbd> navigate
         </span>
         <span className="text-[10px] text-gray-600">
-          <kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-500 text-[9px] font-mono">↵</kbd> {filtered[selectedIndex]?.tool_type === 'content' ? 'open' : 'execute'}
+          <kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-500 text-[9px] font-mono">↵</kbd> {filtered[selectedIndex]?.tool_type === 'content' || filtered[selectedIndex]?.tool_type === 'reference' ? 'open' : 'execute'}
         </span>
         <span className="text-[10px] text-gray-600">
           <kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-500 text-[9px] font-mono">esc</kbd> close

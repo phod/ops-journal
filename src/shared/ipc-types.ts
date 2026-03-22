@@ -1,7 +1,7 @@
 import type { RumourBoard, BoardState, BoardViewport, BoardNode, BoardEdge } from './board-types'
 export type { RumourBoard, BoardState, BoardViewport, BoardNode, BoardEdge }
 
-export type ToolType = 'link' | 'string' | 'function' | 'content'
+export type ToolType = 'link' | 'string' | 'function' | 'content' | 'reference'
 
 export type FunctionParameterType = 'text' | 'list' | 'list-other'
 

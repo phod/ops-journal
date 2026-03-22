@@ -234,6 +234,28 @@ describe('content tools', () => {
   })
 })
 
+describe('reference tools', () => {
+  it('creates a reference tool with JSON value and round-trips via listTools', () => {
+    const entries = JSON.stringify([
+      { key: 'abc-123', value: 'MyUser' },
+      { key: 'def-456', value: 'AnotherUser' }
+    ])
+    const tool = createTool('User ID Map', 'reference', entries, ['users', 'lookup'])
+    expect(tool.tool_type).toBe('reference')
+    expect(tool.value).toBe(entries)
+    expect(tool.tags).toEqual(['users', 'lookup'])
+
+    const tools = listTools()
+    const found = tools.find((t) => t.id === tool.id)
+    expect(found).toBeDefined()
+    expect(found!.tool_type).toBe('reference')
+    expect(JSON.parse(found!.value)).toEqual([
+      { key: 'abc-123', value: 'MyUser' },
+      { key: 'def-456', value: 'AnotherUser' }
+    ])
+  })
+})
+
 describe('reorderTools', () => {
   it('updates sort_order based on array position', () => {
     const a = createTool('A', 'link', 'https://a.com', [])

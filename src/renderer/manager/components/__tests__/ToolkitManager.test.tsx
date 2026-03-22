@@ -98,15 +98,12 @@ describe('ToolkitManager', () => {
     expect(window.electronAPI.onToolsChanged).toHaveBeenCalled()
   })
 
-  it('renders grip handle on folder rows', async () => {
+  it('renders folder rows', async () => {
     const folders = [makeFolder({ id: 'f1', name: 'Scripts' })]
     window.electronAPI.listToolFolders = vi.fn().mockResolvedValue(folders)
 
     render(<ToolkitManager />)
     await waitFor(() => expect(screen.getByText('Scripts')).toBeInTheDocument())
-
-    // Grip handle is rendered (⠿ character)
-    expect(screen.getByText('⠿')).toBeInTheDocument()
   })
 
 })

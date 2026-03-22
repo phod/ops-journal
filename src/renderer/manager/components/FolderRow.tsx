@@ -128,14 +128,6 @@ export function FolderRow({
         onDrop={handleDropLocal}
         onDragLeave={handleDragLeaveLocal}
       >
-        {/* Grip handle for reordering */}
-        <span
-          className="text-[10px] text-gray-500 flex-shrink-0 w-3 opacity-0 group-hover:opacity-60 hover:!opacity-100 cursor-grab select-none"
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          ⠿
-        </span>
-
         {/* Chevron */}
         <span className={`text-[10px] text-gray-500 transition-transform flex-shrink-0 w-3 ${expanded ? 'rotate-90' : ''}`}>
           ▶

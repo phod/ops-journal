@@ -73,7 +73,7 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
             ? 'bg-indigo-500/15 border-indigo-500/50'
             : 'bg-gray-800/50 border-gray-700/50 hover:border-gray-600/60'
         }`}
-        style={{ paddingLeft: `${depth * 20 + 12}px` }}
+        style={{ marginLeft: `${depth * 20}px` }}
         draggable={!!onDragStart}
         onDragStart={onDragStart}
         onClick={onClick}

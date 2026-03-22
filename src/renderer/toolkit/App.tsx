@@ -45,10 +45,14 @@ export default function App() {
 
   const filtered = tools.filter((tool) => {
     if (!search) return true
-    const q = search.toLowerCase()
-    return (
-      tool.name.toLowerCase().includes(q) ||
-      tool.tags.some((tag) => tag.toLowerCase().includes(q))
+    const terms = search.toLowerCase().split(/\s+/).filter(Boolean)
+    const name = tool.name.toLowerCase()
+    const value = tool.value.toLowerCase()
+    const tags = tool.tags.map((t) => t.toLowerCase())
+    return terms.every((term) =>
+      name.includes(term) ||
+      value.includes(term) ||
+      tags.some((tag) => tag.includes(term))
     )
   })
 

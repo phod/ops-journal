@@ -23,28 +23,6 @@ function saveExpandedFolders(set: Set<string>) {
   localStorage.setItem(EXPANDED_FOLDERS_KEY, JSON.stringify([...set]))
 }
 
-function buildAncestorMap(folders: ToolFolder[]): Map<string, ToolFolder[]> {
-  const folderMap = new Map<string, ToolFolder>()
-  for (const f of folders) folderMap.set(f.id, f)
-
-  const map = new Map<string, ToolFolder[]>()
-  for (const f of folders) {
-    const ancestors: ToolFolder[] = []
-    let current = f.parent_id
-    const visited = new Set<string>()
-    while (current) {
-      if (visited.has(current)) break
-      visited.add(current)
-      const parent = folderMap.get(current)
-      if (!parent) break
-      ancestors.unshift(parent)
-      current = parent.parent_id
-    }
-    map.set(f.id, ancestors)
-  }
-  return map
-}
-
 export function ToolkitManager() {
   const [tools, setTools] = useState<Tool[]>([])
   const [folders, setFolders] = useState<ToolFolder[]>([])
@@ -111,7 +89,6 @@ export function ToolkitManager() {
   }
 
   const tree = buildToolTree(tools, folders)
-  const ancestorMap = useMemo(() => buildAncestorMap(folders), [folders])
 
   // Flat list of visible tool IDs in render order (for shift-click range selection)
   const flatToolIds = useMemo(() => {
@@ -202,7 +179,7 @@ export function ToolkitManager() {
     await window.electronAPI.deleteToolFolder(id)
   }
 
-  // Feature 1: Folder reorder handler
+  // Folder reorder handler (supports both same-parent reorder and cross-parent move)
   async function handleFolderReorderDrop(targetFolderId: string, position: 'before' | 'after') {
     if (!draggedFolderId || draggedFolderId === targetFolderId) return
 
@@ -213,14 +190,28 @@ export function ToolkitManager() {
     const draggedFolder = folders.find((f) => f.id === draggedFolderId)
     if (!draggedFolder) return
 
-    // Only reorder siblings (same parent)
-    if (draggedFolder.parent_id !== parentId) return
+    const crossParent = draggedFolder.parent_id !== parentId
 
+    // Move to the target's parent first if crossing parents
+    if (crossParent) {
+      try {
+        await window.electronAPI.moveToolFolderToFolder(draggedFolderId, parentId)
+      } catch {
+        return // depth/cycle validation failed
+      }
+    }
+
+    // Build new sibling order under the target's parent
     const siblings = folders
       .filter((f) => f.parent_id === parentId)
       .sort((a, b) => a.sort_order - b.sort_order)
 
-    const withoutDragged = siblings.filter((f) => f.id !== draggedFolderId)
+    // If cross-parent, the dragged folder isn't in siblings yet — add it conceptually
+    const allSiblings = crossParent
+      ? [...siblings, draggedFolder]
+      : siblings
+
+    const withoutDragged = allSiblings.filter((f) => f.id !== draggedFolderId)
     const targetIdx = withoutDragged.findIndex((f) => f.id === targetFolderId)
     const insertIdx = position === 'before' ? targetIdx : targetIdx + 1
 
@@ -228,15 +219,6 @@ export function ToolkitManager() {
     newOrder.splice(insertIdx, 0, draggedFolder)
 
     await window.electronAPI.reorderToolFoldersInParent(parentId, newOrder.map((f) => f.id))
-  }
-
-  // Feature 2: Move folder to parent
-  async function handleMoveFolderToParent(folderId: string, targetParentId: string | null) {
-    try {
-      await window.electronAPI.moveToolFolderToFolder(folderId, targetParentId)
-    } catch {
-      // Depth validation or cycle detection failed — silently ignore
-    }
   }
 
   // Drag-and-drop handlers
@@ -396,8 +378,6 @@ export function ToolkitManager() {
             onDrop={(e) => handleDropOnFolder(e, folderNode.folder.id)}
             onDragLeave={handleFolderDragLeave}
             onReorderDrop={(position) => handleFolderReorderDrop(folderNode.folder.id, position)}
-            ancestors={ancestorMap.get(folderNode.folder.id)}
-            onMoveToParent={(targetParentId) => handleMoveFolderToParent(folderNode.folder.id, targetParentId)}
           >
             {renderTree(folderNode.children)}
           </FolderRow>

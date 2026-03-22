@@ -97,7 +97,8 @@ describe('BulkToolForm', () => {
         name: 'My Tool',
         toolType: 'link',
         value: 'https://example.com',
-        tags: ['shared', 'prod', 'extra']
+        tags: ['shared', 'prod', 'extra'],
+        parameters: null
       }
     ])
     expect(onClose).toHaveBeenCalled()

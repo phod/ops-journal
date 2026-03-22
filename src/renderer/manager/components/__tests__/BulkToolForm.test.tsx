@@ -59,6 +59,9 @@ describe('BulkToolForm', () => {
     const user = userEvent.setup()
     render(<BulkToolForm onClose={onClose} />)
 
+    // Switch to link type so value placeholder is 'https://...'
+    await user.click(screen.getByText('↗ Link'))
+
     const nameInput = screen.getByPlaceholderText('Name')
     const valueInput = screen.getByPlaceholderText('https://...')
 
@@ -71,6 +74,9 @@ describe('BulkToolForm', () => {
   it('submits with correctly merged and deduped tags', async () => {
     const user = userEvent.setup()
     render(<BulkToolForm onClose={onClose} />)
+
+    // Switch to link type
+    await user.click(screen.getByText('↗ Link'))
 
     // Set shared tags
     await user.type(screen.getByPlaceholderText('e.g. runbook, production'), 'shared, prod')

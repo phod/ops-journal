@@ -23,6 +23,7 @@ const electronAPI: ElectronAPI = {
   setActiveInvestigation: (id) => ipcRenderer.invoke('investigation:setActive', { id }),
   deactivateInvestigation: (id) => ipcRenderer.invoke('investigation:deactivate', { id }),
   renameInvestigation: (id, name) => ipcRenderer.invoke('investigation:rename', { id, name }),
+  reorderInvestigations: (orderedIds) => ipcRenderer.invoke('investigation:reorder', { orderedIds }),
 
   // Entries
   listEntries: (investigationId) => ipcRenderer.invoke('entry:list', { investigationId }),

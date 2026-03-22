@@ -12,7 +12,7 @@ export function FunctionParamDialog({ tool, onRun, onCancel }: Props) {
   const [values, setValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {}
     for (const p of params) {
-      if (p.type === 'list' && p.options && p.options.length > 0) {
+      if ((p.type === 'list' || p.type === 'list-other') && p.options && p.options.length > 0) {
         init[p.name] = p.options[0]
       } else {
         init[p.name] = ''

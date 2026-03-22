@@ -485,12 +485,16 @@ export function registerIpcHandlers(): void {
     const tool = tools.find((t) => t.id === id)
     if (!tool || tool.tool_type !== 'function') return
 
+    console.log('[tool:executeFunction] paramValues:', paramValues)
     const actions = interpretScript(tool.value, paramValues)
+    console.log('[tool:executeFunction] actions:', actions)
     for (const action of actions) {
       if (action.type === 'copy') {
+        console.log('[tool:executeFunction] copying:', action.value)
         clipboard.writeText(action.value)
       } else if (action.type === 'openLink') {
-        shell.openExternal(action.value)
+        console.log('[tool:executeFunction] opening:', action.value)
+        await shell.openExternal(action.value)
       }
     }
   })

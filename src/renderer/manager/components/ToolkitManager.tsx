@@ -23,6 +23,23 @@ function saveExpandedFolders(set: Set<string>) {
   localStorage.setItem(EXPANDED_FOLDERS_KEY, JSON.stringify([...set]))
 }
 
+function getAncestorFolderIds(toolFolderIds: Set<string | null>, allFolders: ToolFolder[]): Set<string> {
+  const folderMap = new Map<string, ToolFolder>()
+  for (const f of allFolders) folderMap.set(f.id, f)
+
+  const ancestors = new Set<string>()
+  for (const fid of toolFolderIds) {
+    let current = fid
+    while (current) {
+      if (ancestors.has(current)) break
+      ancestors.add(current)
+      const folder = folderMap.get(current)
+      current = folder?.parent_id ?? null
+    }
+  }
+  return ancestors
+}
+
 export function ToolkitManager() {
   const [tools, setTools] = useState<Tool[]>([])
   const [folders, setFolders] = useState<ToolFolder[]>([])
@@ -35,6 +52,7 @@ export function ToolkitManager() {
   const [pendingCount, setPendingCount] = useState(0)
   const [selectedToolIds, setSelectedToolIds] = useState<Set<string>>(new Set())
   const lastClickedToolIdRef = useRef<string | null>(null)
+  const [search, setSearch] = useState('')
   const [dropIndicator, setDropIndicator] = useState<{ folderId: string | null; index: number } | null>(null)
   const [draggedFolderId, setDraggedFolderId] = useState<string | null>(null)
   const [rootDropActive, setRootDropActive] = useState(false)
@@ -88,7 +106,30 @@ export function ToolkitManager() {
     })
   }
 
-  const tree = buildToolTree(tools, folders)
+  const q = search.trim().toLowerCase()
+
+  const filteredTools = useMemo(() => {
+    if (!q) return tools
+    return tools.filter((t) =>
+      t.name.toLowerCase().includes(q) ||
+      t.tags.some((tag) => tag.toLowerCase().includes(q))
+    )
+  }, [tools, q])
+
+  const filteredFolders = useMemo(() => {
+    if (!q) return folders
+    const matchingFolderIds = new Set(filteredTools.map((t) => t.folder_id))
+    const ancestorIds = getAncestorFolderIds(matchingFolderIds, folders)
+    return folders.filter((f) => ancestorIds.has(f.id))
+  }, [folders, filteredTools, q])
+
+  const tree = buildToolTree(filteredTools, filteredFolders)
+
+  // When searching, auto-expand all filtered folders
+  const effectiveExpandedFolders = useMemo(() => {
+    if (!q) return expandedFolders
+    return new Set(filteredFolders.map((f) => f.id))
+  }, [q, expandedFolders, filteredFolders])
 
   // Flat list of visible tool IDs in render order (for shift-click range selection)
   const flatToolIds = useMemo(() => {
@@ -98,7 +139,7 @@ export function ToolkitManager() {
         if (node.type === 'tool') {
           ids.push(node.tool.id)
         } else {
-          if (expandedFolders.has(node.folder.id)) {
+          if (effectiveExpandedFolders.has(node.folder.id)) {
             walk(node.children)
           }
         }
@@ -106,7 +147,7 @@ export function ToolkitManager() {
     }
     walk(tree)
     return ids
-  }, [tree, expandedFolders])
+  }, [tree, effectiveExpandedFolders])
 
   function handleToolClick(e: React.MouseEvent, toolId: string) {
     if (e.metaKey || e.ctrlKey) {
@@ -136,14 +177,17 @@ export function ToolkitManager() {
     }
   }
 
-  // Escape to clear selection
+  // Escape to clear search, then selection
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setSelectedToolIds(new Set())
+      if (e.key === 'Escape') {
+        if (search) setSearch('')
+        else setSelectedToolIds(new Set())
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [search])
 
   function handleEdit(tool: Tool) {
     setEditingTool(tool)
@@ -360,7 +404,7 @@ export function ToolkitManager() {
     return nodes.map((node) => {
       if (node.type === 'folder') {
         const folderNode = node as TreeFolder
-        const isExpanded = expandedFolders.has(folderNode.folder.id)
+        const isExpanded = effectiveExpandedFolders.has(folderNode.folder.id)
         return (
           <FolderRow
             key={folderNode.folder.id}
@@ -444,7 +488,36 @@ export function ToolkitManager() {
       {subTab === 'tools' ? (
         <>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-gray-200 font-semibold text-sm">Your Tools</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-gray-200 font-semibold text-sm">Your Tools</h2>
+              <div className="relative">
+                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search tools…"
+                  className="bg-gray-800 text-gray-100 placeholder-gray-600 rounded-lg pl-8 pr-7 py-1.5
+                    border border-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500
+                    outline-none text-xs w-44 transition-colors"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              {q && (
+                <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-indigo-500/20 text-indigo-300">
+                  {filteredTools.length} match{filteredTools.length !== 1 ? 'es' : ''}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleCreateFolder(null)}
@@ -476,6 +549,10 @@ export function ToolkitManager() {
             <div className="text-center py-12">
               <div className="text-gray-600 text-sm mb-2">No tools yet</div>
               <div className="text-gray-500 text-xs">Add links and strings to access them instantly via the toolkit overlay.</div>
+            </div>
+          ) : q && filteredTools.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-gray-500 text-sm">No tools match your search.</div>
             </div>
           ) : (
             <div

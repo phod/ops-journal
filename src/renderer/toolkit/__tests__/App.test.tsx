@@ -261,6 +261,31 @@ describe('Toolkit App', () => {
     expect(screen.getByText('Deploy Script')).toBeInTheDocument()
   })
 
+  it('highlights first tool (not folder) when searching', async () => {
+    const folders = [makeFolder({ id: 'f1', name: 'Scripts' })]
+    const toolsInFolder = [
+      makeTool({ id: '1', name: 'Deploy Script', folder_id: 'f1' }),
+      makeTool({ id: '2', name: 'Root Tool', folder_id: null })
+    ]
+    window.electronAPI.listTools = vi.fn().mockResolvedValue(toolsInFolder)
+    window.electronAPI.listToolFolders = vi.fn().mockResolvedValue(folders)
+
+    const user = userEvent.setup()
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('Scripts')).toBeInTheDocument())
+
+    await user.type(screen.getByPlaceholderText('Search tools...'), 'deploy')
+    await waitFor(() => expect(screen.getByText(/eploy/)).toBeInTheDocument())
+
+    // Folder should NOT be highlighted
+    const folderEl = screen.getByText('Scripts').closest('button')!
+    expect(folderEl.className).not.toContain('bg-indigo-600')
+
+    // Tool should be highlighted
+    const toolEl = screen.getByText(/eploy/).closest('button')!
+    expect(toolEl.className).toContain('bg-indigo-600')
+  })
+
   it('auto-expands folders with search matches', async () => {
     const folders = [makeFolder({ id: 'f1', name: 'Scripts' })]
     const toolsInFolder = [

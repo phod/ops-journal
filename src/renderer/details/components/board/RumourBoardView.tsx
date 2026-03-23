@@ -18,6 +18,7 @@ export function RumourBoardView({ investigationId, entries }: Props) {
   const [boards, setBoards] = useState<RumourBoard[]>([])
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null)
   const [loadingBoards, setLoadingBoards] = useState(true)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const boardState = useBoardState(selectedBoardId, entries)
 
@@ -260,6 +261,8 @@ export function RumourBoardView({ investigationId, entries }: Props) {
           onAddTextBox={handleAddTextBox}
           onAddImage={handleAddImage}
           onAddShape={handleAddShape}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
         />
       </div>
     </div>

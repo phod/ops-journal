@@ -155,6 +155,14 @@ export function navigateManagerToDetails(id: string): void {
   }
 }
 
+export function showManagerReminders(): void {
+  showManager()
+  const win = managerWindow
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('navigate:reminders')
+  }
+}
+
 export function toggleOverlay(): void {
   const win = overlayWindow
   if (!win) return

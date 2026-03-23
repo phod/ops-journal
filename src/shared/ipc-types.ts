@@ -195,6 +195,7 @@ export interface ElectronAPI {
   openDetails: (id: string) => Promise<void>
   onShowDetails: (callback: (id: string) => void) => () => void
   onShowHome: (callback: () => void) => () => void
+  onShowReminders: (callback: () => void) => () => void
   onCheckDirty: (callback: () => void) => () => void
   replyCheckDirty: (canProceed: boolean) => void
 

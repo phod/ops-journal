@@ -120,6 +120,7 @@ const electronAPI: ElectronAPI = {
   openDetails: (id) => ipcRenderer.invoke('window:openDetails', { id }),
   onShowDetails: (callback) => onIpcEvent<[string]>('navigate:details', callback),
   onShowHome: (callback) => onIpcEvent<[]>('navigate:home', callback),
+  onShowReminders: (callback) => onIpcEvent<[]>('navigate:reminders', callback),
   onCheckDirty: (callback) => onIpcEvent<[]>('check-dirty', callback),
   replyCheckDirty: (canProceed) => ipcRenderer.send('check-dirty-reply', canProceed),
 

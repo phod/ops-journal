@@ -10,6 +10,8 @@ interface Props {
   onAddTextBox: () => void
   onAddImage: (imagePath: string) => void
   onAddShape: (shape: ShapeKind) => void
+  collapsed: boolean
+  onToggleCollapse: () => void
 }
 
 const FILTER_TABS: { key: Filter; label: string }[] = [
@@ -27,7 +29,7 @@ const SHAPES: { kind: ShapeKind; label: string; icon: string }[] = [
   { kind: 'cloud', label: 'Cloud', icon: '☁' }
 ]
 
-export function BoardSidebar({ entries, onAddTextBox, onAddImage, onAddShape }: Props) {
+export function BoardSidebar({ entries, onAddTextBox, onAddImage, onAddShape, collapsed, onToggleCollapse }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
 
   const filtered = filterEntries(entries, filter)
@@ -35,7 +37,6 @@ export function BoardSidebar({ entries, onAddTextBox, onAddImage, onAddShape }: 
   async function handleUploadImage() {
     const dataUrls = await window.electronAPI.pickImage()
     if (!dataUrls.length) return
-    // Save each image and add as node
     for (const dataUrl of dataUrls) {
       const imagePath = await window.electronAPI.saveBoardImage(dataUrl)
       onAddImage(imagePath)
@@ -49,10 +50,39 @@ export function BoardSidebar({ entries, onAddTextBox, onAddImage, onAddShape }: 
     onAddImage(imagePath)
   }
 
+  if (collapsed) {
+    return (
+      <div className="w-10 flex-shrink-0 border-l border-gray-700/50 flex flex-col items-center bg-gray-900/50 pt-2">
+        <button
+          onClick={onToggleCollapse}
+          className="text-gray-400 hover:text-gray-200 transition-colors p-1"
+          data-tooltip="Show sidebar"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="10 4 6 8 10 12" />
+          </svg>
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="w-64 flex-shrink-0 border-l border-gray-700/50 flex flex-col bg-gray-900/50">
+      {/* Collapse button */}
+      <div className="flex justify-end px-2 pt-1.5 flex-shrink-0">
+        <button
+          onClick={onToggleCollapse}
+          className="text-gray-400 hover:text-gray-200 transition-colors p-1"
+          data-tooltip="Hide sidebar"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 4 10 8 6 12" />
+          </svg>
+        </button>
+      </div>
+
       {/* Filter tabs */}
-      <div className="flex flex-wrap gap-1 px-2 pt-2 pb-1 border-b border-gray-700/50 flex-shrink-0">
+      <div className="flex flex-wrap gap-1 px-2 pb-1 border-b border-gray-700/50 flex-shrink-0">
         {FILTER_TABS.map(({ key, label }) => (
           <button
             key={key}

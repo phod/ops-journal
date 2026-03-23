@@ -5,11 +5,14 @@ import { useEntryRelationships } from '@shared/useEntryRelationships'
 import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import { formatRelativeTime } from '@shared/format-date'
 import { scrollToEntry } from '@shared/scroll-to-entry'
+import { LinkedText } from '@shared/LinkedText'
 
 interface Props {
   entry: JournalEntry
   allEntries: JournalEntry[]
   onScrollToEntry: (id: string) => void
+  dragProps?: Record<string, unknown>
+  dragClass?: string
 }
 
 const TYPE_COLORS: Record<string, { border: string; borderLeft: string; bg: string; dot: string }> = {
@@ -61,7 +64,7 @@ const LINK_DOT_COLOR: Record<string, string> = {
   action: 'bg-orange-400'
 }
 
-export function PeekSection({ entry, allEntries, onScrollToEntry }: Props) {
+export function PeekSection({ entry, allEntries, onScrollToEntry, dragProps, dragClass }: Props) {
   const imageDataUrls = useEntryImages(entry.image_paths)
   const { linkedFindings, linkedActions, linkedChildHypotheses, parentHypotheses, linkedHypotheses } = useEntryRelationships(entry, allEntries)
   const colors = getColors(entry.type)
@@ -77,10 +80,10 @@ export function PeekSection({ entry, allEntries, onScrollToEntry }: Props) {
   const hasLinks = allLinked.length > 0
 
   return (
-    <div className={`my-0.5 rounded-lg border ${colors.border} border-l-4 ${colors.borderLeft} ${colors.bg} overflow-hidden`}>
+    <div className={`my-0.5 rounded-lg border ${colors.border} border-l-4 ${colors.borderLeft} ${colors.bg} overflow-hidden ${dragClass ?? ''}`} {...dragProps}>
       {/* Full body text */}
-      <div className="px-3 pt-2.5 text-xs text-gray-300 font-mono leading-relaxed">
-        {entry.body || '(no text)'}
+      <div className="px-3 pt-2.5 text-xs text-gray-300 font-mono leading-relaxed whitespace-pre-wrap break-words">
+        <LinkedText text={entry.body || '(no text)'} />
       </div>
 
       {/* Horizontal scrollable image strip */}

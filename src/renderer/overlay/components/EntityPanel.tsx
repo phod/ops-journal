@@ -3,6 +3,7 @@ import type { JournalEntry } from '@shared/ipc-types'
 import { HYPOTHESIS_STATUS_LABEL, HYPOTHESIS_STATUS_TEXT_CLASS, TOOL_ENTRY_STATUS_LABEL, TOOL_ENTRY_STATUS_TEXT_CLASS } from '@shared/entry-types'
 import { scrollToEntry } from '@shared/scroll-to-entry'
 import { FlagIcon } from '@shared/FlagIcon'
+import { LinkedText } from '@shared/LinkedText'
 import { useEntryDrag } from '../contexts/EntryDragContext'
 import { getLinkAction } from '@shared/link-drag-utils'
 import { PeekSection } from './PeekSection'
@@ -190,7 +191,7 @@ function CompactRow({ entry, onEntryUpdated, onClick, isPeeked, tab }: {
 
       {/* Truncated body */}
       <span className="text-[11px] text-gray-300 font-mono truncate flex-1 min-w-0">
-        {entry.body || '(no text)'}
+        <LinkedText text={entry.body || '(no text)'} />
       </span>
 
       {/* Right-aligned micro indicators */}
@@ -209,6 +210,24 @@ function CompactRow({ entry, onEntryUpdated, onClick, isPeeked, tab }: {
         {entry.flagged && <FlagIcon size={9} className="text-amber-400 flex-shrink-0" />}
       </div>
     </button>
+  )
+}
+
+function DraggablePeekSection({ entry, allEntries, onScrollToEntry, onEntryUpdated }: {
+  entry: JournalEntry
+  allEntries: JournalEntry[]
+  onScrollToEntry: (id: string) => void
+  onEntryUpdated: (e: JournalEntry) => void
+}) {
+  const { dragClass, dragProps } = useCardDrag({ entry, onEntryUpdated })
+  return (
+    <PeekSection
+      entry={entry}
+      allEntries={allEntries}
+      onScrollToEntry={onScrollToEntry}
+      dragProps={dragProps}
+      dragClass={dragClass}
+    />
   )
 }
 
@@ -311,10 +330,11 @@ export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
             </div>
             {peekedEntryId === entry.id && (
               <div style={{ marginLeft: depth * 16 }}>
-                <PeekSection
+                <DraggablePeekSection
                   entry={entry}
                   allEntries={entries}
                   onScrollToEntry={handleScrollToEntry}
+                  onEntryUpdated={onEntryUpdated}
                 />
               </div>
             )}
@@ -333,10 +353,11 @@ export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
           tab={activeTab}
         />
         {peekedEntryId === entry.id && (
-          <PeekSection
+          <DraggablePeekSection
             entry={entry}
             allEntries={entries}
             onScrollToEntry={handleScrollToEntry}
+            onEntryUpdated={onEntryUpdated}
           />
         )}
       </React.Fragment>
@@ -344,7 +365,7 @@ export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
   }
 
   return (
-    <div className={`w-full border-l-2 ${colors.border} ${colors.bg} flex flex-col flex-shrink-0`}>
+    <div className={`w-full h-full border-l-2 ${colors.border} ${colors.bg} flex flex-col flex-shrink-0`}>
       {/* Tab row */}
       <div className="flex items-center justify-between px-1.5 py-1.5 border-b border-gray-700/40">
         <div className="flex items-center gap-0.5">

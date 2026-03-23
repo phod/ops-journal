@@ -240,4 +240,20 @@ export const migrations: string[] = [
   ALTER TABLE tools_new RENAME TO tools;
   CREATE INDEX IF NOT EXISTS idx_tools_sort_order ON tools(sort_order);
   `,
+
+  // Migration 21 — reminders table
+  `
+  CREATE TABLE IF NOT EXISTS reminders (
+    id TEXT PRIMARY KEY,
+    entry_id TEXT NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    due_at TEXT NOT NULL,
+    note TEXT,
+    status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed', 'dismissed')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_reminders_entry_id ON reminders(entry_id);
+  CREATE INDEX IF NOT EXISTS idx_reminders_due_at ON reminders(due_at);
+  CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
+  `,
 ]

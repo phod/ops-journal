@@ -18,6 +18,8 @@ import { HypothesisStatusMenu } from '@shared/HypothesisStatusMenu'
 import { ToolEntryStatusMenu } from '@shared/ToolEntryStatusMenu'
 import { LinkFindingModal } from './LinkFindingModal'
 import { LinkHypothesisModal } from './LinkHypothesisModal'
+import { ReminderPopover } from './ReminderPopover'
+import { formatReminderDue } from '@shared/reminder-presets'
 import { LinkedText } from '@shared/LinkedText'
 import { useEntryDrag } from '../contexts/EntryDragContext'
 import { getLinkAction } from '@shared/link-drag-utils'
@@ -82,12 +84,14 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
   const [showTypeMenu, setShowTypeMenu] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [showLinkModal, setShowLinkModal] = useState(false)
+  const [showReminderPopover, setShowReminderPopover] = useState(false)
   const [completions, setCompletions] = useState<EntryTypeDefinition[]>([])
   const [selectedCompletionIndex, setSelectedCompletionIndex] = useState(0)
   const [detectedType, setDetectedType] = useState<EntryType | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const typeMenuRef = useRef<HTMLDivElement>(null)
   const statusMenuRef = useRef<HTMLDivElement>(null)
+  const reminderBtnRef = useRef<HTMLButtonElement>(null)
   const prevEditHeightRef = useRef(0)
 
   // Initialise draft and focus when entering edit mode
@@ -570,6 +574,44 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
               {entry.action_completed ? 'DONE' : 'TODO'}
             </button>
           )}
+          {/* Reminder badge or button for actions */}
+          {isAction && !isEditing && !entry.action_completed && (
+            entry.reminder ? (
+              <button
+                ref={reminderBtnRef}
+                onClick={() => setShowReminderPopover(true)}
+                className="no-drag flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 transition-colors cursor-pointer"
+                data-tooltip="Reschedule reminder"
+              >
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {formatReminderDue(entry.reminder.due_at)}
+              </button>
+            ) : (
+              <button
+                ref={reminderBtnRef}
+                onClick={() => setShowReminderPopover(true)}
+                className="no-drag opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-500 hover:text-amber-400 hover:bg-amber-500/10 cursor-pointer"
+                data-tooltip="Set reminder"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                Remind
+              </button>
+            )
+          )}
+          {showReminderPopover && (
+            <ReminderPopover
+              entryId={entry.id}
+              anchorRef={reminderBtnRef}
+              onClose={() => setShowReminderPopover(false)}
+              onCreated={() => {}}
+            />
+          )}
           {/* Tool entry status badge */}
           {isTool && (
             <div className="relative" ref={statusMenuRef}>
@@ -642,6 +684,20 @@ function EntryRow({ entry, allEntries, isEditing, onEditStart, onEditEnd, onNavi
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>
             </button>
+            {isAction && entry.reminder && (
+              <button
+                onClick={async () => {
+                  await window.electronAPI.dismissReminder(entry.reminder!.id)
+                }}
+                className="no-drag text-gray-500 hover:text-amber-400 transition-colors px-1"
+                data-tooltip="Remove reminder"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <line x1="4" y1="4" x2="20" y2="20"/>
+                </svg>
+              </button>
+            )}
             <button
               onClick={handleDelete}
               className="no-drag text-gray-500 hover:text-red-400 transition-colors px-1"

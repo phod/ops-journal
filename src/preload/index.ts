@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ElectronAPI, ExportFormat, HypothesisStatus, ToolEntryStatus, Investigation, Tool, ToolFolder, ToolType, FunctionParameter, PendingToolEntry, BoardNode, BoardEdge, BoardViewport } from '../shared/ipc-types'
+import type { ElectronAPI, ExportFormat, HypothesisStatus, ToolEntryStatus, Investigation, Reminder, Tool, ToolFolder, ToolType, FunctionParameter, PendingToolEntry, BoardNode, BoardEdge, BoardViewport } from '../shared/ipc-types'
 
 /**
  * Creates a listener for an IPC channel that forwards arguments to a callback,
@@ -186,6 +186,18 @@ const electronAPI: ElectronAPI = {
   getBoardState: (boardId) => ipcRenderer.invoke('board:getState', { boardId }),
   saveBoardState: (boardId, state: { nodes: BoardNode[]; edges: BoardEdge[]; viewport: BoardViewport }) => ipcRenderer.invoke('board:saveState', { boardId, state }),
   saveBoardImage: (dataUrl) => ipcRenderer.invoke('board:saveImage', { dataUrl }),
+
+  // Reminders
+  createReminder: (entryId, dueAt, note?) =>
+    ipcRenderer.invoke('reminder:create', { entryId, dueAt, note }),
+  listReminders: () => ipcRenderer.invoke('reminder:list'),
+  rescheduleReminder: (id, dueAt, note?) =>
+    ipcRenderer.invoke('reminder:reschedule', { id, dueAt, note }),
+  completeReminder: (id) => ipcRenderer.invoke('reminder:complete', { id }),
+  dismissReminder: (id) => ipcRenderer.invoke('reminder:dismiss', { id }),
+  deleteReminder: (id) => ipcRenderer.invoke('reminder:delete', { id }),
+  onRemindersChanged: (callback) =>
+    onIpcEvent<[Reminder[]]>('reminders:changed', callback),
 
   // Shell
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', { url })

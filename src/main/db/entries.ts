@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { getDb } from './index'
-import type { JournalEntry, EntryType, HypothesisStatus, ToolEntryStatus, PendingToolEntry } from '@shared/ipc-types'
+import type { JournalEntry, EntryType, EntryReminder, HypothesisStatus, ToolEntryStatus, PendingToolEntry } from '@shared/ipc-types'
 import { MAX_HYPOTHESIS_NESTING_DEPTH } from '@shared/ipc-types'
 
 const ENTRY_COLUMNS = `
@@ -9,7 +9,8 @@ const ENTRY_COLUMNS = `
   (SELECT json_group_array(hf.finding_entry_id) FROM hypothesis_findings hf WHERE hf.hypothesis_entry_id = je.id) as linked_finding_ids_json,
   (SELECT json_group_array(ha.action_entry_id) FROM hypothesis_actions ha WHERE ha.hypothesis_entry_id = je.id) as linked_action_ids_json,
   (SELECT json_group_array(hc.child_hypothesis_id) FROM hypothesis_children hc WHERE hc.parent_hypothesis_id = je.id) as linked_child_hypothesis_ids_json,
-  (SELECT json_group_array(hc.parent_hypothesis_id) FROM hypothesis_children hc WHERE hc.child_hypothesis_id = je.id) as parent_hypothesis_ids_json
+  (SELECT json_group_array(hc.parent_hypothesis_id) FROM hypothesis_children hc WHERE hc.child_hypothesis_id = je.id) as parent_hypothesis_ids_json,
+  (SELECT json_object('id', r.id, 'due_at', r.due_at, 'note', r.note) FROM reminders r WHERE r.entry_id = je.id AND r.status = 'active' LIMIT 1) as active_reminder_json
 `
 
 const SELECT_ENTRY = `
@@ -57,6 +58,9 @@ function rowToEntry(row: Record<string, unknown>): JournalEntry {
     if (parentIds.length > 0) {
       entry.parent_hypothesis_ids = parentIds
     }
+  }
+  if (row.active_reminder_json) {
+    entry.reminder = JSON.parse(row.active_reminder_json as string) as EntryReminder
   }
   return entry
 }

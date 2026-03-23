@@ -4,6 +4,7 @@ import { createTray, updateTrayMenu } from './tray'
 import { registerHotkey, registerImageHotkeys, registerToolkitHotkey, registerManagerHotkey, unregisterAllHotkeys } from './hotkey'
 import { registerIpcHandlers } from './ipc-handlers'
 import { getDb, closeDb } from './db/index'
+import { initReminderScheduler } from './reminder-scheduler'
 
 // Hide dock icon as early as possible (macOS only)
 if (process.platform === 'darwin') {
@@ -34,6 +35,9 @@ if (!gotLock) {
 
     // Register IPC handlers before creating windows
     registerIpcHandlers()
+
+    // Start reminder scheduler
+    initReminderScheduler()
 
     // Create windows (all hidden initially)
     createOverlayWindow()

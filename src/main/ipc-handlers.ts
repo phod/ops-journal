@@ -15,12 +15,14 @@ import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleAct
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
 import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools, moveToolToFolder, moveToolsToFolder, reorderToolsInFolder } from './db/tools'
 import { listToolFolders, createToolFolder, renameToolFolder, deleteToolFolder, moveToolFolderToFolder, reorderToolFoldersInParent } from './db/tool-folders'
+import { createReminder, getReminder, listReminders as listAllReminders, rescheduleReminder, completeReminder, dismissReminder, deleteReminder } from './db/reminders'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, expandOverlayForSearch, restoreOverlayFromSearch, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, getPreviousFrontApp } from './windows'
 import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, reregisterToolkitHotkey, reregisterManagerHotkey } from './hotkey'
 import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getManagerHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed, getOpaqueOverlay, setOpaqueOverlay } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
-import type { Investigation, Tool, ToolFolder, ToolType, FunctionParameter } from '@shared/ipc-types'
+import type { Investigation, Tool, ToolFolder, ToolType, FunctionParameter, Reminder } from '@shared/ipc-types'
+import { rescheduleNextReminder } from './reminder-scheduler'
 import { exportAsMarkdown, exportAsPdf, buildExportHtml } from './export'
 import { interpretScript } from './script-interpreter'
 
@@ -59,6 +61,16 @@ function broadcastEntriesChanged(investigationId: string): void {
   for (const win of windows) {
     if (!win.isDestroyed()) {
       win.webContents.send('entries:changed', investigationId, entries)
+    }
+  }
+}
+
+function broadcastRemindersChanged(): void {
+  const reminders = listAllReminders()
+  const windows = BrowserWindow.getAllWindows()
+  for (const win of windows) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('reminders:changed', reminders)
     }
   }
 }
@@ -563,6 +575,51 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('overlay:expandForSearch', () => expandOverlayForSearch())
   ipcMain.handle('overlay:restoreFromSearch', () => restoreOverlayFromSearch())
   ipcMain.handle('window:openDetails', (_event, { id }: { id: string }) => navigateManagerToDetails(id))
+
+  // --- Reminders ---
+
+  ipcMain.handle('reminder:create', (_event, { entryId, dueAt, note }: { entryId: string; dueAt: string; note?: string }) => {
+    const reminder = createReminder(entryId, dueAt, note)
+    broadcastRemindersChanged()
+    broadcastEntriesChanged(reminder.investigation_id)
+    rescheduleNextReminder()
+    return reminder
+  })
+
+  ipcMain.handle('reminder:list', () => listAllReminders())
+
+  ipcMain.handle('reminder:reschedule', (_event, { id, dueAt, note }: { id: string; dueAt: string; note?: string }) => {
+    const reminder = rescheduleReminder(id, dueAt, note)
+    broadcastRemindersChanged()
+    broadcastEntriesChanged(reminder.investigation_id)
+    rescheduleNextReminder()
+    return reminder
+  })
+
+  ipcMain.handle('reminder:complete', (_event, { id }: { id: string }) => {
+    const reminder = completeReminder(id)
+    broadcastRemindersChanged()
+    broadcastEntriesChanged(reminder.investigation_id)
+    return reminder
+  })
+
+  ipcMain.handle('reminder:dismiss', (_event, { id }: { id: string }) => {
+    const existing = getReminder(id)
+    dismissReminder(id)
+    broadcastRemindersChanged()
+    if (existing) {
+      broadcastEntriesChanged(existing.investigation_id)
+    }
+  })
+
+  ipcMain.handle('reminder:delete', (_event, { id }: { id: string }) => {
+    const existing = getReminder(id)
+    deleteReminder(id)
+    broadcastRemindersChanged()
+    if (existing) {
+      broadcastEntriesChanged(existing.investigation_id)
+    }
+  })
 
   // --- Shell ---
 

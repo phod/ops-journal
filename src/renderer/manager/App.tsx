@@ -5,6 +5,7 @@ import { InvestigationDetails } from './components/InvestigationDetails'
 import type { InvestigationDetailsHandle } from './components/InvestigationDetails'
 import { InvestigationList } from './components/InvestigationList'
 import { ToolkitManager } from './components/ToolkitManager'
+import { ReminderManager } from './components/ReminderManager'
 import type { Investigation } from '@shared/ipc-types'
 
 export default function App() {
@@ -12,7 +13,8 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [detailsId, setDetailsId] = useState<string | null>(null)
-  const [tab, setTab] = useState<'investigations' | 'toolkits' | 'settings'>('investigations')
+  const [tab, setTab] = useState<'investigations' | 'toolkits' | 'reminders' | 'settings'>('investigations')
+  const [reminderCount, setReminderCount] = useState(0)
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const versionFetchedRef = useRef(false)
   const detailsRef = useRef<InvestigationDetailsHandle>(null)
@@ -83,12 +85,12 @@ export default function App() {
           <h1 className="text-lg font-semibold text-gray-100">Ops Journal</h1>
           <span className="text-gray-600 text-sm">/</span>
           <span className="text-gray-400 text-sm">
-            {detailsId ? 'Investigation Details' : tab === 'settings' ? 'Settings' : tab === 'toolkits' ? 'Toolkits' : 'Investigations'}
+            {detailsId ? 'Investigation Details' : tab === 'settings' ? 'Settings' : tab === 'toolkits' ? 'Toolkits' : tab === 'reminders' ? 'Reminders' : 'Investigations'}
           </span>
         </div>
         {!detailsId && (
           <div className="flex gap-0">
-            {(['investigations', 'toolkits', 'settings'] as const).map((t) => (
+            {(['investigations', 'toolkits', 'reminders', 'settings'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -99,6 +101,11 @@ export default function App() {
                   }`}
               >
                 {t}
+                {t === 'reminders' && reminderCount > 0 && (
+                  <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    {reminderCount}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -135,6 +142,8 @@ export default function App() {
             </>
           ) : tab === 'toolkits' ? (
             <ToolkitManager />
+          ) : tab === 'reminders' ? (
+            <ReminderManager onActiveCountChange={setReminderCount} />
           ) : (
             <>
               {/* Header with create button */}

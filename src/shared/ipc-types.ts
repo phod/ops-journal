@@ -40,6 +40,27 @@ export type EntryType = 'note' | 'action' | 'finding' | 'hypothesis' | 'tool'
 export type ExportFormat = 'markdown' | 'pdf' | 'clipboard' | 'rich-clipboard'
 export type HypothesisStatus = 'open' | 'true' | 'false' | 'abandoned'
 export type ToolEntryStatus = 'pending' | 'done' | 'abandoned'
+export type ReminderStatus = 'active' | 'completed' | 'dismissed'
+
+export interface EntryReminder {
+  id: string
+  due_at: string
+  note: string | null
+}
+
+export interface Reminder {
+  id: string
+  entry_id: string
+  due_at: string
+  note: string | null
+  status: ReminderStatus
+  created_at: string
+  updated_at: string
+  entry_body: string
+  investigation_id: string
+  investigation_name: string
+  action_completed: boolean
+}
 
 export interface Investigation {
   id: string
@@ -69,6 +90,7 @@ export interface JournalEntry {
   action_completed?: boolean
   tool_status?: ToolEntryStatus
   flagged?: boolean
+  reminder?: EntryReminder
 }
 
 export interface PendingToolEntry {
@@ -224,6 +246,15 @@ export interface ElectronAPI {
   getBoardState: (boardId: string) => Promise<BoardState>
   saveBoardState: (boardId: string, state: { nodes: BoardNode[]; edges: BoardEdge[]; viewport: BoardViewport }) => Promise<void>
   saveBoardImage: (dataUrl: string) => Promise<string>
+
+  // Reminders
+  createReminder: (entryId: string, dueAt: string, note?: string) => Promise<Reminder>
+  listReminders: () => Promise<Reminder[]>
+  rescheduleReminder: (id: string, dueAt: string, note?: string) => Promise<Reminder>
+  completeReminder: (id: string) => Promise<Reminder>
+  dismissReminder: (id: string) => Promise<void>
+  deleteReminder: (id: string) => Promise<void>
+  onRemindersChanged: (callback: (reminders: Reminder[]) => void) => () => void
 
   // Shell
   openExternal: (url: string) => Promise<void>

@@ -10,6 +10,24 @@ import { PeekSection } from './PeekSection'
 
 type PanelTab = 'flagged' | 'finding' | 'hypothesis' | 'action' | 'tool'
 
+const STATUS_CHIPS: Partial<Record<PanelTab, { value: string; label: string; activeClass: string }[]>> = {
+  hypothesis: [
+    { value: 'open', label: 'Open', activeClass: 'text-yellow-300 bg-yellow-500/20' },
+    { value: 'true', label: 'True', activeClass: 'text-green-300 bg-green-500/20' },
+    { value: 'false', label: 'False', activeClass: 'text-red-300 bg-red-500/20' },
+    { value: 'abandoned', label: 'Aband.', activeClass: 'text-gray-400 bg-gray-500/20' },
+  ],
+  action: [
+    { value: 'incomplete', label: 'TODO', activeClass: 'text-orange-300 bg-orange-500/20' },
+    { value: 'completed', label: 'DONE', activeClass: 'text-green-300 bg-green-500/20' },
+  ],
+  tool: [
+    { value: 'pending', label: 'Pending', activeClass: 'text-sky-300 bg-sky-500/20' },
+    { value: 'done', label: 'Done', activeClass: 'text-green-300 bg-green-500/20' },
+    { value: 'abandoned', label: 'Aband.', activeClass: 'text-gray-400 bg-gray-500/20' },
+  ],
+}
+
 interface Props {
   entries: JournalEntry[]
   onClose: () => void
@@ -281,21 +299,42 @@ const EMPTY_HINT: Record<PanelTab, string> = {
 export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
   const [activeTab, setActiveTab] = useState<PanelTab>('hypothesis')
   const [peekedEntryId, setPeekedEntryId] = useState<string | null>(null)
+  const [statusFilters, setStatusFilters] = useState<Set<string>>(new Set())
   const colors = TAB_COLORS[activeTab]
 
   const filtered = activeTab === 'flagged'
     ? entries.filter((e) => e.flagged)
     : entries.filter((e) => e.type === activeTab)
 
+  const statusFiltered = useMemo(() => {
+    if (statusFilters.size === 0) return filtered
+    return filtered.filter((e) => {
+      if (e.type === 'hypothesis') return statusFilters.has(e.hypothesis_status ?? 'open')
+      if (e.type === 'action') return statusFilters.has(e.action_completed ? 'completed' : 'incomplete')
+      if (e.type === 'tool') return statusFilters.has(e.tool_status ?? 'pending')
+      return true
+    })
+  }, [filtered, statusFilters])
+
   // Build tree for hypothesis tab
   const treeEntries = useMemo(() => {
     if (activeTab !== 'hypothesis') return null
-    return buildHypothesisTree(filtered)
-  }, [activeTab, filtered])
+    return buildHypothesisTree(statusFiltered)
+  }, [activeTab, statusFiltered])
 
   const handleTabChange = (tab: PanelTab) => {
     setActiveTab(tab)
     setPeekedEntryId(null)
+    setStatusFilters(new Set())
+  }
+
+  const toggleStatusFilter = (value: string) => {
+    setStatusFilters((prev) => {
+      const next = new Set(prev)
+      if (next.has(value)) next.delete(value)
+      else next.add(value)
+      return next
+    })
   }
 
   const handleCardClick = (entryId: string) => {
@@ -343,7 +382,7 @@ export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
       })
     }
 
-    return filtered.map((entry) => (
+    return statusFiltered.map((entry) => (
       <React.Fragment key={entry.id}>
         <CompactRow
           entry={entry}
@@ -401,8 +440,28 @@ export function EntityPanel({ entries, onClose, onEntryUpdated }: Props) {
         </button>
       </div>
 
+      {/* Status filter chips */}
+      {STATUS_CHIPS[activeTab] && (
+        <div className="flex items-center gap-1 px-2 py-1 border-b border-gray-700/40">
+          {STATUS_CHIPS[activeTab]!.map((chip) => {
+            const isActive = statusFilters.has(chip.value)
+            return (
+              <button
+                key={chip.value}
+                onClick={() => toggleStatusFilter(chip.value)}
+                className={`no-drag text-[10px] px-1.5 py-0.5 rounded-full font-medium transition-colors ${
+                  isActive ? chip.activeClass : 'text-gray-600 hover:text-gray-400'
+                }`}
+              >
+                {chip.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {/* Content */}
-      {filtered.length === 0 ? (
+      {statusFiltered.length === 0 ? (
         <div className="flex-1 flex items-center justify-center text-xs text-gray-600 px-3 text-center font-mono leading-relaxed whitespace-pre-line">
           {EMPTY_HINT[activeTab]}
         </div>

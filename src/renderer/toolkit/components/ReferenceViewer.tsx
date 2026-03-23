@@ -100,6 +100,9 @@ export function ReferenceViewer({ tool, onClose }: Props) {
       const entry = getSelectedEntry()
       if (entry) navigator.clipboard.writeText(entry.key)
     } else if (e.key === 'c' && e.metaKey) {
+      // Allow native copy when user has selected text
+      const sel = window.getSelection()
+      if (sel && !sel.isCollapsed) return
       e.preventDefault()
       const entry = getSelectedEntry()
       if (entry) navigator.clipboard.writeText(entry.value)
@@ -146,10 +149,10 @@ export function ReferenceViewer({ tool, onClose }: Props) {
       </div>
 
       {/* Entries */}
-      <div className="flex-1 min-h-0 overflow-y-auto" ref={listRef}>
+      <div className="flex-1 min-h-0 overflow-y-auto select-text" ref={listRef}>
         <div className="px-4 py-2">
           <div className="flex items-center gap-3 text-[10px] text-gray-600 font-medium uppercase tracking-wider mb-1 px-1">
-            <span className="w-28">Key</span>
+            <span className="max-w-[45%] flex-shrink-0">Key</span>
             <span className="w-4"></span>
             <span>Value</span>
           </div>
@@ -165,19 +168,33 @@ export function ReferenceViewer({ tool, onClose }: Props) {
                 key={i}
                 data-selected={isSelected ? 'true' : undefined}
                 onClick={() => handleRowClick(i)}
-                className={`flex items-center gap-3 px-1 py-1.5 rounded transition-opacity cursor-pointer ${
+                className={`group flex items-center gap-3 px-1 py-1.5 rounded transition-opacity cursor-pointer ${
                   search && !matches ? 'opacity-25' : ''
                 } ${isSelected ? 'bg-indigo-600/20 border border-indigo-500/30' : search && matches ? 'bg-cyan-900/10' : ''} ${
                   i > 0 ? 'border-t border-gray-800/30' : ''
-                } ${isSelected ? '' : ''}`}
+                }`}
               >
-                <span className="w-28 flex-shrink-0 text-xs text-cyan-300 font-mono truncate">
+                <span className="max-w-[45%] flex-shrink-0 min-w-0 text-xs text-cyan-300 font-mono truncate">
                   {search && matches ? highlightText(entry.key, search) : entry.key}
                 </span>
                 <span className="text-gray-600 text-xs flex-shrink-0">→</span>
-                <span className="text-xs text-gray-200 truncate">
+                <span className="flex-1 min-w-0 text-xs text-gray-200 truncate">
                   {search && matches ? highlightText(entry.value, search) : entry.value}
                 </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigator.clipboard.writeText(entry.value)
+                  }}
+                  className="no-drag flex-shrink-0 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-gray-400 hover:text-gray-200 p-0.5"
+                  data-tooltip="Copy value"
+                >
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" />
+                    <path d="M10.5 5.5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2" />
+                  </svg>
+                </button>
               </div>
             )
           })}

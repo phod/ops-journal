@@ -172,9 +172,14 @@ export default function App() {
     }
   }, [search])
 
-  // Reset selection when filter changes
+  // Reset selection when filter changes — skip folders, highlight first tool
   useEffect(() => {
-    setSelectedIndex(0)
+    if (search.trim().length > 0) {
+      const firstToolIndex = flatItems.findIndex((item) => item.type === 'tool')
+      setSelectedIndex(firstToolIndex !== -1 ? firstToolIndex : 0)
+    } else {
+      setSelectedIndex(0)
+    }
   }, [search])
 
   // Scroll selected item into view

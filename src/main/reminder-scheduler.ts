@@ -1,9 +1,11 @@
 import { Notification } from 'electron'
 import { listOverdueReminders, getNextActiveReminder } from './db/reminders'
+import { showManagerReminders } from './windows'
 import type { Reminder } from '@shared/ipc-types'
 
 let nextTimeout: ReturnType<typeof setTimeout> | null = null
 const firedReminderIds = new Set<string>()
+const activeNotifications = new Set<Notification>()
 
 export function initReminderScheduler(): void {
   checkOverdueReminders()
@@ -41,6 +43,14 @@ function fireReminder(reminder: Reminder): void {
     body: `${reminder.entry_body}${reminder.investigation_name ? `\n${reminder.investigation_name}` : ''}${reminder.note ? ` — ${reminder.note}` : ''}`,
     silent: false,
   })
+  activeNotifications.add(notification)
+  notification.on('click', () => {
+    showManagerReminders()
+    activeNotifications.delete(notification)
+  })
+  notification.on('close', () => {
+    activeNotifications.delete(notification)
+  })
   notification.show()
 }
 
@@ -60,6 +70,14 @@ function checkOverdueReminders(): void {
       title: `You have ${overdue.length} missed reminders`,
       body: `${overdue[0].entry_body}${overdue.length > 1 ? `, and ${overdue.length - 1} more` : ''}`,
       silent: false,
+    })
+    activeNotifications.add(notification)
+    notification.on('click', () => {
+      showManagerReminders()
+      activeNotifications.delete(notification)
+    })
+    notification.on('close', () => {
+      activeNotifications.delete(notification)
     })
     notification.show()
   }

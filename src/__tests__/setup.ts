@@ -72,6 +72,7 @@ const DEFAULT_MOCKS = {
   openDetails: vi.fn(),
   onShowDetails: vi.fn().mockReturnValue(() => {}),
   onShowHome: vi.fn().mockReturnValue(() => {}),
+  onShowReminders: vi.fn().mockReturnValue(() => {}),
   getHotkey: vi.fn().mockResolvedValue('CommandOrControl+Shift+J'),
   setHotkey: vi.fn().mockResolvedValue(true),
   getScreenshotHotkey: vi.fn().mockResolvedValue('CommandOrControl+Shift+S'),

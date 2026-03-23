@@ -70,6 +70,7 @@ const {
     hideOverlay: vi.fn(),
     showOverlay: vi.fn(),
     navigateManagerToDetails: vi.fn(),
+    showManagerReminders: vi.fn(),
     expandOverlayForBoard: vi.fn(),
     restoreOverlayFromBoard: vi.fn()
   }

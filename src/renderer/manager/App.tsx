@@ -55,6 +55,13 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    return window.electronAPI.onShowReminders(() => {
+      setDetailsId(null)
+      setTab('reminders')
+    })
+  }, [])
+
+  useEffect(() => {
     return window.electronAPI.onCheckDirty(() => {
       const canProceed = detailsRef.current?.confirmIfDirty() ?? true
       window.electronAPI.replyCheckDirty(canProceed)

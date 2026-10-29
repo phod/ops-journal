@@ -23,12 +23,12 @@
     "@tiptap/react": "^3.20.1",
     "@tiptap/starter-kit": "^3.20.1",
     "@xyflow/react": "^12.10.1",
-    "better-sqlite3": "^12.8.0",
-    "uuid": "^9.0.1"
+    "better-sqlite3": "^13.0.3",
+    "uuid": "^14.0.3"
   },
   "devDependencies": {
     "@electron-toolkit/utils": "^3.0.0",
-    "@electron/rebuild": "^4.0.3",
+    "@electron/rebuild": "^4.2.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -36,10 +36,9 @@
     "@types/node": "^20.11.5",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
-    "@types/uuid": "^9.0.7",
     "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.4.17",
-    "electron": "^41.0.3",
+    "electron": "^45.1.0",
     "electron-vite": "^5.0.0",
     "jsdom": "^28.1.0",
     "postcss": "^8.4.33",

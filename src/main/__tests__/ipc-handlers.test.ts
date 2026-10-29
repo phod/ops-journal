@@ -159,10 +159,20 @@ vi.mock('electron', () => ({
     showOpenDialog: vi.fn().mockResolvedValue({ canceled: true, filePaths: [] }),
     showSaveDialog: vi.fn().mockResolvedValue({ canceled: true })
   },
-  clipboard: { writeText: vi.fn(), writeImage: vi.fn(), write: vi.fn() },
-  shell: { openPath: vi.fn(), showItemInFolder: vi.fn() },
+  // Electron 44+ clipboard: write/writeText are async, writeImage no longer exists
+  clipboard: { writeText: vi.fn().mockResolvedValue(undefined), write: vi.fn().mockResolvedValue(undefined) },
+  ClipboardItem: class FakeClipboardItem {
+    types: string[]
+    constructor(public items: Record<string, unknown>) {
+      this.types = Object.keys(items)
+    }
+    async getType(type: string) {
+      return this.items[type]
+    }
+  },
+  shell: { openPath: vi.fn(), showItemInFolder: vi.fn(), openExternal: vi.fn().mockResolvedValue(undefined) },
   Menu: { buildFromTemplate: vi.fn(() => ({ popup: vi.fn() })) },
-  nativeImage: { createFromPath: vi.fn(() => ({})) }
+  nativeImage: { createFromPath: vi.fn(() => ({ toPNG: () => Buffer.from([1, 2, 3]) })) }
 }))
 
 import { registerIpcHandlers } from '../ipc-handlers'
@@ -541,5 +551,78 @@ describe('broadcast behavior', () => {
     invoke('investigation:delete', { id: 'inv-1' })
     expect(destroyedWindow.webContents.send).not.toHaveBeenCalled()
     expect(mockWebContentsSend).toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Clipboard (Electron 44+ W3C-style clipboard API)
+// ---------------------------------------------------------------------------
+
+describe('clipboard handlers', () => {
+  const exportArgs = { investigationId: 'inv-1', investigationName: 'Test', entryIds: [] as string[] }
+
+  it('writes rich-clipboard export as a single ClipboardItem with text and html', async () => {
+    const { clipboard, ClipboardItem } = await import('electron')
+
+    const result = await invoke('investigation:export', { ...exportArgs, format: 'rich-clipboard' })
+
+    expect(result).toEqual({ success: true })
+    expect(clipboard.write).toHaveBeenCalledTimes(1)
+    const [items] = vi.mocked(clipboard.write).mock.calls[0]
+    expect(items).toHaveLength(1)
+    expect(items[0]).toBeInstanceOf(ClipboardItem)
+    expect(items[0].types.sort()).toEqual(['text/html', 'text/plain'])
+    await expect(items[0].getType('text/plain')).resolves.toBe('# Export')
+    await expect(items[0].getType('text/html')).resolves.toBe('<html></html>')
+  })
+
+  it('reports failure when the plain clipboard write rejects', async () => {
+    const { clipboard } = await import('electron')
+    vi.mocked(clipboard.writeText).mockRejectedValueOnce(new Error('clipboard busy'))
+
+    const result = await invoke('investigation:export', { ...exportArgs, format: 'clipboard' })
+
+    expect(clipboard.writeText).toHaveBeenCalledWith('# Export')
+    expect(result).toEqual({ success: false, error: 'clipboard busy' })
+  })
+
+  it('copies an image from the context menu as a PNG ClipboardItem', async () => {
+    const { clipboard, ClipboardItem, Menu } = await import('electron')
+
+    invoke('image:contextMenu', { imagePath: '/images/shot.png' })
+
+    const [template] = vi.mocked(Menu.buildFromTemplate).mock.calls[0]
+    const copyItem = template.find((item) => item.label === 'Copy Image')
+    expect(copyItem).toBeDefined()
+    await copyItem!.click!(undefined as never, undefined as never, undefined as never)
+
+    expect(clipboard.write).toHaveBeenCalledTimes(1)
+    const [items] = vi.mocked(clipboard.write).mock.calls[0]
+    expect(items).toHaveLength(1)
+    expect(items[0]).toBeInstanceOf(ClipboardItem)
+    expect(items[0].types).toEqual(['image/png'])
+    const blob = await items[0].getType('image/png')
+    expect(blob).toBeInstanceOf(Blob)
+    expect(blob.type).toBe('image/png')
+    expect(new Uint8Array(await blob.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]))
+  })
+
+  it('finishes the clipboard write before running the next function-tool action', async () => {
+    const { clipboard, shell } = await import('electron')
+    mockTools.listTools.mockReturnValue([
+      { id: 'fn-1', tool_type: 'function', value: 'copy("hello"); openLink("https://example.com");' }
+    ])
+    let resolveWrite!: () => void
+    vi.mocked(clipboard.writeText).mockReturnValueOnce(new Promise<void>((r) => { resolveWrite = r }))
+
+    const pending = invoke('tool:executeFunction', { id: 'fn-1', paramValues: {} })
+    await Promise.resolve()
+
+    expect(clipboard.writeText).toHaveBeenCalledWith('hello')
+    expect(shell.openExternal).not.toHaveBeenCalled()
+
+    resolveWrite()
+    await pending
+    expect(shell.openExternal).toHaveBeenCalledWith('https://example.com')
   })
 })

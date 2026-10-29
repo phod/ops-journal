@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: [] })],
+    plugins: [externalizeDepsPlugin({ exclude: ['uuid'] })],
     resolve: {
       alias: {
         '@shared': resolve('src/shared')
@@ -12,7 +12,7 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        external: ['better-sqlite3', 'uuid']
+        external: ['better-sqlite3']
       }
     }
   },

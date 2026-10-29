@@ -1,4 +1,4 @@
-import { app, ipcMain, BrowserWindow, dialog, clipboard, shell, Menu, nativeImage } from 'electron'
+import { app, ipcMain, BrowserWindow, dialog, clipboard, ClipboardItem, shell, Menu, nativeImage } from 'electron'
 import {
   getActiveInvestigations,
   listInvestigations,
@@ -284,9 +284,10 @@ export function registerIpcHandlers(): void {
     const menu = Menu.buildFromTemplate([
       {
         label: 'Copy Image',
-        click: () => {
+        click: async () => {
           const img = nativeImage.createFromPath(imagePath)
-          clipboard.writeImage(img)
+          const png = new Blob([img.toPNG()], { type: 'image/png' })
+          await clipboard.write([new ClipboardItem({ 'image/png': png })])
         }
       },
       {
@@ -331,14 +332,14 @@ export function registerIpcHandlers(): void {
 
         if (format === 'clipboard') {
           const md = exportAsMarkdown(investigationName, createdAt, entries, summaryJson, imageHandling)
-          clipboard.writeText(md)
+          await clipboard.writeText(md)
           return { success: true }
         }
 
         if (format === 'rich-clipboard') {
           const md = exportAsMarkdown(investigationName, createdAt, entries, summaryJson, 'omit')
           const html = buildExportHtml(investigationName, createdAt, entries, summaryJson)
-          clipboard.write({ text: md, html })
+          await clipboard.write([new ClipboardItem({ 'text/plain': md, 'text/html': html })])
           return { success: true }
         }
 
@@ -483,7 +484,7 @@ export function registerIpcHandlers(): void {
     if (tool.tool_type === 'link') {
       shell.openExternal(tool.value)
     } else {
-      clipboard.writeText(tool.value)
+      await clipboard.writeText(tool.value)
       const frontApp = await getPreviousFrontApp()
       console.log('[tool:execute] Previous front app:', frontApp)
       hideToolkitOverlay()
@@ -514,7 +515,7 @@ export function registerIpcHandlers(): void {
     for (const action of actions) {
       if (action.type === 'copy') {
         console.log('[tool:executeFunction] copying:', action.value)
-        clipboard.writeText(action.value)
+        await clipboard.writeText(action.value)
       } else if (action.type === 'openLink') {
         console.log('[tool:executeFunction] opening:', action.value)
         await shell.openExternal(action.value)

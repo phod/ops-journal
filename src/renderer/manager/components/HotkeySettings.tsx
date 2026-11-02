@@ -240,6 +240,12 @@ export function HotkeySettings() {
           setter={window.electronAPI.setToolkitHotkey}
         />
         <HotkeyRow
+          label="Open Tokeniser"
+          description="Global shortcut to toggle the tokeniser overlay"
+          getter={window.electronAPI.getTokeniserHotkey}
+          setter={window.electronAPI.setTokeniserHotkey}
+        />
+        <HotkeyRow
           label="Open Manager"
           description="Global shortcut to open the investigation manager"
           getter={window.electronAPI.getManagerHotkey}

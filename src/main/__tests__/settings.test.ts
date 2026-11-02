@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import os from 'os'
 import fs from 'fs'
@@ -10,7 +11,7 @@ vi.mock('electron', () => ({
 }))
 
 // Import after mock is set up
-import { getHotkey, setHotkey, DEFAULT_HOTKEY } from '../settings'
+import { getHotkey, setHotkey, DEFAULT_HOTKEY, getTokeniserHotkey, setTokeniserHotkey, DEFAULT_TOKENISER_HOTKEY } from '../settings'
 
 beforeEach(() => {
   fs.mkdirSync(tmpDir, { recursive: true })
@@ -62,5 +63,25 @@ describe('setHotkey', () => {
     const raw = JSON.parse(fs.readFileSync(path.join(tmpDir, 'settings.json'), 'utf-8'))
     expect(raw.hotkey).toBe('new')
     expect(raw.otherSetting).toBe(true)
+  })
+})
+
+describe('tokeniser hotkey', () => {
+  it('getTokeniserHotkey returns CommandOrControl+Shift+L by default', () => {
+    expect(DEFAULT_TOKENISER_HOTKEY).toBe('CommandOrControl+Shift+L')
+    expect(getTokeniserHotkey()).toBe('CommandOrControl+Shift+L')
+  })
+
+  it('setTokeniserHotkey writes tokeniserHotkey to settings.json and preserves other keys', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'settings.json'),
+      JSON.stringify({ hotkey: 'Command+Shift+J', otherSetting: true })
+    )
+    setTokeniserHotkey('Control+Alt+T')
+    const raw = JSON.parse(fs.readFileSync(path.join(tmpDir, 'settings.json'), 'utf-8'))
+    expect(raw.tokeniserHotkey).toBe('Control+Alt+T')
+    expect(raw.hotkey).toBe('Command+Shift+J')
+    expect(raw.otherSetting).toBe(true)
+    expect(getTokeniserHotkey()).toBe('Control+Alt+T')
   })
 })

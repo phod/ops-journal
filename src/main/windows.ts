@@ -9,6 +9,7 @@ const devServerUrl = process.env['ELECTRON_RENDERER_URL']
 let overlayWindow: BrowserWindow | null = null
 let managerWindow: BrowserWindow | null = null
 let toolkitOverlayWindow: BrowserWindow | null = null
+let tokeniserOverlayWindow: BrowserWindow | null = null
 let appIsQuitting = false
 let previousFrontAppPromise: Promise<string | null> = Promise.resolve(null)
 
@@ -399,6 +400,109 @@ export function showToolkitOverlay(): void {
 
 export function hideToolkitOverlay(): void {
   const win = toolkitOverlayWindow
+  if (!win) return
+  win.hide()
+}
+
+// --- Tokeniser overlay ---
+
+function tokeniserBoundsFilePath(): string {
+  return path.join(app.getPath('userData'), 'tokeniser-overlay-bounds.json')
+}
+
+let cachedTokeniserBounds: OverlayBounds | null = null
+
+function loadTokeniserBounds(): OverlayBounds | null {
+  if (cachedTokeniserBounds) return cachedTokeniserBounds
+  try {
+    const raw = fs.readFileSync(tokeniserBoundsFilePath(), 'utf-8')
+    cachedTokeniserBounds = JSON.parse(raw) as OverlayBounds
+    return cachedTokeniserBounds
+  } catch {
+    return null
+  }
+}
+
+function saveTokeniserBounds(win: BrowserWindow): void {
+  try {
+    const [x, y] = win.getPosition()
+    const [width, height] = win.getSize()
+    cachedTokeniserBounds = { x, y, width, height }
+    fs.writeFileSync(tokeniserBoundsFilePath(), JSON.stringify(cachedTokeniserBounds))
+  } catch {
+    // ignore
+  }
+}
+
+export function createTokeniserOverlayWindow(): BrowserWindow {
+  const saved = loadTokeniserBounds()
+  const win = new BrowserWindow({
+    width: saved?.width ?? 820,
+    height: saved?.height ?? 380,
+    x: saved?.x,
+    y: saved?.y,
+    frame: false,
+    alwaysOnTop: true,
+    transparent: true,
+    skipTaskbar: true,
+    show: false,
+    resizable: true,
+    hasShadow: true,
+    webPreferences: sharedWebPreferences()
+  })
+
+  win.on('move', () => saveTokeniserBounds(win))
+  win.on('resize', () => saveTokeniserBounds(win))
+
+  win.setAlwaysOnTop(true, 'floating')
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  preventExternalNavigation(win)
+
+  loadWindowUrl(win, 'tokeniser.html')
+
+  tokeniserOverlayWindow = win
+  return win
+}
+
+export function getTokeniserOverlayWindow(): BrowserWindow | null {
+  return tokeniserOverlayWindow
+}
+
+export function toggleTokeniserOverlay(): void {
+  const win = tokeniserOverlayWindow
+  if (!win) return
+
+  if (win.isVisible()) {
+    win.hide()
+  } else {
+    if (!loadTokeniserBounds()) {
+      const { workAreaSize } = screen.getPrimaryDisplay()
+      const [width] = win.getSize()
+      const x = Math.round((workAreaSize.width - width) / 2)
+      win.setPosition(x, 80)
+    }
+    win.show()
+    win.focus()
+    win.webContents.send('tokeniser:shown')
+  }
+}
+
+export function showTokeniserOverlay(): void {
+  const win = tokeniserOverlayWindow
+  if (!win) return
+  if (!loadTokeniserBounds()) {
+    const { workAreaSize } = screen.getPrimaryDisplay()
+    const [width] = win.getSize()
+    const x = Math.round((workAreaSize.width - width) / 2)
+    win.setPosition(x, 80)
+  }
+  win.show()
+  win.focus()
+  win.webContents.send('tokeniser:shown')
+}
+
+export function hideTokeniserOverlay(): void {
+  const win = tokeniserOverlayWindow
   if (!win) return
   win.hide()
 }

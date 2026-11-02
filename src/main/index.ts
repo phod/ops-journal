@@ -1,7 +1,7 @@
 import { app } from 'electron'
-import { createOverlayWindow, createManagerWindow, createToolkitOverlayWindow, getOverlayWindow, getToolkitOverlayWindow, setAppQuitting, checkManagerDirty, managerMayBeDirty } from './windows'
+import { createOverlayWindow, createManagerWindow, createToolkitOverlayWindow, createTokeniserOverlayWindow, getOverlayWindow, getToolkitOverlayWindow, getTokeniserOverlayWindow, setAppQuitting, checkManagerDirty, managerMayBeDirty } from './windows'
 import { createTray, updateTrayMenu } from './tray'
-import { registerHotkey, registerImageHotkeys, registerToolkitHotkey, registerManagerHotkey, unregisterAllHotkeys } from './hotkey'
+import { registerHotkey, registerImageHotkeys, registerToolkitHotkey, registerTokeniserHotkey, registerManagerHotkey, unregisterAllHotkeys } from './hotkey'
 import { registerIpcHandlers } from './ipc-handlers'
 import { getDb, closeDb } from './db/index'
 import { initReminderScheduler } from './reminder-scheduler'
@@ -43,6 +43,7 @@ if (!gotLock) {
     createOverlayWindow()
     createManagerWindow()
     createToolkitOverlayWindow()
+    createTokeniserOverlayWindow()
 
     // Create tray
     createTray()
@@ -60,10 +61,17 @@ if (!gotLock) {
       toolkitWin.on('hide', () => updateTrayMenu())
     }
 
+    const tokeniserWin = getTokeniserOverlayWindow()
+    if (tokeniserWin) {
+      tokeniserWin.on('show', () => updateTrayMenu())
+      tokeniserWin.on('hide', () => updateTrayMenu())
+    }
+
     // Register global hotkeys
     registerHotkey()
     registerImageHotkeys()
     registerToolkitHotkey()
+    registerTokeniserHotkey()
     registerManagerHotkey()
 
     // macOS: re-apply accessory policy after ready (belt and suspenders)

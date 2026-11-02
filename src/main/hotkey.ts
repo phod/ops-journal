@@ -1,10 +1,11 @@
 import { globalShortcut } from 'electron'
-import { toggleOverlay, showOverlay, getOverlayWindow, toggleToolkitOverlay, toggleManager } from './windows'
+import { toggleOverlay, showOverlay, getOverlayWindow, toggleToolkitOverlay, toggleTokeniserOverlay, toggleManager } from './windows'
 import {
   getHotkey, setHotkey,
   getScreenshotHotkey, setScreenshotHotkey,
   getUploadHotkey, setUploadHotkey,
   getToolkitHotkey, setToolkitHotkey,
+  getTokeniserHotkey, setTokeniserHotkey,
   getManagerHotkey, setManagerHotkey
 } from './settings'
 import { captureScreenshot } from './screenshot'
@@ -55,6 +56,13 @@ const toolkitSlot: HotkeySlot = {
   callback: toggleToolkitOverlay,
   label: 'toolkit hotkey',
   persist: setToolkitHotkey
+}
+
+const tokeniserSlot: HotkeySlot = {
+  current: null,
+  callback: toggleTokeniserOverlay,
+  label: 'tokeniser hotkey',
+  persist: setTokeniserHotkey
 }
 
 const managerSlot: HotkeySlot = {
@@ -132,6 +140,14 @@ export function reregisterToolkitHotkey(newHotkey: string): boolean {
   return reregisterSlot(toolkitSlot, newHotkey)
 }
 
+export function registerTokeniserHotkey(): void {
+  registerSlot(tokeniserSlot, getTokeniserHotkey())
+}
+
+export function reregisterTokeniserHotkey(newHotkey: string): boolean {
+  return reregisterSlot(tokeniserSlot, newHotkey)
+}
+
 export function registerManagerHotkey(): void {
   registerSlot(managerSlot, getManagerHotkey())
 }
@@ -146,5 +162,6 @@ export function unregisterAllHotkeys(): void {
   screenshotSlot.current = null
   uploadSlot.current = null
   toolkitSlot.current = null
+  tokeniserSlot.current = null
   managerSlot.current = null
 }

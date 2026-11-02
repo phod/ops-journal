@@ -116,6 +116,13 @@ const DEFAULT_MOCKS = {
   showToolkitOverlay: vi.fn(),
   hideToolkitOverlay: vi.fn(),
   onToolsChanged: vi.fn().mockReturnValue(() => {}),
+  getTokeniserHotkey: vi.fn().mockResolvedValue('CommandOrControl+Shift+L'),
+  setTokeniserHotkey: vi.fn().mockResolvedValue(true),
+  showTokeniserOverlay: vi.fn(),
+  hideTokeniserOverlay: vi.fn(),
+  copyToClipboard: vi.fn().mockResolvedValue(undefined),
+  readClipboard: vi.fn().mockResolvedValue(''),
+  onTokeniserShown: vi.fn().mockReturnValue(() => {}),
   createToolsBulk: vi.fn().mockResolvedValue([]),
   moveToolToFolder: vi.fn().mockResolvedValue(undefined),
   moveToolsToFolder: vi.fn().mockResolvedValue(undefined),
@@ -195,6 +202,11 @@ beforeEach(() => {
   DEFAULT_MOCKS.getManagerHotkey.mockResolvedValue('CommandOrControl+Shift+M')
   DEFAULT_MOCKS.setManagerHotkey.mockResolvedValue(true)
   DEFAULT_MOCKS.onToolsChanged.mockReturnValue(() => {})
+  DEFAULT_MOCKS.getTokeniserHotkey.mockResolvedValue('CommandOrControl+Shift+L')
+  DEFAULT_MOCKS.setTokeniserHotkey.mockResolvedValue(true)
+  DEFAULT_MOCKS.copyToClipboard.mockResolvedValue(undefined)
+  DEFAULT_MOCKS.readClipboard.mockResolvedValue('')
+  DEFAULT_MOCKS.onTokeniserShown.mockReturnValue(() => {})
   DEFAULT_MOCKS.getOpaqueOverlay.mockResolvedValue(false)
   DEFAULT_MOCKS.onOpaqueOverlayChanged.mockReturnValue(() => {})
   DEFAULT_MOCKS.listPendingToolEntries.mockResolvedValue([])

@@ -230,6 +230,15 @@ export interface ElectronAPI {
   hideToolkitOverlay: () => Promise<void>
   onToolsChanged: (callback: (tools: Tool[]) => void) => () => void
 
+  // Tokeniser
+  getTokeniserHotkey: () => Promise<string>
+  setTokeniserHotkey: (accelerator: string) => Promise<boolean>
+  showTokeniserOverlay: () => Promise<void>
+  hideTokeniserOverlay: () => Promise<void>
+  copyToClipboard: (text: string) => Promise<void>
+  readClipboard: () => Promise<string>
+  onTokeniserShown: (callback: () => void) => () => void
+
   // Tool Folders
   listToolFolders: () => Promise<ToolFolder[]>
   createToolFolder: (name: string, parentId?: string | null) => Promise<ToolFolder>

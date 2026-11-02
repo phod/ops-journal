@@ -1,5 +1,5 @@
 import { Tray, Menu, nativeImage, app } from 'electron'
-import { showOverlay, hideOverlay, showManager, getOverlayWindow, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow } from './windows'
+import { showOverlay, hideOverlay, showManager, getOverlayWindow, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, showTokeniserOverlay, hideTokeniserOverlay, getTokeniserOverlayWindow } from './windows'
 import path from 'path'
 
 let tray: Tray | null = null
@@ -19,6 +19,7 @@ function buildIcon(): Electron.NativeImage {
 function buildMenu(): Electron.Menu {
   const overlayVisible = getOverlayWindow()?.isVisible() ?? false
   const toolkitVisible = getToolkitOverlayWindow()?.isVisible() ?? false
+  const tokeniserVisible = getTokeniserOverlayWindow()?.isVisible() ?? false
   return Menu.buildFromTemplate([
     {
       label: overlayVisible ? 'Close Journal' : 'Open Journal',
@@ -29,6 +30,11 @@ function buildMenu(): Electron.Menu {
       label: toolkitVisible ? 'Close Toolkit' : 'Open Toolkit',
       accelerator: 'CommandOrControl+Shift+K',
       click: () => toolkitVisible ? hideToolkitOverlay() : showToolkitOverlay()
+    },
+    {
+      label: tokeniserVisible ? 'Close Tokeniser' : 'Open Tokeniser',
+      accelerator: 'CommandOrControl+Shift+L',
+      click: () => tokeniserVisible ? hideTokeniserOverlay() : showTokeniserOverlay()
     },
     {
       label: 'Manage Investigations',

@@ -12,15 +12,18 @@ describe('HotkeySettings', () => {
     window.electronAPI.setScreenshotHotkey = vi.fn().mockResolvedValue(true)
     window.electronAPI.getUploadHotkey = vi.fn().mockResolvedValue('CommandOrControl+Shift+U')
     window.electronAPI.setUploadHotkey = vi.fn().mockResolvedValue(true)
+    window.electronAPI.getTokeniserHotkey = vi.fn().mockResolvedValue('CommandOrControl+Shift+L')
+    window.electronAPI.setTokeniserHotkey = vi.fn().mockResolvedValue(true)
   })
 
-  it('loads and displays all four hotkeys', async () => {
+  it('loads and displays all hotkeys', async () => {
     render(<HotkeySettings />)
     await waitFor(() => {
       expect(window.electronAPI.getHotkey).toHaveBeenCalled()
       expect(window.electronAPI.getScreenshotHotkey).toHaveBeenCalled()
       expect(window.electronAPI.getUploadHotkey).toHaveBeenCalled()
       expect(window.electronAPI.getToolkitHotkey).toHaveBeenCalled()
+      expect(window.electronAPI.getTokeniserHotkey).toHaveBeenCalled()
     })
     // Each shortcut key character should appear — use getAllBy since keys repeat across rows
     expect(screen.getAllByText('⌘').length).toBeGreaterThanOrEqual(4)
@@ -29,21 +32,23 @@ describe('HotkeySettings', () => {
     expect(screen.getByText('S')).toBeInTheDocument()
     expect(screen.getByText('U')).toBeInTheDocument()
     expect(screen.getByText('K')).toBeInTheDocument()
+    expect(screen.getByText('L')).toBeInTheDocument()
   })
 
-  it('renders all four hotkey section labels', async () => {
+  it('renders all hotkey section labels', async () => {
     render(<HotkeySettings />)
     expect(await screen.findByText('Open Journal')).toBeInTheDocument()
     expect(screen.getByText('Capture Screenshot')).toBeInTheDocument()
     expect(screen.getByText('Upload Image')).toBeInTheDocument()
     expect(screen.getByText('Open Toolkit')).toBeInTheDocument()
+    expect(screen.getByText('Open Tokeniser')).toBeInTheDocument()
   })
 
   it('shows a "Change shortcut" button for each row', async () => {
     render(<HotkeySettings />)
     await waitFor(() => expect(window.electronAPI.getHotkey).toHaveBeenCalled())
     const buttons = await screen.findAllByText(/change shortcut/i)
-    expect(buttons).toHaveLength(5)
+    expect(buttons).toHaveLength(6)
   })
 
   it('enters capture mode when "Change shortcut" is clicked on the first row', async () => {

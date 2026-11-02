@@ -1,8 +1,9 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { reduce, initialState } from './state'
+import { reduce, initialState, currentText } from './state'
 import { TitleBar } from './components/TitleBar'
 import { TokenView } from './components/TokenView'
 import { StatusStrip } from './components/StatusStrip'
+import { TextView } from './components/TextView'
 
 const TOAST_MS = 2200
 
@@ -16,6 +17,15 @@ function ownsKeys(target: EventTarget): boolean {
 export default function App() {
   const [state, dispatch] = useReducer(reduce, initialState)
   const [opaqueOverlay, setOpaqueOverlay] = useState(false)
+  // The reducer seeds textDraft on enterText; keystrokes in the textarea live here.
+  // Seeded during render (not in an effect) so the textarea mounts with the full text
+  // and its initial selection is applied against the real value.
+  const [draft, setDraft] = useState('')
+  const [draftMode, setDraftMode] = useState(state.mode)
+  if (state.mode !== draftMode) {
+    setDraftMode(state.mode)
+    if (state.mode === 'text') setDraft(state.textDraft)
+  }
   const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -33,11 +43,37 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [state.notice])
 
+  /** The whole command as the user currently sees it. */
+  function fullText(): string {
+    return state.mode === 'text' ? draft : currentText(state)
+  }
+
+  async function copyStay(text: string) {
+    await window.electronAPI.copyToClipboard(text)
+    dispatch({ type: 'notice', text: 'Copied' })
+  }
+
+  async function copyAndClose(text: string) {
+    await window.electronAPI.copyToClipboard(text)
+    await window.electronAPI.hideTokeniserOverlay()
+  }
+
+  function toggleMode() {
+    if (state.mode === 'text') dispatch({ type: 'leaveText', text: draft })
+    else if (state.mode === 'hats') dispatch({ type: 'enterText', selection: null })
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     if (ownsKeys(e.target)) return
 
     const mod = e.metaKey || e.ctrlKey
-    if (mod && e.key === 'v') {
+    if (state.mode === 'hats' && e.key === 'Tab') {
+      e.preventDefault()
+      dispatch({ type: 'enterText', selection: null })
+    } else if (state.mode === 'hats' && mod && e.key === 'a') {
+      e.preventDefault()
+      dispatch({ type: 'enterText', selection: 'all' })
+    } else if (mod && e.key === 'v') {
       e.preventDefault()
       window.electronAPI.readClipboard().then((text) => dispatch({ type: 'load', text }))
     } else if (/^[a-z]$/.test(e.key) && !mod && !e.altKey) {
@@ -63,9 +99,9 @@ export default function App() {
         mode={state.mode}
         targetCount={state.targetCount}
         hattedCount={state.hattedCount}
-        onToggleMode={() => {}}
-        onCopy={() => {}}
-        onCopyClose={() => {}}
+        onToggleMode={toggleMode}
+        onCopy={() => copyStay(fullText())}
+        onCopyClose={() => copyAndClose(fullText())}
       />
 
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-5 pb-3">
@@ -74,6 +110,15 @@ export default function App() {
             <div className="text-sm text-gray-300">Paste a command</div>
             <div className="text-[11px] text-gray-500">⌘V · each editable piece will get a letter above it</div>
           </div>
+        ) : state.mode === 'text' ? (
+          <TextView
+            value={draft}
+            selection={state.textSelection}
+            onChange={setDraft}
+            onLeave={(text) => dispatch({ type: 'leaveText', text })}
+            onCopyClose={copyAndClose}
+            onCopyStay={copyStay}
+          />
         ) : (
           <TokenView
             tokens={state.tokens}
@@ -85,7 +130,7 @@ export default function App() {
             onCommit={(value) => dispatch({ type: 'commitEdit', value })}
             onCancel={() => dispatch({ type: 'cancelEdit' })}
             onTokenDoubleClick={(index) => dispatch({ type: 'beginEdit', index })}
-            onTextClick={() => {}}
+            onTextClick={(offset) => dispatch({ type: 'enterText', selection: offset })}
           />
         )}
       </div>

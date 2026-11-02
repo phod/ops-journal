@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { tokenise, joinTokens, tokenStart, normaliseInput } from '../tokeniser'
+import { tokenise, joinTokens, tokenStart, normaliseInput, applyTokenEdit, markEditedTokens } from '../tokeniser'
 import { CURL, DOCKER } from './fixtures/commands'
 
 const targets = (s: string) => tokenise(s).filter(t => t.target).map(t => t.text)
@@ -43,5 +43,37 @@ describe('tokeniser', () => {
 
   it('normaliseInput converts CRLF and strips trailing newlines', () => {
     expect(normaliseInput('a\r\nb\n\n')).toBe('a\nb')
+  })
+})
+
+describe('applyTokenEdit', () => {
+  it('replaces the token text and records the edited range', () => {
+    const t = tokenise('curl POST x'); const r = applyTokenEdit(t, 2, 'GET', [])
+    expect(r.text).toBe('curl GET x'); expect(r.editedRanges).toEqual([{ start: 5, end: 8 }]); expect(r.start).toBe(5); expect(r.end).toBe(8)
+  })
+  it('shifts later ranges by the length delta', () => {
+    const t = tokenise('a b c'); const r = applyTokenEdit(t, 0, 'aaaa', [{ start: 4, end: 5 }])
+    expect(r.editedRanges).toEqual([{ start: 7, end: 8 }, { start: 0, end: 4 }])
+  })
+  it('an unchanged value adds no range', () => { const t = tokenise('a b'); expect(applyTokenEdit(t, 0, 'a', []).editedRanges).toEqual([]) })
+  it('emptying a token between two plain space runs removes the following run', () => {
+    expect(applyTokenEdit(tokenise('curl -X POST https://x'), 4, '', []).text).toBe('curl -X https://x')
+  })
+  it('collapses before a backslash continuation when both neighbours are plain spaces', () => {
+    expect(applyTokenEdit(tokenise('a POST \\\n  b'), 2, '', []).text).toBe('a \\\n  b')
+  })
+  it('does not collapse across a newline', () => {
+    expect(applyTokenEdit(tokenise('a POST\n  b'), 2, '', []).text).toBe('a \n  b')
+  })
+  it('does not collapse when a non-space delimiter is adjacent', () => {
+    expect(applyTokenEdit(tokenise('a/POST/b'), 2, '', []).text).toBe('a//b')
+  })
+  it('does not collapse at the start or end of the text', () => {
+    expect(applyTokenEdit(tokenise('POST b'), 0, '', []).text).toBe(' b')
+  })
+})
+describe('markEditedTokens', () => {
+  it('marks every target overlapping a range and no delimiters', () => {
+    const t = tokenise('a --verbose 3'); expect(markEditedTokens(t, [{ start: 0, end: 13 }])).toEqual([true, false, false, false, true])
   })
 })

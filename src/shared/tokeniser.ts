@@ -36,3 +36,60 @@ export function tokenStart(tokens: Token[], index: number): number {
 export function normaliseInput(text: string): string {
   return text.replace(/\r\n/g, '\n').replace(/\n+$/, '')
 }
+
+export interface EditedRange {
+  start: number
+  end: number
+}
+
+export interface EditResult {
+  text: string
+  editedRanges: EditedRange[]
+  start: number
+  end: number
+}
+
+const PLAIN_SPACE = /^[ \t]+$/
+
+function isPlainSpace(token: Token | undefined): boolean {
+  return token !== undefined && token.kind === 'delim' && PLAIN_SPACE.test(token.text)
+}
+
+export function applyTokenEdit(
+  tokens: Token[],
+  index: number,
+  value: string,
+  editedRanges: EditedRange[]
+): EditResult {
+  const start = tokenStart(tokens, index)
+  const oldToken = tokens[index].text
+  let oldEnd = start + oldToken.length
+  let removed = oldToken.length
+
+  const next = [...tokens]
+  next[index] = { ...tokens[index], text: value }
+  if (value === '' && isPlainSpace(tokens[index - 1]) && isPlainSpace(tokens[index + 1])) {
+    const run = tokens[index + 1].text.length
+    next.splice(index + 1, 1)
+    oldEnd += run
+    removed += run
+  }
+
+  const delta = value.length - removed
+  const ranges = editedRanges.map(r =>
+    r.start >= oldEnd ? { start: r.start + delta, end: r.end + delta } : r
+  )
+  if (value !== oldToken && value.length > 0) ranges.push({ start, end: start + value.length })
+
+  return { text: joinTokens(next), editedRanges: ranges, start, end: start + value.length }
+}
+
+export function markEditedTokens(tokens: Token[], ranges: EditedRange[]): boolean[] {
+  let offset = 0
+  return tokens.map(t => {
+    const s = offset
+    const e = offset + t.text.length
+    offset = e
+    return t.target && ranges.some(r => r.start < e && r.end > s)
+  })
+}

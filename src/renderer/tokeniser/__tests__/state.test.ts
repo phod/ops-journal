@@ -161,10 +161,6 @@ describe('tokeniser state reducer', () => {
     expect(s.notice).toBe('No editable tokens · Tab for text mode')
   })
 
-  it('reset returns to initialState from any mode', () => {
-    expect(reduce(reduce(loaded, { type: 'beginEdit', index: 0 }), { type: 'reset' })).toEqual(initialState)
-  })
-
   it('notice sets the toast text and clearNotice clears it', () => {
     expect(reduce(loaded, { type: 'notice', text: 'Copied' }).notice).toBe('Copied')
     expect(reduce(loaded, { type: 'clearNotice' }).notice).toBeNull()

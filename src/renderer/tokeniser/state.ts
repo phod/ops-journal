@@ -23,7 +23,6 @@ export interface TokeniserState {
 }
 
 export type Action =
-  | { type: 'reset' }
   | { type: 'load'; text: string }
   | { type: 'hatKey'; key: string }
   | { type: 'clearHatBuf' }
@@ -95,9 +94,6 @@ function rescan(text: string, editedRanges: EditedRange[], prevTargetCount?: num
 
 export function reduce(state: TokeniserState, action: Action): TokeniserState {
   switch (action.type) {
-    case 'reset':
-      return initialState
-
     case 'load': {
       // A late clipboard read must not clobber an edit or the text view
       if (state.mode !== 'empty' && state.mode !== 'hats') return state

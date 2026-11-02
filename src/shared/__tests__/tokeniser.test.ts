@@ -71,6 +71,25 @@ describe('applyTokenEdit', () => {
   it('does not collapse at the start or end of the text', () => {
     expect(applyTokenEdit(tokenise('POST b'), 0, '', []).text).toBe(' b')
   })
+  it('emptying a previously edited token drops its range', () => {
+    const t = tokenise('a POST b'); const first = applyTokenEdit(t, 2, 'GET', [])
+    const second = applyTokenEdit(tokenise(first.text), 2, '', first.editedRanges)
+    expect(second.editedRanges).toEqual([])
+    expect(markEditedTokens(tokenise(second.text), second.editedRanges)).not.toContain(true)
+  })
+  it('re-editing an edited token replaces its range', () => {
+    const first = applyTokenEdit(tokenise('a POST b'), 2, 'GET', [])
+    const second = applyTokenEdit(tokenise(first.text), 2, 'PATCHED', first.editedRanges)
+    expect(second.editedRanges).toEqual([{ start: 2, end: 9 }])
+  })
+  it('a range spanning the edited token is clipped on both sides', () => {
+    const r = applyTokenEdit(tokenise('ab cd ef'), 2, 'X', [{ start: 0, end: 8 }])
+    expect(r.editedRanges).toEqual([{ start: 0, end: 3 }, { start: 4, end: 7 }, { start: 3, end: 4 }])
+  })
+  it('range shifting after whitespace collapse', () => {
+    const r = applyTokenEdit(tokenise('a POST b c'), 2, '', [{ start: 9, end: 10 }])
+    expect(r.text).toBe('a b c'); expect(r.editedRanges).toEqual([{ start: 4, end: 5 }])
+  })
 })
 describe('markEditedTokens', () => {
   it('marks every target overlapping a range and no delimiters', () => {

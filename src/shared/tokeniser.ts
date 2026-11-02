@@ -76,9 +76,13 @@ export function applyTokenEdit(
   }
 
   const delta = value.length - removed
-  const ranges = editedRanges.map(r =>
-    r.start >= oldEnd ? { start: r.start + delta, end: r.end + delta } : r
-  )
+  // Keep the parts of existing ranges outside the replaced span; the overlap is dropped.
+  const ranges = editedRanges.flatMap(r => {
+    const parts: EditedRange[] = []
+    if (r.start < start) parts.push({ start: r.start, end: Math.min(r.end, start) })
+    if (r.end > oldEnd) parts.push({ start: Math.max(r.start, oldEnd) + delta, end: r.end + delta })
+    return parts
+  })
   if (value !== oldToken && value.length > 0) ranges.push({ start, end: start + value.length })
 
   return { text: joinTokens(next), editedRanges: ranges, start, end: start + value.length }

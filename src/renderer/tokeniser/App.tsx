@@ -67,7 +67,13 @@ export default function App() {
     if (ownsKeys(e.target)) return
 
     const mod = e.metaKey || e.ctrlKey
-    if (state.mode === 'hats' && e.key === 'Tab') {
+    if (state.mode === 'text') {
+      // Focus can sit on the overlay itself in text mode; leaving must never hide with a draft pending
+      if (e.key === 'Escape' || e.key === 'Tab') {
+        e.preventDefault()
+        dispatch({ type: 'leaveText', text: draft })
+      }
+    } else if (state.mode === 'hats' && e.key === 'Tab') {
       e.preventDefault()
       dispatch({ type: 'enterText', selection: null })
     } else if (state.mode === 'hats' && mod && e.key === 'a') {
@@ -93,7 +99,7 @@ export default function App() {
       data-testid="overlay"
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      className={`h-screen flex flex-col rounded-xl ${opaqueOverlay ? 'bg-gray-900/95' : 'bg-gray-900'} border border-gray-700/60 shadow-2xl overflow-hidden backdrop-blur-sm outline-none relative`}
+      className={`h-screen flex flex-col font-mono rounded-xl ${opaqueOverlay ? 'bg-gray-900/95' : 'bg-gray-900'} border border-gray-700/60 shadow-2xl overflow-hidden backdrop-blur-sm outline-none relative`}
     >
       <TitleBar
         mode={state.mode}

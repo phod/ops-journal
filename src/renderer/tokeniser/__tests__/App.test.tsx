@@ -317,6 +317,24 @@ describe('Tokeniser App', () => {
       await waitFor(() => expect(window.electronAPI.hideTokeniserOverlay).toHaveBeenCalled())
     })
 
+    it('text mode shares the hats view font and colour classes', async () => {
+      render(<App />)
+      await paste()
+      const ta = await enterTextWithTab()
+      expect(ta.className).toMatch(/\bcmd\b/)
+      expect(screen.getByTestId('overlay').className).toMatch(/font-mono/)
+    })
+
+    it('Escape with focus on the overlay while in text mode leaves text mode instead of hiding', async () => {
+      render(<App />)
+      await paste()
+      await enterTextWithTab()
+      fireEvent.keyDown(overlay(), { key: 'Escape' })
+      expect(await screen.findAllByTestId('hat')).toHaveLength(24)
+      expect(screen.queryByTestId('text-editor')).not.toBeInTheDocument()
+      expect(window.electronAPI.hideTokeniserOverlay).not.toHaveBeenCalled()
+    })
+
     it('plain Enter in text mode is not intercepted', async () => {
       render(<App />)
       await paste()

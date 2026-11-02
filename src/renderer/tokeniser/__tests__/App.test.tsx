@@ -3,6 +3,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 import App from '../App'
 import { TitleBar } from '../components/TitleBar'
 import { CURL, DOCKER } from '../../../shared/__tests__/fixtures/commands'
+import { tokenise, tokenStart } from '../../../shared/tokeniser'
 
 const TENANT = '8f1c2d3e-4b5a-4c6d-9e7f-0a1b2c3d4e5f'
 
@@ -34,6 +35,7 @@ describe('Tokeniser App', () => {
     window.electronAPI.readClipboard = vi.fn().mockResolvedValue(CURL)
     window.electronAPI.getOpaqueOverlay = vi.fn().mockResolvedValue(false)
     window.electronAPI.hideTokeniserOverlay = vi.fn()
+    window.electronAPI.copyToClipboard = vi.fn().mockResolvedValue(undefined)
   })
 
   it('starts empty with the paste hint and the empty status strip', async () => {
@@ -193,6 +195,138 @@ describe('Tokeniser App', () => {
     window.electronAPI.getOpaqueOverlay = vi.fn().mockResolvedValue(true)
     render(<App />)
     await waitFor(() => expect(screen.getByTestId('overlay').className).toMatch(/bg-gray-900\/95/))
+  })
+
+  describe('text mode', () => {
+    async function enterTextWithTab() {
+      fireEvent.keyDown(overlay(), { key: 'Tab' })
+      return (await screen.findByTestId('text-editor')) as HTMLTextAreaElement
+    }
+
+    it('Tab enters text mode with the full text and the text status strip; Tab again rescans back', async () => {
+      render(<App />)
+      await paste()
+      const ta = await enterTextWithTab()
+      expect(ta.value).toBe(CURL.trim())
+      expect(screen.getByTestId('status-strip')).toHaveTextContent('edit freely')
+      expect(document.activeElement).toBe(ta)
+      fireEvent.change(ta, { target: { value: 'a b c' } })
+      fireEvent.keyDown(ta, { key: 'Tab' })
+      await waitFor(() => expect(screen.getAllByTestId('hat')).toHaveLength(3))
+      expect(screen.queryByTestId('text-editor')).not.toBeInTheDocument()
+      expect(document.activeElement).toBe(overlay())
+    })
+
+    it('Escape in text mode returns to hats, not close', async () => {
+      render(<App />)
+      await paste()
+      const ta = await enterTextWithTab()
+      fireEvent.keyDown(ta, { key: 'Escape' })
+      await waitFor(() => expect(screen.queryByTestId('text-editor')).not.toBeInTheDocument())
+      expect(screen.getByTestId('mode-pill')).toHaveTextContent('hats')
+      expect(commandText()).toBe(CURL)
+      expect(window.electronAPI.hideTokeniserOverlay).not.toHaveBeenCalled()
+    })
+
+    it('Cmd+A in hats mode enters text mode with everything selected', async () => {
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'a', metaKey: true })
+      const ta = (await screen.findByTestId('text-editor')) as HTMLTextAreaElement
+      expect(ta.selectionStart).toBe(0)
+      expect(ta.selectionEnd).toBe(ta.value.length)
+      expect(ta.value.length).toBeGreaterThan(0)
+    })
+
+    it('a single click on the command enters text mode with the caret at that token', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        render(<App />)
+        await paste()
+        const tokens = tokenise(CURL)
+        const post = tokens.findIndex((t) => t.text === 'POST')
+        const expected = tokenStart(tokens, post)
+        expect(expected).toBe(8)
+        const target = screen.getAllByTestId('token')[1]
+        expect(target.lastChild?.textContent).toBe('POST')
+        fireEvent.click(target)
+        act(() => { vi.advanceTimersByTime(250) })
+        const ta = screen.getByTestId('text-editor') as HTMLTextAreaElement
+        expect(ta.selectionStart).toBe(expected)
+        expect(ta.selectionEnd).toBe(expected)
+        expect(document.activeElement).toBe(ta)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('clicking the mode pill toggles modes', async () => {
+      render(<App />)
+      await paste()
+      fireEvent.click(screen.getByTestId('mode-pill'))
+      const ta = (await screen.findByTestId('text-editor')) as HTMLTextAreaElement
+      expect(screen.getByTestId('mode-pill')).toHaveTextContent('text')
+      fireEvent.change(ta, { target: { value: 'x y' } })
+      fireEvent.click(screen.getByTestId('mode-pill'))
+      await waitFor(() => expect(screen.queryByTestId('text-editor')).not.toBeInTheDocument())
+      expect(screen.getByTestId('mode-pill')).toHaveTextContent('hats')
+      expect(screen.getAllByTestId('hat')).toHaveLength(2)
+    })
+
+    it('leaving text mode with empty text returns to the empty state', async () => {
+      render(<App />)
+      await paste()
+      const ta = await enterTextWithTab()
+      fireEvent.change(ta, { target: { value: '   \n ' } })
+      fireEvent.keyDown(ta, { key: 'Tab' })
+      expect(await screen.findByText('Paste a command')).toBeInTheDocument()
+      expect(screen.queryByTestId('mode-pill')).not.toBeInTheDocument()
+      expect(document.activeElement).toBe(overlay())
+    })
+
+    it('Cmd+C in text mode with no selection copies the whole text and stays open', async () => {
+      render(<App />)
+      await paste()
+      const ta = await enterTextWithTab()
+      ta.setSelectionRange(3, 3)
+      const notCancelled = fireEvent.keyDown(ta, { key: 'c', metaKey: true })
+      expect(notCancelled).toBe(false)
+      expect(window.electronAPI.copyToClipboard).toHaveBeenCalledWith(ta.value)
+      await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Copied'))
+      expect(window.electronAPI.hideTokeniserOverlay).not.toHaveBeenCalled()
+      expect(screen.getByTestId('text-editor')).toBeInTheDocument()
+    })
+
+    it('Cmd+C in text mode with a selection is left to the native copy', async () => {
+      render(<App />)
+      await paste()
+      const ta = await enterTextWithTab()
+      ta.setSelectionRange(0, 4)
+      const notCancelled = fireEvent.keyDown(ta, { key: 'c', metaKey: true })
+      expect(notCancelled).toBe(true)
+      expect(window.electronAPI.copyToClipboard).not.toHaveBeenCalled()
+    })
+
+    it('Cmd+Enter in text mode copies and hides', async () => {
+      render(<App />)
+      await paste()
+      const ta = await enterTextWithTab()
+      fireEvent.change(ta, { target: { value: 'echo hi' } })
+      fireEvent.keyDown(ta, { key: 'Enter', metaKey: true })
+      expect(window.electronAPI.copyToClipboard).toHaveBeenCalledWith('echo hi')
+      await waitFor(() => expect(window.electronAPI.hideTokeniserOverlay).toHaveBeenCalled())
+    })
+
+    it('plain Enter in text mode is not intercepted', async () => {
+      render(<App />)
+      await paste()
+      const ta = await enterTextWithTab()
+      const notCancelled = fireEvent.keyDown(ta, { key: 'Enter' })
+      expect(notCancelled).toBe(true)
+      expect(window.electronAPI.copyToClipboard).not.toHaveBeenCalled()
+      expect(window.electronAPI.hideTokeniserOverlay).not.toHaveBeenCalled()
+      expect(screen.getByTestId('text-editor')).toBeInTheDocument()
+    })
   })
 })
 

@@ -81,3 +81,70 @@ html, body, #root {
 [data-tooltip=""]::after {
   display: none;
 }
+
+/* Tokeniser command view */
+.cmd {
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 2.5;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+.tok {
+  position: relative;
+  display: inline;
+  border-radius: 3px;
+  padding: 2px 0;
+}
+
+.tok.target {
+  cursor: pointer;
+}
+
+.tok.target:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hat {
+  position: absolute;
+  top: -1.05em;
+  left: 0;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 700;
+  padding: 1px 3px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: #6b7280;
+  user-select: none;
+  pointer-events: none;
+}
+
+.hat .h2 { opacity: 0.55; }
+.hat.part { color: #fbbf24; background: rgba(251, 191, 36, 0.14); }
+.hat.part .h1 { opacity: 0.35; }
+.hat.part .h2 { opacity: 1; }
+.hat.miss { opacity: 0.15; }
+
+.tok.flag { color: #94a3b8; }
+.tok.delim { color: #64748b; }
+.tok.dim { color: #475569; }
+.tok.edited { border-bottom: 2px solid rgba(251, 191, 36, 0.6); }
+
+.inline-editor {
+  outline: 1px solid #fbbf24;
+  border-radius: 3px;
+  background: #111827;
+  color: #fff;
+  padding: 0 2px;
+  caret-color: #fbbf24;
+}
+
+.flash { animation: flash 0.5s ease-out; }
+
+@keyframes flash {
+  from { background: rgba(251, 191, 36, 0.5); }
+  to { background: transparent; }
+}

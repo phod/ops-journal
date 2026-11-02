@@ -49,7 +49,7 @@ export function TextView({ value, selection, onChange, onLeave, onCopyClose, onC
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}
-      className="block w-full h-full resize-none bg-transparent outline-none font-mono text-[13px] leading-[2.5] break-all text-gray-100 caret-amber-400"
+      className="cmd no-drag w-full h-full resize-none bg-transparent outline-none caret-amber-400"
     />
   )
 }

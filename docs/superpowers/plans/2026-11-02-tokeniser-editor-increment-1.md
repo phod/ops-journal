@@ -213,8 +213,11 @@ describe('applyTokenEdit', () => {
   it('emptying a token between two plain space runs removes the following run', () => {
     expect(applyTokenEdit(tokenise('curl -X POST https://x'), 4, '', []).text).toBe('curl -X https://x')
   })
+  it('collapses before a backslash continuation when both neighbours are plain spaces', () => {
+    expect(applyTokenEdit(tokenise('a POST \\\n  b'), 2, '', []).text).toBe('a \\\n  b')
+  })
   it('does not collapse across a newline', () => {
-    expect(applyTokenEdit(tokenise('a POST \\\n  b'), 2, '', []).text).toBe('a  \\\n  b')
+    expect(applyTokenEdit(tokenise('a POST\n  b'), 2, '', []).text).toBe('a \n  b')
   })
   it('does not collapse when a non-space delimiter is adjacent', () => {
     expect(applyTokenEdit(tokenise('a/POST/b'), 2, '', []).text).toBe('a//b')

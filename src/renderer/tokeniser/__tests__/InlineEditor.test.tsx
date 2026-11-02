@@ -33,6 +33,20 @@ describe('InlineEditor', () => {
     expect(onCancel).not.toHaveBeenCalled()
   })
 
+  it('commit normalises non-breaking spaces to plain spaces', () => {
+    const { ed, onCommit } = setup()
+    ed.textContent = 'a\u00a0b'
+    fireEvent.keyDown(ed, { key: 'Enter' })
+    expect(onCommit).toHaveBeenCalledWith('a b')
+  })
+
+  it('commit normalises CRLF to LF', () => {
+    const { ed, onCommit } = setup()
+    ed.textContent = 'a\r\nb'
+    fireEvent.keyDown(ed, { key: 'Enter' })
+    expect(onCommit).toHaveBeenCalledWith('a\nb')
+  })
+
   it('Escape and blur call onCancel', () => {
     const esc = setup()
     fireEvent.keyDown(esc.ed, { key: 'Escape' })

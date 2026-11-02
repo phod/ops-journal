@@ -14,6 +14,7 @@ describe('hats', () => {
     expect(scoreToken('true')).toBe(70)
     expect(scoreToken('null')).toBe(70)
     expect(scoreToken('DATABASE_URL')).toBe(20)
+    expect(scoreToken('GET')).toBe(20)
     expect(scoreToken('curl')).toBe(5)
     expect(scoreToken('json')).toBe(5)
     expect(scoreToken('orders')).toBe(46)

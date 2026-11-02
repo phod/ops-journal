@@ -6,6 +6,7 @@ export const DEFAULT_HOTKEY = 'CommandOrControl+Shift+J'
 export const DEFAULT_SCREENSHOT_HOTKEY = 'CommandOrControl+Shift+S'
 export const DEFAULT_UPLOAD_HOTKEY = 'CommandOrControl+Shift+U'
 export const DEFAULT_TOOLKIT_HOTKEY = 'CommandOrControl+Shift+K'
+export const DEFAULT_TOKENISER_HOTKEY = 'CommandOrControl+Shift+L'
 export const DEFAULT_MANAGER_HOTKEY = 'CommandOrControl+Shift+M'
 
 interface Settings {
@@ -13,6 +14,7 @@ interface Settings {
   screenshotHotkey: string
   uploadHotkey: string
   toolkitHotkey: string
+  tokeniserHotkey: string
   managerHotkey: string
   lastViewedInvestigationId: string | null
   minimapOpen: boolean
@@ -25,6 +27,7 @@ const DEFAULTS: Settings = {
   screenshotHotkey: DEFAULT_SCREENSHOT_HOTKEY,
   uploadHotkey: DEFAULT_UPLOAD_HOTKEY,
   toolkitHotkey: DEFAULT_TOOLKIT_HOTKEY,
+  tokeniserHotkey: DEFAULT_TOKENISER_HOTKEY,
   managerHotkey: DEFAULT_MANAGER_HOTKEY,
   lastViewedInvestigationId: null,
   minimapOpen: false,
@@ -103,6 +106,14 @@ export function getToolkitHotkey(): string {
 
 export function setToolkitHotkey(hotkey: string): void {
   save({ ...load(), toolkitHotkey: hotkey })
+}
+
+export function getTokeniserHotkey(): string {
+  return load().tokeniserHotkey
+}
+
+export function setTokeniserHotkey(hotkey: string): void {
+  save({ ...load(), tokeniserHotkey: hotkey })
 }
 
 export function getManagerHotkey(): string {

@@ -165,6 +165,15 @@ const electronAPI: ElectronAPI = {
   onToolsChanged: (callback: (tools: Tool[]) => void) =>
     onIpcEvent<[Tool[]]>('tools:changed', callback),
 
+  // Tokeniser
+  getTokeniserHotkey: () => ipcRenderer.invoke('settings:getTokeniserHotkey'),
+  setTokeniserHotkey: (accelerator: string) => ipcRenderer.invoke('settings:setTokeniserHotkey', { accelerator }),
+  showTokeniserOverlay: () => ipcRenderer.invoke('tokeniserOverlay:show'),
+  hideTokeniserOverlay: () => ipcRenderer.invoke('tokeniserOverlay:hide'),
+  copyToClipboard: (text: string) => ipcRenderer.invoke('tokeniser:copy', { text }),
+  readClipboard: () => ipcRenderer.invoke('tokeniser:readClipboard'),
+  onTokeniserShown: (callback: () => void) => onIpcEvent<[]>('tokeniser:shown', callback),
+
   // Tool Folders
   listToolFolders: () => ipcRenderer.invoke('toolFolder:list'),
   createToolFolder: (name: string, parentId?: string | null) =>

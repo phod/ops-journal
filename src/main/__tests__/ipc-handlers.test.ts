@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // --- Hoisted mocks (vi.mock factories are hoisted above imports) ---
@@ -72,13 +73,16 @@ const {
     navigateManagerToDetails: vi.fn(),
     showManagerReminders: vi.fn(),
     expandOverlayForBoard: vi.fn(),
-    restoreOverlayFromBoard: vi.fn()
+    restoreOverlayFromBoard: vi.fn(),
+    showTokeniserOverlay: vi.fn(),
+    hideTokeniserOverlay: vi.fn()
   }
 
   const mockHotkey = {
     reregisterHotkey: vi.fn(),
     reregisterScreenshotHotkey: vi.fn(),
-    reregisterUploadHotkey: vi.fn()
+    reregisterUploadHotkey: vi.fn(),
+    reregisterTokeniserHotkey: vi.fn()
   }
 
   const mockSettings = {
@@ -88,7 +92,8 @@ const {
     getLastViewedInvestigationId: vi.fn().mockReturnValue(null),
     setLastViewedInvestigationId: vi.fn(),
     getMinimapOpen: vi.fn().mockReturnValue(false),
-    setMinimapOpen: vi.fn()
+    setMinimapOpen: vi.fn(),
+    getTokeniserHotkey: vi.fn().mockReturnValue('CmdOrCtrl+Shift+L')
   }
 
   const mockScreenshot = { captureScreenshot: vi.fn() }
@@ -160,7 +165,11 @@ vi.mock('electron', () => ({
     showSaveDialog: vi.fn().mockResolvedValue({ canceled: true })
   },
   // Electron 44+ clipboard: write/writeText are async, writeImage no longer exists
-  clipboard: { writeText: vi.fn().mockResolvedValue(undefined), write: vi.fn().mockResolvedValue(undefined) },
+  clipboard: {
+    writeText: vi.fn().mockResolvedValue(undefined),
+    write: vi.fn().mockResolvedValue(undefined),
+    readText: vi.fn().mockResolvedValue('from clipboard')
+  },
   ClipboardItem: class FakeClipboardItem {
     types: string[]
     constructor(public items: Record<string, unknown>) {
@@ -499,6 +508,49 @@ describe('window management handlers', () => {
   it('window:openDetails calls navigateManagerToDetails', () => {
     invoke('window:openDetails', { id: 'inv-1' })
     expect(mockWindows.navigateManagerToDetails).toHaveBeenCalledWith('inv-1')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tokeniser overlay
+// ---------------------------------------------------------------------------
+
+describe('tokeniser handlers', () => {
+  it('settings:getTokeniserHotkey calls the getter', () => {
+    expect(invoke('settings:getTokeniserHotkey')).toBe('CmdOrCtrl+Shift+L')
+    expect(mockSettings.getTokeniserHotkey).toHaveBeenCalled()
+  })
+
+  it('settings:setTokeniserHotkey calls reregisterTokeniserHotkey with the accelerator', () => {
+    invoke('settings:setTokeniserHotkey', { accelerator: 'CmdOrCtrl+Alt+T' })
+    expect(mockHotkey.reregisterTokeniserHotkey).toHaveBeenCalledWith('CmdOrCtrl+Alt+T')
+  })
+
+  it('tokeniserOverlay:show / hide call the window functions', () => {
+    invoke('tokeniserOverlay:show')
+    expect(mockWindows.showTokeniserOverlay).toHaveBeenCalledTimes(1)
+    expect(mockWindows.hideTokeniserOverlay).not.toHaveBeenCalled()
+    invoke('tokeniserOverlay:hide')
+    expect(mockWindows.hideTokeniserOverlay).toHaveBeenCalledTimes(1)
+  })
+
+  it('tokeniser:copy awaits clipboard.writeText with the text', async () => {
+    const { clipboard } = await import('electron')
+    let resolveWrite!: () => void
+    vi.mocked(clipboard.writeText).mockReturnValueOnce(new Promise<void>((r) => { resolveWrite = r }))
+    let settled = false
+    const pending = Promise.resolve(invoke('tokeniser:copy', { text: 'curl x' })).then(() => { settled = true })
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(clipboard.writeText).toHaveBeenCalledWith('curl x')
+    expect(settled).toBe(false)
+    resolveWrite()
+    await pending
+    expect(settled).toBe(true)
+  })
+
+  it('tokeniser:readClipboard returns clipboard.readText', async () => {
+    expect(await invoke('tokeniser:readClipboard')).toBe('from clipboard')
   })
 })
 

@@ -16,9 +16,9 @@ import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveB
 import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools, moveToolToFolder, moveToolsToFolder, reorderToolsInFolder } from './db/tools'
 import { listToolFolders, createToolFolder, renameToolFolder, deleteToolFolder, moveToolFolderToFolder, reorderToolFoldersInParent } from './db/tool-folders'
 import { createReminder, getReminder, listReminders as listAllReminders, rescheduleReminder, completeReminder, dismissReminder, deleteReminder } from './db/reminders'
-import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, expandOverlayForSearch, restoreOverlayFromSearch, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, getPreviousFrontApp } from './windows'
-import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, reregisterToolkitHotkey, reregisterManagerHotkey } from './hotkey'
-import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getManagerHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed, getOpaqueOverlay, setOpaqueOverlay } from './settings'
+import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, expandOverlayForSearch, restoreOverlayFromSearch, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, showTokeniserOverlay, hideTokeniserOverlay, getPreviousFrontApp } from './windows'
+import { reregisterHotkey, reregisterScreenshotHotkey, reregisterUploadHotkey, reregisterToolkitHotkey, reregisterTokeniserHotkey, reregisterManagerHotkey } from './hotkey'
+import { getHotkey, getScreenshotHotkey, getUploadHotkey, getToolkitHotkey, getTokeniserHotkey, getManagerHotkey, getLastViewedInvestigationId, setLastViewedInvestigationId, getMinimapOpen, setMinimapOpen, getOnboardingDismissed, setOnboardingDismissed, getOpaqueOverlay, setOpaqueOverlay } from './settings'
 import { saveImage, deleteImage, readImageAsDataUrl } from './images'
 import { captureScreenshot } from './screenshot'
 import type { Investigation, Tool, ToolFolder, ToolType, FunctionParameter, Reminder } from '@shared/ipc-types'
@@ -565,6 +565,19 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('toolkitOverlay:show', () => showToolkitOverlay())
   ipcMain.handle('toolkitOverlay:hide', () => hideToolkitOverlay())
+
+  // --- Tokeniser overlay ---
+
+  ipcMain.handle('settings:getTokeniserHotkey', () => getTokeniserHotkey())
+  ipcMain.handle('settings:setTokeniserHotkey', (_event, { accelerator }: { accelerator: string }) => reregisterTokeniserHotkey(accelerator))
+
+  ipcMain.handle('tokeniserOverlay:show', () => showTokeniserOverlay())
+  ipcMain.handle('tokeniserOverlay:hide', () => hideTokeniserOverlay())
+
+  ipcMain.handle('tokeniser:copy', async (_event, { text }: { text: string }) => {
+    await clipboard.writeText(text)
+  })
+  ipcMain.handle('tokeniser:readClipboard', () => clipboard.readText())
 
   // --- Window management ---
 

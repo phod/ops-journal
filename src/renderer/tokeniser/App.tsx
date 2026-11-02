@@ -33,11 +33,18 @@ export default function App() {
     return window.electronAPI.onOpaqueOverlayChanged(setOpaqueOverlay)
   }, [])
 
+  // The text persists across hide/show so the user can leave and come back to it.
+  // A token edit that was open when the overlay hid is cancelled; the focused control is
+  // refocused even when the mode does not change (e.g. shown again while already in hats mode).
+  const [textFocusSignal, setTextFocusSignal] = useState(0)
   useEffect(() => window.electronAPI.onTokeniserShown(() => {
-    dispatch({ type: 'reset' })
-    // Re-establish focus even when the mode does not change (e.g. shown again while empty)
-    overlayRef.current?.focus()
-  }), [])
+    if (state.mode === 'editing') dispatch({ type: 'cancelEdit' })
+    else if (state.mode === 'text') setTextFocusSignal(n => n + 1)
+    else {
+      dispatch({ type: 'clearHatBuf' })
+      overlayRef.current?.focus()
+    }
+  }), [state.mode])
 
   useEffect(() => {
     if (state.mode === 'hats' || state.mode === 'empty') overlayRef.current?.focus()
@@ -155,6 +162,7 @@ export default function App() {
           <TextView
             value={draft}
             selection={state.textSelection}
+            focusSignal={textFocusSignal}
             onChange={setDraft}
             onLeave={(text) => dispatch({ type: 'leaveText', text })}
             onCopyClose={copyAndClose}

@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react'
 interface TextViewProps {
   value: string
   selection: 'all' | number | null
+  /** Bump to refocus the textarea without disturbing its selection (e.g. when the overlay is re-shown). */
+  focusSignal?: number
   onChange: (value: string) => void
   onLeave: (value: string) => void
   onCopyClose: (value: string) => void
@@ -10,7 +12,7 @@ interface TextViewProps {
 }
 
 /** Plain textarea over the whole command; every native editing key works. */
-export function TextView({ value, selection, onChange, onLeave, onCopyClose, onCopyStay }: TextViewProps) {
+export function TextView({ value, selection, focusSignal = 0, onChange, onLeave, onCopyClose, onCopyStay }: TextViewProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
 
   // Applied on mount and when the requested selection changes, not on every keystroke
@@ -25,6 +27,10 @@ export function TextView({ value, selection, onChange, onLeave, onCopyClose, onC
       ta.setSelectionRange(pos, pos)
     }
   }, [selection])
+
+  useEffect(() => {
+    if (focusSignal > 0) ref.current?.focus()
+  }, [focusSignal])
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     const ta = e.currentTarget

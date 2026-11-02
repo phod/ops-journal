@@ -24,7 +24,7 @@ This document covers increment 1 only. Variables, value profiles, history, saved
 
 - Variables, profiles of values, history, saved commands, notes.
 - Subdivide, delete-token, or any multi-verb grammar.
-- Persisting the text between openings. The overlay reopens empty.
+- Persisting the text across app restarts. (Amended after increment 1: the text now persists in memory across hide/show, see "Opening and closing". The original increment reopened empty.)
 - Undo across modes. Native undo inside the text mode editor is fine; there is no undo for hat edits.
 - Linking to an Investigation or writing anything to the database.
 
@@ -46,7 +46,7 @@ This document covers increment 1 only. Variables, value profiles, history, saved
 ### Opening and closing
 
 - Default hotkey `CommandOrControl+Shift+L`, user-configurable like the other hotkeys, and listed in the tray menu as "Open Tokeniser" / "Close Tokeniser".
-- The hotkey toggles the overlay. On show, the window takes focus and the renderer is told it has been shown so it can reset to the empty state. Every opening starts empty.
+- The hotkey toggles the overlay. On show, the window takes focus and the renderer is told it has been shown so it can refocus the active control. The text and mode persist in memory across hide/show, so the user can paste, close to do something else, reopen and continue; a token edit that was open when the overlay hid is cancelled. Only the first opening after launch starts empty. (Amended after increment 1, which reset to empty on every show.)
 - Window: frameless, transparent, always on top, visible on all workspaces, resizable, remembers its bounds in its own bounds file. Default size 820×380, centred horizontally, 80px from the top of the primary display when there are no saved bounds. Identical to the Toolkit window construction.
 - The "opaque overlay" setting is respected the same way the Toolkit respects it.
 - Escape in hats mode or the empty state hides the overlay without copying.
@@ -118,7 +118,7 @@ Tokenising is a pure function and must live where both the renderer and tests ca
 
 Mirror the Toolkit overlay. The builder should read these before planning:
 
-- `src/main/windows.ts`: `createToolkitOverlayWindow`, `toggleToolkitOverlay`, `showToolkitOverlay`, `hideToolkitOverlay` and the bounds-file helpers. Add the tokeniser equivalents with their own bounds file (`tokeniser-overlay-bounds.json`). The show path must also send a `tokeniser:shown` event to the renderer so it resets.
+- `src/main/windows.ts`: `createToolkitOverlayWindow`, `toggleToolkitOverlay`, `showToolkitOverlay`, `hideToolkitOverlay` and the bounds-file helpers. Add the tokeniser equivalents with their own bounds file (`tokeniser-overlay-bounds.json`). The show path must also send a `tokeniser:shown` event to the renderer so it refocuses.
 - `src/main/hotkey.ts`: add a `tokeniserSlot` with `registerTokeniserHotkey` / `reregisterTokeniserHotkey`, and clear it in `unregisterAllHotkeys`.
 - `src/main/settings.ts`: `DEFAULT_TOKENISER_HOTKEY`, `tokeniserHotkey` in `Settings` and `DEFAULTS`, getter and setter.
 - `src/main/ipc-handlers.ts`: `settings:getTokeniserHotkey`, `settings:setTokeniserHotkey`, `tokeniserOverlay:show`, `tokeniserOverlay:hide`, `tokeniser:copy` (writes to the clipboard), `tokeniser:readClipboard`. Electron here is 45, so `clipboard.writeText` and `readText` return promises and must be awaited; the existing `clipboard handlers` block in `ipc-handlers.test.ts` already mocks them that way.
@@ -136,7 +136,7 @@ Required coverage, at minimum:
 Note: `vitest.config.ts` still uses `environmentMatchGlobs`, which the installed Vitest 4 no longer honours, so `src/main` tests currently run under jsdom. Use a `// @vitest-environment node` docblock in the new main-process and tokeniser test files rather than relying on the config.
 
 - Tokeniser (pure, node environment): round-trips the input; splits a UUID out of a URL path; keeps a JWT, a hostname and `user@host` whole; flags and backslash get no hat; 26 or fewer targets get single letters in order; more than 26 targets yields a prefix-free set with the top-scoring 19 as single letters and the rest two letters from the `zxcvbnm` first-letter set; targets past 201 have no hat; score ordering for the listed categories; emptying a token collapses the following space run only in the plain `word  word` case and never across a newline.
-- Renderer `App` (jsdom, testing-library): paste renders hats; typing a hat opens an input whose value is the token and is fully selected, and the hat letter did not land in it; Enter commits and rescans so an edit that adds words adds hats; emptying a token removes its hat and collapses the space; a long token's editor wraps rather than widening the pane; Escape cancels; `Cmd+V` in hats mode calls the read-clipboard API and replaces the text; two-letter narrowing dims non-matching hats; Tab enters text mode with the full text and Tab returns with a rescan; `Cmd+A` in hats mode enters text mode with everything selected; `Cmd+C` calls the copy API and does not hide; Enter in hats mode and `Cmd+Enter` in text mode call copy then hide; Escape in hats mode hides without copying; the `tokeniser:shown` event resets to empty; status strip text matches each state; the opaque-overlay setting toggles the background class.
+- Renderer `App` (jsdom, testing-library): paste renders hats; typing a hat opens an input whose value is the token and is fully selected, and the hat letter did not land in it; Enter commits and rescans so an edit that adds words adds hats; emptying a token removes its hat and collapses the space; a long token's editor wraps rather than widening the pane; Escape cancels; `Cmd+V` in hats mode calls the read-clipboard API and replaces the text; two-letter narrowing dims non-matching hats; Tab enters text mode with the full text and Tab returns with a rescan; `Cmd+A` in hats mode enters text mode with everything selected; `Cmd+C` calls the copy API and does not hide; Enter in hats mode and `Cmd+Enter` in text mode call copy then hide; Escape in hats mode hides without copying; the `tokeniser:shown` event keeps the text, cancels a pending edit and refocuses; status strip text matches each state; the opaque-overlay setting toggles the background class.
 - Main: settings default and getter/setter for the tokeniser hotkey; IPC handlers registered for the new channels; `copy` handler writes to the Electron clipboard.
 - `HotkeySettings` test: the new row calls the new getter.
 

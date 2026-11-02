@@ -229,7 +229,7 @@ describe('Tokeniser App', () => {
     await waitFor(() => expect(screen.getByTestId('overlay').className).toMatch(/bg-gray-900\/95/))
   })
 
-  describe('copy out, close and reset', () => {
+  describe('copy out, close and reopen', () => {
     beforeEach(() => {
       window.electronAPI.hideTokeniserOverlay = vi.fn().mockResolvedValue(undefined)
     })
@@ -287,16 +287,57 @@ describe('Tokeniser App', () => {
       expect(window.electronAPI.copyToClipboard).not.toHaveBeenCalled()
     })
 
-    it('tokeniser:shown resets to empty, even mid-edit', async () => {
+    it('tokeniser:shown keeps the text, cancels a pending edit and refocuses the overlay', async () => {
       let shown: () => void = () => {}
       window.electronAPI.onTokeniserShown = vi.fn((cb: () => void) => { shown = cb; return () => {} })
       render(<App />)
       await paste()
-      fireEvent.keyDown(overlay(), { key: 'a' })
-      await screen.findByTestId('inline-editor')
+      await openHat('a')
       act(() => shown())
-      expect(screen.getByText('Paste a command')).toBeInTheDocument()
       expect(screen.queryByTestId('inline-editor')).toBeNull()
+      expect(commandText()).toBe(CURL.trim())
+      expect(screen.getByTestId('status-strip')).toHaveTextContent('type a letter to edit that token')
+      expect(document.activeElement).toBe(overlay())
+    })
+
+    it('tokeniser:shown clears a half-typed two-letter hat', async () => {
+      let shown: () => void = () => {}
+      window.electronAPI.onTokeniserShown = vi.fn((cb: () => void) => { shown = cb; return () => {} })
+      window.electronAPI.readClipboard = vi.fn().mockResolvedValue(DOCKER)
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'z' })
+      await waitFor(() => expect(screen.getByTestId('status-strip')).toHaveTextContent('second letter'))
+      act(() => shown())
+      expect(screen.getByTestId('status-strip')).not.toHaveTextContent('second letter')
+      expect(commandText()).toBe(DOCKER.trim())
+    })
+
+    it('tokeniser:shown in text mode keeps the unsaved draft and refocuses the textarea', async () => {
+      let shown: () => void = () => {}
+      window.electronAPI.onTokeniserShown = vi.fn((cb: () => void) => { shown = cb; return () => {} })
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'Tab' })
+      const ta = (await screen.findByTestId('text-editor')) as HTMLTextAreaElement
+      fireEvent.change(ta, { target: { value: 'draft in progress' } })
+      ta.blur()
+      expect(document.activeElement).not.toBe(ta)
+      act(() => shown())
+      expect(screen.getByTestId('text-editor')).toHaveValue('draft in progress')
+      expect(document.activeElement).toBe(ta)
+    })
+
+    it('reopening after copy & close shows the same text again', async () => {
+      let shown: () => void = () => {}
+      window.electronAPI.onTokeniserShown = vi.fn((cb: () => void) => { shown = cb; return () => {} })
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'Enter' })
+      await waitFor(() => expect(window.electronAPI.hideTokeniserOverlay).toHaveBeenCalled())
+      act(() => shown())
+      expect(screen.queryByText('Paste a command')).toBeNull()
+      expect(commandText()).toBe(CURL.trim())
     })
 
     it('tokeniser:shown from the empty state refocuses the overlay', () => {

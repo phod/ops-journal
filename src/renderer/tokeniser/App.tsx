@@ -33,6 +33,8 @@ export default function App() {
     return window.electronAPI.onOpaqueOverlayChanged(setOpaqueOverlay)
   }, [])
 
+  useEffect(() => window.electronAPI.onTokeniserShown(() => dispatch({ type: 'reset' })), [])
+
   useEffect(() => {
     if (state.mode === 'hats' || state.mode === 'empty') overlayRef.current?.focus()
   }, [state.mode])
@@ -49,12 +51,21 @@ export default function App() {
   }
 
   async function copyStay(text: string) {
-    await window.electronAPI.copyToClipboard(text)
-    dispatch({ type: 'notice', text: 'Copied' })
+    try {
+      await window.electronAPI.copyToClipboard(text)
+      dispatch({ type: 'notice', text: 'Copied' })
+    } catch {
+      dispatch({ type: 'notice', text: 'Copy failed' })
+    }
   }
 
   async function copyAndClose(text: string) {
-    await window.electronAPI.copyToClipboard(text)
+    try {
+      await window.electronAPI.copyToClipboard(text)
+    } catch {
+      dispatch({ type: 'notice', text: 'Copy failed' })
+      return
+    }
     await window.electronAPI.hideTokeniserOverlay()
   }
 
@@ -73,6 +84,12 @@ export default function App() {
         e.preventDefault()
         dispatch({ type: 'leaveText', text: draft })
       }
+    } else if (state.mode === 'hats' && e.key === 'Enter' && !e.shiftKey && !e.altKey) {
+      e.preventDefault()
+      copyAndClose(fullText())
+    } else if (state.mode === 'hats' && mod && e.key === 'c') {
+      e.preventDefault()
+      copyStay(fullText())
     } else if (state.mode === 'hats' && e.key === 'Tab') {
       e.preventDefault()
       dispatch({ type: 'enterText', selection: null })

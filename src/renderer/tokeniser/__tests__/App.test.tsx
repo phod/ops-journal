@@ -197,6 +197,98 @@ describe('Tokeniser App', () => {
     await waitFor(() => expect(screen.getByTestId('overlay').className).toMatch(/bg-gray-900\/95/))
   })
 
+  describe('copy out, close and reset', () => {
+    beforeEach(() => {
+      window.electronAPI.hideTokeniserOverlay = vi.fn().mockResolvedValue(undefined)
+    })
+
+    it('Enter in hats mode copies the full text then hides', async () => {
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'Enter' })
+      await waitFor(() => expect(window.electronAPI.copyToClipboard).toHaveBeenCalledWith(CURL.trim()))
+      await waitFor(() => expect(window.electronAPI.hideTokeniserOverlay).toHaveBeenCalled())
+    })
+
+    it('Cmd+Enter in hats mode does the same', async () => {
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'Enter', metaKey: true })
+      await waitFor(() => expect(window.electronAPI.copyToClipboard).toHaveBeenCalledWith(CURL.trim()))
+      await waitFor(() => expect(window.electronAPI.hideTokeniserOverlay).toHaveBeenCalled())
+    })
+
+    it('Cmd+C in hats mode copies, shows a toast and does not hide', async () => {
+      render(<App />)
+      await paste()
+      const notCancelled = fireEvent.keyDown(overlay(), { key: 'c', metaKey: true })
+      expect(notCancelled).toBe(false)
+      await waitFor(() => expect(window.electronAPI.copyToClipboard).toHaveBeenCalledWith(CURL.trim()))
+      await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Copied'))
+      expect(window.electronAPI.hideTokeniserOverlay).not.toHaveBeenCalled()
+    })
+
+    it('the title bar copy buttons call the same two paths', async () => {
+      render(<App />)
+      await paste()
+      fireEvent.click(screen.getByRole('button', { name: 'copy' }))
+      await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Copied'))
+      expect(window.electronAPI.copyToClipboard).toHaveBeenCalledWith(CURL.trim())
+      expect(window.electronAPI.hideTokeniserOverlay).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole('button', { name: 'copy & close' }))
+      await waitFor(() => expect(window.electronAPI.hideTokeniserOverlay).toHaveBeenCalled())
+      expect(window.electronAPI.copyToClipboard).toHaveBeenCalledTimes(2)
+    })
+
+    it('Escape in hats mode hides without copying', async () => {
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'Escape' })
+      expect(window.electronAPI.hideTokeniserOverlay).toHaveBeenCalled()
+      expect(window.electronAPI.copyToClipboard).not.toHaveBeenCalled()
+    })
+
+    it('Escape in the empty state hides', () => {
+      render(<App />)
+      fireEvent.keyDown(overlay(), { key: 'Escape' })
+      expect(window.electronAPI.hideTokeniserOverlay).toHaveBeenCalled()
+      expect(window.electronAPI.copyToClipboard).not.toHaveBeenCalled()
+    })
+
+    it('tokeniser:shown resets to empty, even mid-edit', async () => {
+      let shown: () => void = () => {}
+      window.electronAPI.onTokeniserShown = vi.fn((cb: () => void) => { shown = cb; return () => {} })
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'a' })
+      await screen.findByTestId('inline-editor')
+      act(() => shown())
+      expect(screen.getByText('Paste a command')).toBeInTheDocument()
+      expect(screen.queryByTestId('inline-editor')).toBeNull()
+    })
+
+    it('the copy must finish before hide is requested', async () => {
+      let resolveCopy: () => void = () => {}
+      window.electronAPI.copyToClipboard = vi.fn(() => new Promise<void>((r) => { resolveCopy = r }))
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'Enter' })
+      expect(window.electronAPI.copyToClipboard).toHaveBeenCalled()
+      expect(window.electronAPI.hideTokeniserOverlay).not.toHaveBeenCalled()
+      await act(async () => { resolveCopy() })
+      expect(window.electronAPI.hideTokeniserOverlay).toHaveBeenCalled()
+    })
+
+    it('a rejected copy shows "Copy failed" and does not hide', async () => {
+      window.electronAPI.copyToClipboard = vi.fn().mockRejectedValue(new Error('nope'))
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'Enter' })
+      await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Copy failed'))
+      expect(window.electronAPI.hideTokeniserOverlay).not.toHaveBeenCalled()
+    })
+  })
+
   describe('text mode', () => {
     async function enterTextWithTab() {
       fireEvent.keyDown(overlay(), { key: 'Tab' })

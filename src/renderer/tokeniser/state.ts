@@ -55,16 +55,25 @@ export function currentText(state: TokeniserState): string {
   return state.mode === 'text' ? state.textDraft : joinTokens(state.tokens)
 }
 
+const NO_TARGETS_NOTICE = 'No editable tokens · Tab for text mode'
+
+function isBlank(text: string): boolean {
+  return text.trim() === ''
+}
+
+/** Only empty/whitespace text collapses to the empty state; zero-target text stays visible in hats mode. */
 function rescan(text: string, editedRanges: EditedRange[], prevTargetCount?: number): TokeniserState {
+  if (isBlank(text)) return initialState
   const tokens = tokenise(text)
   const targetCount = tokens.filter(t => t.target).length
-  if (targetCount === 0) return initialState
 
   const hats = assignHats(tokens)
   const hattedCount = hats.filter(h => h !== null).length
 
   let notice: string | null = null
-  if (prevTargetCount === undefined) {
+  if (targetCount === 0) {
+    notice = NO_TARGETS_NOTICE
+  } else if (prevTargetCount === undefined) {
     notice = hattedCount < targetCount ? `${hattedCount} of ${targetCount} hatted` : `${targetCount} targets`
   } else if (targetCount !== prevTargetCount) {
     const delta = targetCount - prevTargetCount
@@ -89,8 +98,13 @@ export function reduce(state: TokeniserState, action: Action): TokeniserState {
     case 'reset':
       return initialState
 
-    case 'load':
-      return rescan(normaliseInput(action.text), [])
+    case 'load': {
+      // A late clipboard read must not clobber an edit or the text view
+      if (state.mode !== 'empty' && state.mode !== 'hats') return state
+      const text = normaliseInput(action.text)
+      if (isBlank(text)) return { ...state, notice: 'Clipboard is empty' }
+      return rescan(text, [])
+    }
 
     case 'hatKey': {
       if (state.mode !== 'hats' || !/^[a-z]$/.test(action.key)) return state
@@ -113,7 +127,8 @@ export function reduce(state: TokeniserState, action: Action): TokeniserState {
       const result = applyTokenEdit(state.tokens, state.editingIndex, action.value, state.editedRanges)
       const next = rescan(result.text, result.editedRanges, state.targetCount)
       if (next.mode === 'empty') return next
-      return { ...next, flashRange: { start: result.start, end: result.end } }
+      const changed = action.value !== state.tokens[state.editingIndex].text
+      return { ...next, flashRange: changed ? { start: result.start, end: result.end } : null }
     }
 
     case 'cancelEdit':

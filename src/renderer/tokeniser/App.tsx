@@ -33,10 +33,22 @@ export default function App() {
     return window.electronAPI.onOpaqueOverlayChanged(setOpaqueOverlay)
   }, [])
 
-  useEffect(() => window.electronAPI.onTokeniserShown(() => dispatch({ type: 'reset' })), [])
+  useEffect(() => window.electronAPI.onTokeniserShown(() => {
+    dispatch({ type: 'reset' })
+    // Re-establish focus even when the mode does not change (e.g. shown again while empty)
+    overlayRef.current?.focus()
+  }), [])
 
   useEffect(() => {
     if (state.mode === 'hats' || state.mode === 'empty') overlayRef.current?.focus()
+  }, [state.mode])
+
+  // Safety net: when the window regains focus, put keyboard focus back on the overlay
+  useEffect(() => {
+    if (state.mode !== 'hats' && state.mode !== 'empty') return
+    const handleFocus = () => overlayRef.current?.focus()
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
   }, [state.mode])
 
   useEffect(() => {
@@ -66,7 +78,11 @@ export default function App() {
       dispatch({ type: 'notice', text: 'Copy failed' })
       return
     }
-    await window.electronAPI.hideTokeniserOverlay()
+    try {
+      await window.electronAPI.hideTokeniserOverlay()
+    } catch {
+      dispatch({ type: 'notice', text: 'Could not close overlay' })
+    }
   }
 
   function toggleMode() {
@@ -98,7 +114,9 @@ export default function App() {
       dispatch({ type: 'enterText', selection: 'all' })
     } else if (mod && e.key === 'v') {
       e.preventDefault()
-      window.electronAPI.readClipboard().then((text) => dispatch({ type: 'load', text }))
+      window.electronAPI.readClipboard()
+        .then((text) => dispatch({ type: 'load', text }))
+        .catch(() => dispatch({ type: 'notice', text: 'Could not read clipboard' }))
     } else if (/^[a-z]$/.test(e.key) && !mod && !e.altKey) {
       // Must be prevented so the hat letter never lands in the editor that mounts next
       e.preventDefault()

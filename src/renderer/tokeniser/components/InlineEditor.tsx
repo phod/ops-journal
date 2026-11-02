@@ -33,7 +33,8 @@ export function InlineEditor({ initialValue, onCommit, onCancel }: InlineEditorP
   function handleKeyDown(e: React.KeyboardEvent<HTMLSpanElement>) {
     if (e.key === 'Enter') {
       e.preventDefault()
-      const value = ref.current?.textContent ?? ''
+      // contentEditable can yield non-breaking spaces and CRLF; commit plain text
+      const value = (ref.current?.textContent ?? '').replace(/\u00a0/g, ' ').replace(/\r\n/g, '\n')
       finish(() => onCommit(value))
     } else if (e.key === 'Escape') {
       e.preventDefault()

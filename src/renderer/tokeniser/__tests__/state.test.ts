@@ -14,7 +14,45 @@ describe('tokeniser state reducer', () => {
   })
 
   it('load with empty or whitespace text stays empty', () => {
-    expect(reduce(initialState, { type: 'load', text: '  \n' }).mode).toBe('empty')
+    const s = reduce(initialState, { type: 'load', text: '  \n' })
+    expect(s.mode).toBe('empty')
+    expect(s.notice).toBe('Clipboard is empty')
+  })
+
+  it('load with empty text in hats mode keeps the current tokens and notices', () => {
+    const edited = reduce(reduce(loaded, { type: 'beginEdit', index: 4 }), { type: 'commitEdit', value: 'PUT' })
+    const s = reduce(edited, { type: 'load', text: '' })
+    expect(s.mode).toBe('hats')
+    expect(s.tokens).toBe(edited.tokens)
+    expect(s.hats).toBe(edited.hats)
+    expect(s.edited).toBe(edited.edited)
+    expect(s.editedRanges).toBe(edited.editedRanges)
+    expect(s.notice).toBe('Clipboard is empty')
+  })
+
+  it('load with empty text in empty mode stays empty and notices', () => {
+    const s = reduce(initialState, { type: 'load', text: '' })
+    expect(s).toEqual({ ...initialState, notice: 'Clipboard is empty' })
+  })
+
+  it('load with text that has no targets enters hats mode with zero hats and notices', () => {
+    const s = reduce(loaded, { type: 'load', text: '--verbose / -v' })
+    expect(s.mode).toBe('hats')
+    expect(currentText(s)).toBe('--verbose / -v')
+    expect(s.tokens.length).toBeGreaterThan(0)
+    expect(s.tokens.every(t => !t.target)).toBe(true)
+    expect(s.targetCount).toBe(0)
+    expect(s.hattedCount).toBe(0)
+    expect(s.hats.every(h => h === null)).toBe(true)
+    expect(s.edited.every(e => e === false)).toBe(true)
+    expect(s.notice).toBe('No editable tokens · Tab for text mode')
+  })
+
+  it('load is ignored in text mode', () => {
+    const t = reduce(loaded, { type: 'enterText', selection: null })
+    expect(reduce(t, { type: 'load', text: 'echo hi' })).toBe(t)
+    const editing = reduce(loaded, { type: 'beginEdit', index: 0 })
+    expect(reduce(editing, { type: 'load', text: 'echo hi' })).toBe(editing)
   })
 
   it('hatKey with an exact hat enters editing for that token', () => {
@@ -66,6 +104,7 @@ describe('tokeniser state reducer', () => {
     expect(s.mode).toBe('hats')
     expect(s.edited.filter(Boolean)).toHaveLength(0)
     expect(s.notice).toBeNull()
+    expect(s.flashRange).toBeNull()
   })
 
   it('commitEdit that empties the last target drops to empty mode', () => {
@@ -111,6 +150,15 @@ describe('tokeniser state reducer', () => {
   it('leaveText with empty text returns to empty', () => {
     const t = reduce(loaded, { type: 'enterText', selection: null })
     expect(reduce(t, { type: 'leaveText', text: ' \n' }).mode).toBe('empty')
+  })
+
+  it('leaveText with non-empty text that has no targets stays in hats mode with zero hats', () => {
+    const t = reduce(loaded, { type: 'enterText', selection: null })
+    const s = reduce(t, { type: 'leaveText', text: '--force /' })
+    expect(s.mode).toBe('hats')
+    expect(currentText(s)).toBe('--force /')
+    expect(s.targetCount).toBe(0)
+    expect(s.notice).toBe('No editable tokens · Tab for text mode')
   })
 
   it('reset returns to initialState from any mode', () => {

@@ -6,9 +6,10 @@ export const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'
 export const HAT_CAPACITY = SINGLE_HATS.length + PAIR_FIRST.length * ALPHABET.length // 201
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+// Uppercase HTTP verbs (GET, POST, ...) are caught first by the SCREAMING_CASE rule (score 20).
 const COMMAND_WORDS = new Set([
   'curl', 'docker', 'kubectl', 'aws', 'gcloud', 'run',
-  'GET', 'POST', 'PUT', 'DELETE', 'http', 'https', 'application', 'json'
+  'http', 'https', 'application', 'json'
 ])
 
 /** Higher = more likely to be edited. First matching rule wins. */

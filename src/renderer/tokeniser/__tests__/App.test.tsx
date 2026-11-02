@@ -62,6 +62,38 @@ describe('Tokeniser App', () => {
     expect(screen.getByTestId('toast')).toHaveTextContent('24 targets')
   })
 
+  it('Cmd+V with an empty clipboard keeps the pasted command and shows a toast', async () => {
+    render(<App />)
+    await paste()
+    const before = screen.getAllByTestId('hat').length
+    window.electronAPI.readClipboard = vi.fn().mockResolvedValue('')
+    fireEvent.keyDown(overlay(), { key: 'v', metaKey: true })
+    await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Clipboard is empty'))
+    expect(screen.getAllByTestId('hat')).toHaveLength(before)
+    expect(commandText()).toBe(CURL)
+  })
+
+  it('Cmd+V in hats mode replaces the current text', async () => {
+    render(<App />)
+    await paste()
+    expect(screen.getAllByTestId('hat')).toHaveLength(24)
+    window.electronAPI.readClipboard = vi.fn().mockResolvedValue('kubectl get pods -n prod')
+    fireEvent.keyDown(overlay(), { key: 'v', metaKey: true })
+    await waitFor(() => expect(commandText()).toBe('kubectl get pods -n prod'))
+    expect(screen.getAllByTestId('hat')).toHaveLength(4)
+  })
+
+  it('a rejected clipboard read shows a toast and leaves the state unchanged', async () => {
+    render(<App />)
+    await paste()
+    const before = screen.getAllByTestId('hat').length
+    window.electronAPI.readClipboard = vi.fn().mockRejectedValue(new Error('denied'))
+    fireEvent.keyDown(overlay(), { key: 'v', metaKey: true })
+    await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Could not read clipboard'))
+    expect(screen.getAllByTestId('hat')).toHaveLength(before)
+    expect(commandText()).toBe(CURL)
+  })
+
   it('typing a hat opens the editor with the token text selected and the hat letter not inserted', async () => {
     render(<App />)
     await paste()
@@ -265,6 +297,43 @@ describe('Tokeniser App', () => {
       act(() => shown())
       expect(screen.getByText('Paste a command')).toBeInTheDocument()
       expect(screen.queryByTestId('inline-editor')).toBeNull()
+    })
+
+    it('tokeniser:shown from the empty state refocuses the overlay', () => {
+      let shown: () => void = () => {}
+      window.electronAPI.onTokeniserShown = vi.fn((cb: () => void) => { shown = cb; return () => {} })
+      render(<App />)
+      overlay().blur()
+      expect(document.activeElement).not.toBe(overlay())
+      act(() => shown())
+      expect(document.activeElement).toBe(overlay())
+    })
+
+    it('window focus refocuses the overlay in hats mode', async () => {
+      render(<App />)
+      await paste()
+      overlay().blur()
+      expect(document.activeElement).not.toBe(overlay())
+      act(() => { window.dispatchEvent(new Event('focus')) })
+      expect(document.activeElement).toBe(overlay())
+    })
+
+    it('window focus does not steal focus from the text editor', async () => {
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'Tab' })
+      const ta = await screen.findByTestId('text-editor')
+      act(() => { window.dispatchEvent(new Event('focus')) })
+      expect(document.activeElement).toBe(ta)
+    })
+
+    it('a rejected hide after a successful copy shows "Could not close overlay"', async () => {
+      window.electronAPI.hideTokeniserOverlay = vi.fn().mockRejectedValue(new Error('nope'))
+      render(<App />)
+      await paste()
+      fireEvent.keyDown(overlay(), { key: 'Enter' })
+      await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Could not close overlay'))
+      expect(window.electronAPI.copyToClipboard).toHaveBeenCalledWith(CURL.trim())
     })
 
     it('the copy must finish before hide is requested', async () => {

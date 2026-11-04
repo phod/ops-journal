@@ -112,3 +112,44 @@ export function reorderToolsInFolder(folderId: string | null, orderedIds: string
     }
   })()
 }
+
+const NAME_SUFFIX_RE = /^(.*?) \((\d+)\)$/
+
+function nextDuplicateName(db: ReturnType<typeof getDb>, name: string, folderId: string | null): string {
+  const match = NAME_SUFFIX_RE.exec(name)
+  const base = match ? match[1] : name
+  const siblingNames = new Set(
+    (db.prepare('SELECT name FROM tools WHERE folder_id IS ?').all(folderId) as { name: string }[]).map((r) => r.name)
+  )
+  let n = match ? parseInt(match[2], 10) + 1 : 2
+  while (siblingNames.has(`${base} (${n})`)) n++
+  return `${base} (${n})`
+}
+
+export function duplicateTool(id: string): Tool {
+  const db = getDb()
+  const original = db.prepare('SELECT * FROM tools WHERE id = ?').get(id) as Record<string, unknown> | undefined
+  if (!original) throw new Error(`Tool not found: ${id}`)
+
+  const folderId = (original.folder_id as string | null) ?? null
+  const newId = uuidv4()
+
+  db.transaction(() => {
+    const newSortOrder = (original.sort_order as number) + 1
+    db.prepare('UPDATE tools SET sort_order = sort_order + 1 WHERE folder_id IS ? AND sort_order >= ?').run(folderId, newSortOrder)
+    db.prepare(
+      'INSERT INTO tools (id, name, tool_type, value, tags, sort_order, folder_id, parameters) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      newId,
+      nextDuplicateName(db, original.name as string, folderId),
+      original.tool_type,
+      original.value,
+      original.tags,
+      newSortOrder,
+      folderId,
+      original.parameters ?? null
+    )
+  })()
+
+  return rowToTool(db.prepare('SELECT * FROM tools WHERE id = ?').get(newId) as Record<string, unknown>)
+}

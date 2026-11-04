@@ -73,6 +73,19 @@ describe('ToolkitManager', () => {
     expect(screen.getByText('New Tool', { selector: 'h3' })).toBeInTheDocument()
   })
 
+  it('calls duplicateTool when Duplicate is chosen from a tool menu', async () => {
+    const tools = [makeTool({ id: 'tool-1', name: 'Prod dashboard' })]
+    window.electronAPI.listTools = vi.fn().mockResolvedValue(tools)
+    window.electronAPI.duplicateTool = vi.fn().mockResolvedValue(makeTool({ id: 'tool-2', name: 'Prod dashboard (2)' }))
+    const user = userEvent.setup()
+    render(<ToolkitManager />)
+
+    await waitFor(() => expect(screen.getByText('Prod dashboard')).toBeInTheDocument())
+    await user.click(screen.getByText('···'))
+    await user.click(screen.getByText('Duplicate'))
+    expect(window.electronAPI.duplicateTool).toHaveBeenCalledWith('tool-1')
+  })
+
   it('calls deleteTool when a tool deletion is confirmed', async () => {
     const tools = [makeTool({ id: 'tool-1', name: 'To Delete' })]
     window.electronAPI.listTools = vi.fn().mockResolvedValue(tools)

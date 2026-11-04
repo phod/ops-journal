@@ -11,6 +11,7 @@ interface Props {
   onClick?: (e: React.MouseEvent) => void
   onEdit: () => void
   onDelete: () => void
+  onDuplicate?: () => void
   onMoveToFolder?: (folderId: string | null) => void
   onDragStart?: (e: React.DragEvent) => void
   onDragOver?: (e: React.DragEvent) => void
@@ -19,7 +20,7 @@ interface Props {
   dropPosition?: 'before' | 'after'
 }
 
-export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, onEdit, onDelete, onMoveToFolder, onDragStart, onDragOver, onDragLeave, onDrop, dropPosition }: Props) {
+export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, onEdit, onDelete, onDuplicate, onMoveToFolder, onDragStart, onDragOver, onDragLeave, onDrop, dropPosition }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showMoveMenu, setShowMoveMenu] = useState(false)
@@ -153,6 +154,14 @@ export function ToolCard({ tool, depth = 0, folders = [], isSelected, onClick, o
             >
               Edit
             </button>
+            {onDuplicate && (
+              <button
+                onClick={() => { setMenuOpen(false); onDuplicate() }}
+                className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-600 transition-colors"
+              >
+                Duplicate
+              </button>
+            )}
             {onMoveToFolder && moveOptions.length > 0 && (
               <div className="relative">
                 <button

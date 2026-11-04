@@ -13,7 +13,7 @@ import {
 } from './db/investigations'
 import { listEntries, createEntry, updateEntry, deleteEntry, getEntry, toggleActionCompleted, toggleFlagged, updateHypothesisStatus, updateToolEntryStatus, linkHypothesisFinding, unlinkHypothesisFinding, linkHypothesisAction, unlinkHypothesisAction, getHypothesisFindings, getFindingHypotheses, linkHypothesisChild, unlinkHypothesisChild, getHypothesisNestingDepth, listPendingToolEntries } from './db/entries'
 import { listBoards, createBoard, deleteBoard, renameBoard, getBoardState, saveBoardState } from './db/rumour-boards'
-import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools, moveToolToFolder, moveToolsToFolder, reorderToolsInFolder } from './db/tools'
+import { listTools, createTool, createToolsBulk, updateTool, deleteTool, duplicateTool, reorderTools, moveToolToFolder, moveToolsToFolder, reorderToolsInFolder } from './db/tools'
 import { listToolFolders, createToolFolder, renameToolFolder, deleteToolFolder, moveToolFolderToFolder, reorderToolFoldersInParent } from './db/tool-folders'
 import { createReminder, getReminder, listReminders as listAllReminders, rescheduleReminder, completeReminder, dismissReminder, deleteReminder } from './db/reminders'
 import { getOverlayWindow, showManager, hideOverlay, showOverlay, navigateManagerToDetails, expandOverlayForBoard, restoreOverlayFromBoard, expandOverlayForSearch, restoreOverlayFromSearch, showToolkitOverlay, hideToolkitOverlay, getToolkitOverlayWindow, showTokeniserOverlay, hideTokeniserOverlay, getPreviousFrontApp } from './windows'
@@ -449,6 +449,12 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('tool:delete', (_event, { id }: { id: string }) => {
     deleteTool(id)
     broadcastToolsChanged()
+  })
+
+  ipcMain.handle('tool:duplicate', (_event, { id }: { id: string }) => {
+    const tool = duplicateTool(id)
+    broadcastToolsChanged()
+    return tool
   })
 
   ipcMain.handle('tool:reorder', (_event, { orderedIds }: { orderedIds: string[] }) => {

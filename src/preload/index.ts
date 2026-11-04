@@ -148,6 +148,7 @@ const electronAPI: ElectronAPI = {
   executeFunctionTool: (id: string, paramValues: Record<string, string>) =>
     ipcRenderer.invoke('tool:executeFunction', { id, paramValues }),
   deleteTool: (id: string) => ipcRenderer.invoke('tool:delete', { id }),
+  duplicateTool: (id: string) => ipcRenderer.invoke('tool:duplicate', { id }),
   reorderTools: (orderedIds: string[]) => ipcRenderer.invoke('tool:reorder', { orderedIds }),
   moveToolToFolder: (toolId: string, folderId: string | null) =>
     ipcRenderer.invoke('tool:moveToFolder', { toolId, folderId }),

@@ -8,7 +8,7 @@ vi.mock('../index', () => ({
   getDb: () => testDb
 }))
 
-import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools } from '../tools'
+import { listTools, createTool, createToolsBulk, updateTool, deleteTool, reorderTools, duplicateTool } from '../tools'
 
 beforeEach(() => {
   testDb = createTestDb()
@@ -280,5 +280,65 @@ describe('reorderTools', () => {
     const tools = listTools()
     expect(tools[0].sort_order).toBe(0)
     expect(tools[1].sort_order).toBe(1)
+  })
+})
+
+describe('duplicateTool', () => {
+  it('copies type, value, tags, parameters and folder', () => {
+    const params = [{ name: 'env', type: 'list' as const, options: ['prod', 'staging'], required: true }]
+    const original = createTool('Open env', 'function', 'openLink("https://" + env);', ['aws', 'console'], null, params)
+    const copy = duplicateTool(original.id)
+    expect(copy.id).not.toBe(original.id)
+    expect(copy.tool_type).toBe('function')
+    expect(copy.value).toBe('openLink("https://" + env);')
+    expect(copy.tags).toEqual(['aws', 'console'])
+    expect(copy.parameters).toEqual(params)
+    expect(copy.folder_id).toBeNull()
+  })
+
+  it('keeps the copy in the same folder as the original', () => {
+    testDb.prepare("INSERT INTO tool_folders (id, name, parent_id, sort_order) VALUES ('f1', 'AWS', NULL, 0)").run()
+    const original = createTool('Prod', 'link', 'https://prod', [], 'f1')
+    const copy = duplicateTool(original.id)
+    expect(copy.folder_id).toBe('f1')
+  })
+
+  it('appends (2) to the name', () => {
+    const original = createTool('Prod dashboard', 'link', 'https://prod', [])
+    expect(duplicateTool(original.id).name).toBe('Prod dashboard (2)')
+  })
+
+  it('increments the suffix when (2) is already taken by a sibling', () => {
+    const original = createTool('Prod dashboard', 'link', 'https://prod', [])
+    duplicateTool(original.id)
+    expect(duplicateTool(original.id).name).toBe('Prod dashboard (3)')
+  })
+
+  it('increments an existing numeric suffix instead of stacking them', () => {
+    createTool('Prod dashboard', 'link', 'https://prod', [])
+    const second = createTool('Prod dashboard (2)', 'link', 'https://prod', [])
+    expect(duplicateTool(second.id).name).toBe('Prod dashboard (3)')
+  })
+
+  it('ignores same-named tools in other folders when picking a suffix', () => {
+    testDb.prepare("INSERT INTO tool_folders (id, name, parent_id, sort_order) VALUES ('f1', 'AWS', NULL, 0)").run()
+    createTool('Prod dashboard (2)', 'link', 'https://prod', [], 'f1')
+    const original = createTool('Prod dashboard', 'link', 'https://prod', [])
+    expect(duplicateTool(original.id).name).toBe('Prod dashboard (2)')
+  })
+
+  it('places the copy directly below the original and shifts later siblings down', () => {
+    const a = createTool('A', 'link', 'https://a', [])
+    const b = createTool('B', 'link', 'https://b', [])
+    const c = createTool('C', 'link', 'https://c', [])
+    const copy = duplicateTool(a.id)
+    const ordered = listTools().map((t) => [t.name, t.sort_order])
+    expect(ordered).toEqual([['A', 0], ['A (2)', 1], ['B', 2], ['C', 3]])
+    expect(copy.sort_order).toBe(1)
+    expect([b.id, c.id]).not.toContain(copy.id)
+  })
+
+  it('throws when the tool does not exist', () => {
+    expect(() => duplicateTool('missing')).toThrow(/not found/i)
   })
 })

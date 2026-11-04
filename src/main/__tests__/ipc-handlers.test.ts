@@ -114,6 +114,7 @@ const {
     createToolsBulk: vi.fn().mockReturnValue([]),
     updateTool: vi.fn(),
     deleteTool: vi.fn(),
+    duplicateTool: vi.fn().mockReturnValue({ id: 'tool-2', name: 'Test Tool (2)' }),
     reorderTools: vi.fn(),
     moveToolToFolder: vi.fn(),
     moveToolsToFolder: vi.fn(),
@@ -593,6 +594,19 @@ describe('tool entry handlers', () => {
 // ---------------------------------------------------------------------------
 // Broadcast helpers
 // ---------------------------------------------------------------------------
+
+describe('tool handlers', () => {
+  it('tool:duplicate duplicates the tool and returns the copy', () => {
+    const result = invoke('tool:duplicate', { id: 'tool-1' })
+    expect(mockTools.duplicateTool).toHaveBeenCalledWith('tool-1')
+    expect(result).toEqual({ id: 'tool-2', name: 'Test Tool (2)' })
+  })
+
+  it('tool:duplicate broadcasts tools:changed', () => {
+    invoke('tool:duplicate', { id: 'tool-1' })
+    expect(mockWebContentsSend).toHaveBeenCalledWith('tools:changed', expect.any(Array))
+  })
+})
 
 describe('broadcast behavior', () => {
   it('does not send to destroyed windows', async () => {

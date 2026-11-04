@@ -217,6 +217,7 @@ export interface ElectronAPI {
   updateTool: (id: string, name: string, toolType: ToolType, value: string, tags: string[], parameters?: FunctionParameter[] | null) => Promise<Tool>
   executeFunctionTool: (id: string, paramValues: Record<string, string>) => Promise<void>
   deleteTool: (id: string) => Promise<void>
+  duplicateTool: (id: string) => Promise<Tool>
   reorderTools: (orderedIds: string[]) => Promise<void>
   moveToolToFolder: (toolId: string, folderId: string | null) => Promise<void>
   moveToolsToFolder: (toolIds: string[], folderId: string | null) => Promise<void>

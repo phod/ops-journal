@@ -195,6 +195,10 @@ export function ToolkitManager() {
     setShowForm(true)
   }
 
+  async function handleDuplicate(tool: Tool) {
+    await window.electronAPI.duplicateTool(tool.id)
+  }
+
   async function handleDelete(tool: Tool) {
     await window.electronAPI.deleteTool(tool.id)
   }
@@ -442,6 +446,7 @@ export function ToolkitManager() {
             onClick={(e) => handleToolClick(e, node.tool.id)}
             onEdit={() => handleEdit(node.tool)}
             onDelete={() => handleDelete(node.tool)}
+            onDuplicate={() => handleDuplicate(node.tool)}
             onMoveToFolder={(folderId) => handleMoveToolToFolder(node.tool.id, folderId)}
             onDragStart={(e) => handleToolDragStart(e, node.tool.id)}
             onDragOver={(e) => handleToolDragOver(e, node.tool.id, node.tool.folder_id)}

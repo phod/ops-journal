@@ -107,6 +107,7 @@ const DEFAULT_MOCKS = {
   createTool: vi.fn(),
   updateTool: vi.fn(),
   deleteTool: vi.fn(),
+  duplicateTool: vi.fn(),
   reorderTools: vi.fn(),
   executeTool: vi.fn(),
   getToolkitHotkey: vi.fn().mockResolvedValue('CommandOrControl+Shift+K'),

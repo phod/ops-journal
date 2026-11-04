@@ -61,6 +61,25 @@ describe('ToolCard', () => {
     expect(screen.getByText('Delete')).toBeInTheDocument()
   })
 
+  it('shows Duplicate in the overflow menu', async () => {
+    const user = userEvent.setup()
+    render(<ToolCard tool={makeTool()} onEdit={vi.fn()} onDelete={vi.fn()} onDuplicate={vi.fn()} />)
+
+    await user.click(screen.getByText('···'))
+    expect(screen.getByText('Duplicate')).toBeInTheDocument()
+  })
+
+  it('calls onDuplicate and closes the menu when Duplicate is clicked', async () => {
+    const onDuplicate = vi.fn()
+    const user = userEvent.setup()
+    render(<ToolCard tool={makeTool()} onEdit={vi.fn()} onDelete={vi.fn()} onDuplicate={onDuplicate} />)
+
+    await user.click(screen.getByText('···'))
+    await user.click(screen.getByText('Duplicate'))
+    expect(onDuplicate).toHaveBeenCalledOnce()
+    expect(screen.queryByText('Duplicate')).not.toBeInTheDocument()
+  })
+
   it('calls onEdit when Edit is clicked', async () => {
     const onEdit = vi.fn()
     const user = userEvent.setup()

@@ -81,6 +81,17 @@ function sharedWebPreferences(): Electron.WebPreferences {
   }
 }
 
+// On macOS the overlays must be non-activating panels (NSPanel). A plain
+// BrowserWindow's show()/focus() activates the whole app first, and while the
+// manager window is open the app runs under the "regular" activation policy.
+// Activating a regular app makes macOS switch to the Space holding the app's
+// other windows (or away from another app's fullscreen Space), which is what
+// made the overlay look "stuck" to one desktop. A panel takes keyboard focus
+// without activating the app, so it always opens on the current Space.
+function overlayWindowType(): Pick<Electron.BrowserWindowConstructorOptions, 'type'> {
+  return process.platform === 'darwin' ? { type: 'panel' } : {}
+}
+
 export function createOverlayWindow(): BrowserWindow {
   const saved = loadBounds()
   const win = new BrowserWindow({
@@ -95,6 +106,7 @@ export function createOverlayWindow(): BrowserWindow {
     show: false,
     resizable: true,
     hasShadow: true,
+    ...overlayWindowType(),
     webPreferences: sharedWebPreferences()
   })
 
@@ -345,6 +357,7 @@ export function createToolkitOverlayWindow(): BrowserWindow {
     show: false,
     resizable: true,
     hasShadow: true,
+    ...overlayWindowType(),
     webPreferences: sharedWebPreferences()
   })
 
@@ -448,6 +461,7 @@ export function createTokeniserOverlayWindow(): BrowserWindow {
     show: false,
     resizable: true,
     hasShadow: true,
+    ...overlayWindowType(),
     webPreferences: sharedWebPreferences()
   })
 
